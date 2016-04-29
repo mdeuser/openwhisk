@@ -36,6 +36,12 @@ type Package struct {
 	Bindings  bool  `json:"binding"`
 }
 
+type Package2 struct {
+
+	Publish   bool   `json:"publish,omitempty"`
+
+}
+
 type Binding struct {
 	Namespace string `json:"namespace"`
 	Name      string `json:"name"`
@@ -96,9 +102,14 @@ func (s *PackageService) Get(packageName string) (*Package, *http.Response, erro
 }
 
 func (s *PackageService) Insert(x_package *Package, overwrite bool) (*Package, *http.Response, error) {
-	route := fmt.Sprintf("packages/%s?overwrite=%t", x_package.Name, overwrite)
+	route := fmt.Sprintf("packages/%s?overwrite=%t", "slack", overwrite)
 
-	req, err := s.client.NewRequest("PUT", route, x_package)
+	p2 := Package2{
+		Publish: x_package.Publish,
+	}
+
+	fmt.Printf("Route: %s\n", route)
+	req, err := s.client.NewRequest("PUT", route, p2)
 	if err != nil {
 		return nil, nil, err
 	}
