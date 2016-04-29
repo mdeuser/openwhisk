@@ -56,7 +56,6 @@ func init() {
                 fmt.Println(err)
                 os.Exit(-1)
         }
-
 }
 
 func Execute() error {
