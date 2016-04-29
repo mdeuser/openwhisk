@@ -134,10 +134,42 @@ var packageCreateCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("%s created package %s\n", color.GreenString("ok:"), boldString(p.Name))
+		fmt.Printf("%s created package %s\n", color.GreenString("ok:"), boldString(packageName))
 	},
 }
 
+/*
+usage: wsk package update [-h] [-u AUTH] [-a ANNOTATION ANNOTATION]
+                          [-p PARAM PARAM] [--shared [{yes,no}]]
+                          name
+
+positional arguments:
+  name                  the name of the package
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -u AUTH, --auth AUTH  authorization key
+  -a ANNOTATION ANNOTATION, --annotation ANNOTATION ANNOTATION
+                        annotations
+  -p PARAM PARAM, --param PARAM PARAM
+                        default parameters
+  --shared [{yes,no}]   shared action (default: private)
+
+  UPDATE:
+  	If --shared is present, published is true. Otherwise, published is false.
+
+PUT https://172.17.0.1/api/v1/namespaces/_/packages/slack?overwrite=true: 400  []
+    https://172.17.0.1/api/v1/namespaces/_/packages/slack?overwrite=true
+
+Request URL
+
+https://raw.githubusercontent.com/api/v1/namespaces/_/packages/slack?overwrite=true
+
+payload:
+	{"name":"slack","publish":true,"annotations":[],"parameters":[],"binding":false}
+
+
+ */
 var packageUpdateCmd = &cobra.Command{
 	Use:   "update <name string>",
 	Short: "update an existing package",
@@ -146,13 +178,13 @@ var packageUpdateCmd = &cobra.Command{
 		// TODO :: parse annotations
 		// TODO ::parse parameters
 		var err error
-		if len(args) != 1 {
+		if len(args) < 1 {
 			err = errors.New("Invalid argument")
 			fmt.Println(err)
 			return
 		}
 
-		packageName := args[0]
+		packageName := args[1 /*len(args) - 1*/]
 
 		parameters, err := parseParameters(flags.common.param)
 		if err != nil {
@@ -179,8 +211,7 @@ var packageUpdateCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("%s updated package %s\n", color.GreenString("ok:"), boldString(p.Name))
-
+		fmt.Printf("%s updated package %s\n", color.GreenString("ok:"), boldString(packageName))
 	},
 }
 

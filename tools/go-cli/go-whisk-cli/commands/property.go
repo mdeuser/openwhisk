@@ -19,12 +19,12 @@ package commands
 import (
 	"bufio"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
+	"net"
 )
 
 var Properties struct {
@@ -116,19 +116,19 @@ var propertyUnsetCmd = &cobra.Command{
 
 		// read in each flag, update if necessary
 
-		if flags.property.auth {
+		if len(flags.property.auth) > 0 {
 			delete(props, "AUTH")
 		}
 
-		if flags.property.namespace {
+		if len(flags.property.namespace) > 0 {
 			delete(props, "NAMESPACE")
 		}
 
-		if flags.property.apihost {
+		if len(flags.property.apihost) > 0 {
 			delete(props, "APIHOST")
 		}
 
-		if flags.property.apiversion {
+		if len(flags.property.apiversion) > 0 {
 			delete(props, "APIVERSION")
 		}
 
@@ -145,27 +145,27 @@ var propertyGetCmd = &cobra.Command{
 	Short: "get property",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if flags.property.all || flags.property.auth {
+		if flags.property.all || len(flags.property.auth) > 0 {
 			fmt.Println("whisk auth\t\t", Properties.Auth)
 		}
 
-		if flags.property.all || flags.property.apihost {
+		if flags.property.all || len(flags.property.apihost) > 0 {
 			fmt.Println("whisk API host\t\t", Properties.APIHost)
 		}
 
-		if flags.property.all || flags.property.apiversion {
+		if flags.property.all || len(flags.property.apiversion) > 0 {
 			fmt.Println("whisk API version\t", Properties.APIVersion)
 		}
 
-		if flags.property.all || flags.property.cliversion {
+		if flags.property.all|| len(flags.property.cliversion) > 0 {
 			fmt.Println("whisk CLI version\t", Properties.CLIVersion)
 		}
 
-		if flags.property.all || flags.property.namespace {
+		if flags.property.all || len(flags.property.namespace) > 0 {
 			fmt.Println("whisk namespace\t\t", Properties.Namespace)
 		}
 
-		if flags.property.all || flags.property.apibuild {
+		if flags.property.all || len(flags.property.apibuild) > 0 {
 			info, _, err := client.Info.Get()
 			if err != nil {
 				fmt.Println(err)
@@ -185,15 +185,15 @@ func init() {
 	)
 
 	// need to set property flags as booleans instead of strings... perhaps with boolApihost...
-	propertyGetCmd.Flags().BoolVarP(&flags.property.auth, "auth", "u", false, "authorization key")
-	propertyGetCmd.Flags().BoolVar(&flags.property.apihost, "apihost", false, "whisk API host")
-	propertyGetCmd.Flags().BoolVar(&flags.property.apiversion, "apiversion", false, "whisk API version")
-	propertyGetCmd.Flags().BoolVar(&flags.property.apibuild, "apibuild", false, "whisk API build version")
-	propertyGetCmd.Flags().BoolVar(&flags.property.cliversion, "cliversion", false, "whisk CLI version")
-	propertyGetCmd.Flags().BoolVar(&flags.property.namespace, "namespace", false, "authorization key")
+	propertyGetCmd.Flags().StringVarP(&flags.property.auth, "auth", "a", "", "authorization key")
+	propertyGetCmd.Flags().StringVarP(&flags.property.apihost, "apihost", "h", "", "whisk API host")
+	propertyGetCmd.Flags().StringVarP(&flags.property.apiversion, "apiversion", "v", "", "whisk API version")
+	propertyGetCmd.Flags().StringVarP(&flags.property.apibuild, "apibuild", "b", "", "whisk API build version")
+	propertyGetCmd.Flags().StringVarP(&flags.property.cliversion, "cliversion", "v", "", "whisk CLI version")
+	propertyGetCmd.Flags().StringVarP(&flags.property.namespace, "namespace", "s", "", "authorization key")
 	propertyGetCmd.Flags().BoolVar(&flags.property.all, "all", false, "all properties")
 
-	propertySetCmd.Flags().StringVarP(&flags.global.auth, "auth", "u", "", "authorization key")
+	/*propertySetCmd.Flags().StringVarP(&flags.global.auth, "auth", "u", "", "authorization key")
 	propertySetCmd.Flags().StringVar(&flags.property.apihostSet, "apihost", "", "whisk API host")
 	propertySetCmd.Flags().StringVar(&flags.property.apiversionSet, "apiversion", "", "whisk API version")
 	propertySetCmd.Flags().StringVar(&flags.property.namespaceSet, "namespace", "", "whisk namespace")
@@ -201,7 +201,7 @@ func init() {
 	propertyUnsetCmd.Flags().BoolVarP(&flags.property.auth, "auth", "u", false, "authorization key")
 	propertyUnsetCmd.Flags().BoolVar(&flags.property.apihost, "apihost", false, "whisk API host")
 	propertyUnsetCmd.Flags().BoolVar(&flags.property.apiversion, "apiversion", false, "whisk API version")
-	propertyUnsetCmd.Flags().BoolVar(&flags.property.namespace, "namespace", false, "whisk namespace")
+	propertyUnsetCmd.Flags().BoolVar(&flags.property.namespace, "namespace", false, "whisk namespace")*/
 
 }
 
@@ -283,13 +283,13 @@ func parseConfigFlags(cmd *cobra.Command, args []string) {
 	}
 
 	if apiHost := flags.global.apihost; len(apiHost) > 0 {
-		fmt.Println(apiHost)
 		Properties.APIHost = apiHost
-		u, err := url.ParseRequestURI(apiHost)
-		if err == nil {
-			client.Config.BaseURL = u
+		parsedIP := net.ParseIP(apiHost)
+
+		if parsedIP != nil {
+			client.Config.Host = apiHost
 		} else {
-			fmt.Println(err)
+			fmt.Println("Invalid IP address.")
 			os.Exit(-1)
 		}
 	}
