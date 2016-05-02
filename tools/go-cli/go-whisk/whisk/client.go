@@ -127,7 +127,6 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
                         return nil, err
                 }
         }
-        fmt.Println("Buf: %s\n", buf)
         req, err := http.NewRequest(method, u.String(), buf)
         if err != nil {
                 return nil, err
@@ -162,7 +161,8 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
                         printJSON(req.Header)
                 }
                 if req.Body != nil {
-                        printJSON(req.Body)
+                        fmt.Println("Body")
+                        fmt.Println(req.Body)
                 }
         }
 

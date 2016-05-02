@@ -80,6 +80,25 @@ func parseQualifiedName(name string) (qName qualifiedName, err error) {
 
 }
 
+func parseGenericArray(args []string) (whisk.Annotations, error) {
+        parsed := make(whisk.Annotations, 0)
+
+        if len(args)%2 != 0 {
+                err := errors.New("key|value arguments must be submitted in comma-separated pairs")
+                return parsed, err
+        }
+
+        for i := 0; i < len(args); i += 2 {
+                parsedItem := make(map[string]interface{}, 0)
+                parsedItem["key"] = args[i]
+                parsedItem["value"] = args[i + 1]
+                parsed = append(parsed, parsedItem)
+        }
+
+        return parsed, nil
+}
+
+
 func parseKeyValueArray(args []string) ([]whisk.KeyValue, error) {
         parsed := []whisk.KeyValue{}
         if len(args)%2 != 0 {
@@ -90,7 +109,7 @@ func parseKeyValueArray(args []string) ([]whisk.KeyValue, error) {
         for i := 0; i < len(args); i += 2 {
                 keyValue := whisk.KeyValue{
                         Key:   args[i],
-                        //Value: (map[string]interface)args[i+1],
+                        //Value: args[i+1],
                 }
                 parsed = append(parsed, keyValue)
 
@@ -111,10 +130,14 @@ func parseParameters(args []string) (whisk.Parameters, error) {
 func parseAnnotations(args []string) (whisk.Annotations, error) {
         annotations := whisk.Annotations{}
         //parsedArgs, err := parseKeyValueArray(args)
-        //if err != nil {
-        //	return annotations, err
-        //}
-        //annotations = whisk.Annotations(parsedArgs)
+
+        parsedArgs, err := parseGenericArray(args)
+        if err != nil {
+        	return annotations, err
+        }
+
+        annotations = whisk.Annotations(parsedArgs)
+
         return annotations, nil
 }
 
