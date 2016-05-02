@@ -17,269 +17,269 @@ limitations under the License.
 package commands
 
 import (
-	"errors"
-	"fmt"
+        "errors"
+        "fmt"
 
-	"../../go-whisk/whisk"
+        "../../go-whisk/whisk"
 
-	"github.com/fatih/color"
-	"github.com/spf13/cobra"
+        "github.com/fatih/color"
+        "github.com/spf13/cobra"
 )
 
 // ruleCmd represents the rule command
 var ruleCmd = &cobra.Command{
-	Use:   "rule",
-	Short: "work with rules",
+        Use:   "rule",
+        Short: "work with rules",
 }
 
 var ruleEnableCmd = &cobra.Command{
-	Use:   "enable <name string>",
-	Short: "enable rule",
+        Use:   "enable <name string>",
+        Short: "enable rule",
 
-	Run: func(cmd *cobra.Command, args []string) {
+        Run: func(cmd *cobra.Command, args []string) {
 
-		var err error
-		if len(args) != 1 {
-			err = errors.New("Invalid argument")
-			fmt.Println(err)
-			return
-		}
+                var err error
+                if len(args) != 1 {
+                        err = errors.New("Invalid argument")
+                        fmt.Println(err)
+                        return
+                }
 
-		ruleName := args[0]
+                ruleName := args[0]
 
-		_, _, err = client.Rules.SetState(ruleName, "enable")
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Printf("%s enabled rule %s\n", color.GreenString("ok:"), boldString(ruleName))
-	},
+                _, _, err = client.Rules.SetState(ruleName, "enable")
+                if err != nil {
+                        fmt.Println(err)
+                        return
+                }
+                fmt.Printf("%s enabled rule %s\n", color.GreenString("ok:"), boldString(ruleName))
+        },
 }
 
 var ruleDisableCmd = &cobra.Command{
-	Use:   "disable <name string>",
-	Short: "disable rule",
+        Use:   "disable <name string>",
+        Short: "disable rule",
 
-	Run: func(cmd *cobra.Command, args []string) {
+        Run: func(cmd *cobra.Command, args []string) {
 
-		var err error
-		if len(args) != 1 {
-			err = errors.New("Invalid argument")
-			fmt.Println(err)
-			return
-		}
+                var err error
+                if len(args) != 1 {
+                        err = errors.New("Invalid argument")
+                        fmt.Println(err)
+                        return
+                }
 
-		ruleName := args[0]
+                ruleName := args[0]
 
-		_, _, err = client.Rules.SetState(ruleName, "disable")
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Printf("%s disabled rule %s\n", color.GreenString("ok:"), boldString(ruleName))
-	},
+                _, _, err = client.Rules.SetState(ruleName, "disable")
+                if err != nil {
+                        fmt.Println(err)
+                        return
+                }
+                fmt.Printf("%s disabled rule %s\n", color.GreenString("ok:"), boldString(ruleName))
+        },
 }
 
 var ruleStatusCmd = &cobra.Command{
-	Use:   "status <name string>",
-	Short: "get rule status",
+        Use:   "status <name string>",
+        Short: "get rule status",
 
-	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: how is this different than "rule get" ??
-		fmt.Println("rule status called")
-	},
+        Run: func(cmd *cobra.Command, args []string) {
+                // TODO: how is this different than "rule get" ??
+                fmt.Println("rule status called")
+        },
 }
 
 var ruleCreateCmd = &cobra.Command{
-	Use:   "create <name string> <trigger string> <action string>",
-	Short: "create new rule",
+        Use:   "create <name string> <trigger string> <action string>",
+        Short: "create new rule",
 
-	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		if len(args) != 3 {
-			err = errors.New("Invalid argument list")
-			fmt.Println(err)
-			return
-		}
+        Run: func(cmd *cobra.Command, args []string) {
+                var err error
+                if len(args) != 3 {
+                        err = errors.New("Invalid argument list")
+                        fmt.Println(err)
+                        return
+                }
 
-		ruleName := args[0]
-		triggerName := args[1]
-		actionName := args[2]
+                ruleName := args[0]
+                triggerName := args[1]
+                actionName := args[2]
 
-		rule := &whisk.Rule{
-			Name:    ruleName,
-			Trigger: triggerName,
-			Action:  actionName,
-			Publish: flags.common.shared,
-		}
+                rule := &whisk.Rule{
+                        Name:    ruleName,
+                        Trigger: triggerName,
+                        Action:  actionName,
+                        Publish: flags.common.shared,
+                }
 
-		rule, _, err = client.Rules.Insert(rule, false)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+                rule, _, err = client.Rules.Insert(rule, false)
+                if err != nil {
+                        fmt.Println(err)
+                        return
+                }
 
-		if flags.rule.enable {
-			rule, _, err = client.Rules.SetState(ruleName, "enabled")
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-		}
+                if flags.rule.enable {
+                        rule, _, err = client.Rules.SetState(ruleName, "enabled")
+                        if err != nil {
+                                fmt.Println(err)
+                                return
+                        }
+                }
 
-		fmt.Printf("%s created rule %s\n", color.GreenString("ok:"), boldString(ruleName))
-	},
+                fmt.Printf("%s created rule %s\n", color.GreenString("ok:"), boldString(ruleName))
+        },
 }
 
 var ruleUpdateCmd = &cobra.Command{
-	Use:   "update <name string> <trigger string> <action string>",
-	Short: "update existing rule",
+        Use:   "update <name string> <trigger string> <action string>",
+        Short: "update existing rule",
 
-	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		if len(args) != 3 {
-			err = errors.New("Invalid argument list")
-			fmt.Println(err)
-			return
-		}
+        Run: func(cmd *cobra.Command, args []string) {
+                var err error
+                if len(args) != 3 {
+                        err = errors.New("Invalid argument list")
+                        fmt.Println(err)
+                        return
+                }
 
-		ruleName := args[0]
-		triggerName := args[1]
-		actionName := args[2]
+                ruleName := args[0]
+                triggerName := args[1]
+                actionName := args[2]
 
-		rule := &whisk.Rule{
-			Name:    ruleName,
-			Trigger: triggerName,
-			Action:  actionName,
-			Publish: flags.common.shared,
-		}
+                rule := &whisk.Rule{
+                        Name:    ruleName,
+                        Trigger: triggerName,
+                        Action:  actionName,
+                        Publish: flags.common.shared,
+                }
 
-		rule, _, err = client.Rules.Insert(rule, true)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Printf("%s updated rule %s\n", color.GreenString("ok:"), boldString(ruleName))
-	},
+                rule, _, err = client.Rules.Insert(rule, true)
+                if err != nil {
+                        fmt.Println(err)
+                        return
+                }
+                fmt.Printf("%s updated rule %s\n", color.GreenString("ok:"), boldString(ruleName))
+        },
 }
 
 var ruleGetCmd = &cobra.Command{
-	Use:   "get <name string>",
-	Short: "get rule",
+        Use:   "get <name string>",
+        Short: "get rule",
 
-	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		if len(args) != 1 {
-			err = errors.New("Invalid argument")
-			fmt.Println(err)
-			return
-		}
+        Run: func(cmd *cobra.Command, args []string) {
+                var err error
+                if len(args) != 1 {
+                        err = errors.New("Invalid argument")
+                        fmt.Println(err)
+                        return
+                }
 
-		ruleName := args[0]
+                ruleName := args[0]
 
-		rule, _, err := client.Rules.Get(ruleName)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Printf("%s got rule %s\n", color.GreenString("ok:"), boldString(ruleName))
-		printJSON(rule)
-	},
+                rule, _, err := client.Rules.Get(ruleName)
+                if err != nil {
+                        fmt.Println(err)
+                        return
+                }
+                fmt.Printf("%s got rule %s\n", color.GreenString("ok:"), boldString(ruleName))
+                printJSON(rule)
+        },
 }
 
 var ruleDeleteCmd = &cobra.Command{
-	Use:   "delete <name string>",
-	Short: "delete rule",
+        Use:   "delete <name string>",
+        Short: "delete rule",
 
-	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		if len(args) != 1 {
-			err = errors.New("Invalid argument")
-			fmt.Println(err)
-			return
-		}
+        Run: func(cmd *cobra.Command, args []string) {
+                var err error
+                if len(args) != 1 {
+                        err = errors.New("Invalid argument")
+                        fmt.Println(err)
+                        return
+                }
 
-		ruleName := args[0]
+                ruleName := args[0]
 
-		if flags.rule.disable {
-			_, _, err := client.Rules.SetState(ruleName, "disabled")
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-		}
+                if flags.rule.disable {
+                        _, _, err := client.Rules.SetState(ruleName, "disabled")
+                        if err != nil {
+                                fmt.Println(err)
+                                return
+                        }
+                }
 
-		_, err = client.Rules.Delete(ruleName)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Printf("%s deleted rule %s\n", color.GreenString("ok:"), boldString(ruleName))
-	},
+                _, err = client.Rules.Delete(ruleName)
+                if err != nil {
+                        fmt.Println(err)
+                        return
+                }
+                fmt.Printf("%s deleted rule %s\n", color.GreenString("ok:"), boldString(ruleName))
+        },
 }
 
 var ruleListCmd = &cobra.Command{
-	Use:   "list <namespace string>",
-	Short: "list all rules",
+        Use:   "list <namespace string>",
+        Short: "list all rules",
 
-	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		qName := qualifiedName{}
-		if len(args) == 1 {
-			qName, err = parseQualifiedName(args[0])
-			if err != nil {
-				fmt.Printf("error: %s", err)
-				return
-			}
-			ns := qName.namespace
-			if len(ns) == 0 {
-				err = errors.New("No valid namespace detected.  Make sure that namespace argument is preceded by a \"/\"")
-				fmt.Printf("error: %s\n", err)
-				return
-			}
+        Run: func(cmd *cobra.Command, args []string) {
+                var err error
+                qName := qualifiedName{}
+                if len(args) == 1 {
+                        qName, err = parseQualifiedName(args[0])
+                        if err != nil {
+                                fmt.Printf("error: %s", err)
+                                return
+                        }
+                        ns := qName.namespace
+                        if len(ns) == 0 {
+                                err = errors.New("No valid namespace detected.  Make sure that namespace argument is preceded by a \"/\"")
+                                fmt.Printf("error: %s\n", err)
+                                return
+                        }
 
-			client.Namespace = ns
+                        client.Namespace = ns
 
-			if pkg := qName.packageName; len(pkg) > 0 {
-				// todo :: scope call to package
-			}
-		}
+                        if pkg := qName.packageName; len(pkg) > 0 {
+                                // todo :: scope call to package
+                        }
+                }
 
-		ruleListOptions := &whisk.RuleListOptions{
-			Skip:  flags.common.skip,
-			Limit: flags.common.limit,
-		}
+                ruleListOptions := &whisk.RuleListOptions{
+                        Skip:  flags.common.skip,
+                        Limit: flags.common.limit,
+                }
 
-		rules, _, err := client.Rules.List(ruleListOptions)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		printList(rules)
-	},
+                rules, _, err := client.Rules.List(ruleListOptions)
+                if err != nil {
+                        fmt.Println(err)
+                        return
+                }
+                printList(rules)
+        },
 }
 
 func init() {
 
-	ruleCreateCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "shared action (default: private)")
-	ruleCreateCmd.Flags().BoolVar(&flags.rule.enable, "enable", false, "autmatically enable rule after creating it")
+        ruleCreateCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "shared action (default: private)")
+        ruleCreateCmd.Flags().BoolVar(&flags.rule.enable, "enable", false, "autmatically enable rule after creating it")
 
-	ruleUpdateCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "shared action (default: private)")
+        ruleUpdateCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "shared action (default: private)")
 
-	ruleDeleteCmd.Flags().BoolVar(&flags.rule.disable, "disable", false, "autmatically disable rule before deleting it")
+        ruleDeleteCmd.Flags().BoolVar(&flags.rule.disable, "disable", false, "autmatically disable rule before deleting it")
 
-	ruleListCmd.Flags().IntVarP(&flags.common.skip, "skip", "s", 0, "skip this many entities from the head of the collection")
-	ruleListCmd.Flags().IntVarP(&flags.common.limit, "limit", "l", 30, "only return this many entities from the collection")
+        ruleListCmd.Flags().IntVarP(&flags.common.skip, "skip", "s", 0, "skip this many entities from the head of the collection")
+        ruleListCmd.Flags().IntVarP(&flags.common.limit, "limit", "l", 30, "only return this many entities from the collection")
 
-	ruleCmd.AddCommand(
-		ruleEnableCmd,
-		ruleDisableCmd,
-		ruleStatusCmd,
-		ruleCreateCmd,
-		ruleUpdateCmd,
-		ruleGetCmd,
-		ruleDeleteCmd,
-		ruleListCmd,
-	)
+        ruleCmd.AddCommand(
+                ruleEnableCmd,
+                ruleDisableCmd,
+                ruleStatusCmd,
+                ruleCreateCmd,
+                ruleUpdateCmd,
+                ruleGetCmd,
+                ruleDeleteCmd,
+                ruleListCmd,
+        )
 
 }
