@@ -102,7 +102,7 @@ func (s *PackageService) Get(packageName string) (*Package, *http.Response, erro
 }
 
 func (s *PackageService) Insert(x_package *Package, overwrite bool) (*Package, *http.Response, error) {
-	route := fmt.Sprintf("packages/%s?overwrite=%t", "slack", overwrite)
+	route := fmt.Sprintf("packages/%s?overwrite=%t", x_package.Name, overwrite)
 
 	p2 := Package2{
 		Publish: x_package.Publish,
