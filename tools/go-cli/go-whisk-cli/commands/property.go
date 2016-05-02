@@ -189,7 +189,7 @@ func init() {
 	propertyGetCmd.Flags().StringVarP(&flags.property.apihost, "apihost", "h", "", "whisk API host")
 	propertyGetCmd.Flags().StringVarP(&flags.property.apiversion, "apiversion", "v", "", "whisk API version")
 	propertyGetCmd.Flags().StringVarP(&flags.property.apibuild, "apibuild", "b", "", "whisk API build version")
-	propertyGetCmd.Flags().StringVarP(&flags.property.cliversion, "cliversion", "v", "", "whisk CLI version")
+	propertyGetCmd.Flags().StringVarP(&flags.property.cliversion, "cliversion", "c", "", "whisk CLI version")
 	propertyGetCmd.Flags().StringVarP(&flags.property.namespace, "namespace", "s", "", "authorization key")
 	propertyGetCmd.Flags().BoolVar(&flags.property.all, "all", false, "all properties")
 
