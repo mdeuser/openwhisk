@@ -12,24 +12,24 @@ source "$CATALOG_HOME/util.sh"
 echo Installing Watson package.
 
 createPackage watson \
-    -a description "Actions for the Watson analytics APIs" \
-    -a parameters '[ {"name":"username", "required":false}, {"name":"password", "required":false, "type":"password"} ]'
+    -a description, "Actions for the Watson analytics APIs" \
+    -a parameters, '[ {"name":"username", "required":false}, {"name":"password", "required":false, "type":"password"} ]'
 
 waitForAll
 
 install "$CATALOG_HOME/watson/translate.js" \
     watson/translate \
-    -a description 'Translate text' \
-    -a parameters '[ {"name":"translateFrom", "required":false}, {"name":"translateTo", "required":false}, {"name":"translateParam", "required":false}, {"name":"username", "required":true, "bindTime":true}, {"name":"password", "required":true, "type":"password", "bindTime":true} ]' \
-    -a sampleInput '{"translateFrom":"en", "translateTo":"fr", "payload":"Hello", "username":"XXX", "password":"XXX"}' \
-    -a sampleOutput '{"payload":"Bonjour"}'
+    -a description, 'Translate text' \
+    -a parameters, '[ {"name":"translateFrom", "required":false}, {"name":"translateTo", "required":false}, {"name":"translateParam", "required":false}, {"name":"username", "required":true, "bindTime":true}, {"name":"password", "required":true, "type":"password", "bindTime":true} ]' \
+    -a sampleInput, '{"translateFrom":"en", "translateTo":"fr", "payload":"Hello", "username":"XXX", "password":"XXX"}' \
+    -a sampleOutput, '{"payload":"Bonjour"}'
 
 install "$CATALOG_HOME/watson/languageId.js" \
     watson/languageId \
-    -a description 'Identify language' \
-    -a parameters '[ {"name":"username", "required":true, "bindTime":true}, {"name":"password", "required":true, "type":"password", "bindTime":true}, {"name":"payload", "required":true} ]' \
-    -a sampleInput '{"payload": "Bonjour", "username":"XXX", "password":"XXX"}' \
-    -a sampleOutput '{"language": "French", "confidence": 1}'
+    -a description, 'Identify language' \
+    -a parameters, '[ {"name":"username", "required":true, "bindTime":true}, {"name":"password", "required":true, "type":"password", "bindTime":true}, {"name":"payload", "required":true} ]' \
+    -a sampleInput, '{"payload": "Bonjour", "username":"XXX", "password":"XXX"}' \
+    -a sampleOutput, '{"language": "French", "confidence": 1}'
 
 waitForAll
 
