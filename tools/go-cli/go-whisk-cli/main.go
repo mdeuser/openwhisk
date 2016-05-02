@@ -17,21 +17,21 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
+        "fmt"
 
-	"../go-whisk-cli/commands"
+        "../go-whisk-cli/commands"
 )
 
 func main() {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println(r)
-			fmt.Println("Application exited unexpectedly")
-		}
-	}()
+        defer func() {
+                if r := recover(); r != nil {
+                        fmt.Println(r)
+                        fmt.Println("Application exited unexpectedly")
+                }
+        }()
 
-	if err := commands.Execute(); err != nil {
-		fmt.Println(err)
-		return
-	}
+        if err := commands.Execute(); err != nil {
+                fmt.Println(err)
+                return
+        }
 }

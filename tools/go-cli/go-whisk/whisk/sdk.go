@@ -17,16 +17,16 @@ limitations under the License.
 package whisk
 
 type SdkService struct {
-	client *Client
+        client *Client
 }
 
 // Structure for SDK request responses
 type Sdk struct {
-	// TODO :: Add SDK fields
+        // TODO :: Add SDK fields
 }
 
 type SdkRequest struct {
-	// TODO :: Add SDK
+        // TODO :: Add SDK
 }
 
 // Install artifact {component = docker || swift}

@@ -18,13 +18,13 @@ package whisk
 
 // NOTE :: deprecated
 /*type KeyValue struct {
-	Key   string `json:"key,omitempty"`
-	Value string `json:"value,omitempty"`
+        Key   string `json:"key,omitempty"`
+        Value string `json:"value,omitempty"`
 }*/
 
 type KeyValue struct {
-	Key   string `json:"key,omitempty"`
-	Value map[string]interface{} `json:"value,omitempty"`
+        Key   string `json:"key,omitempty"`
+        Value map[string]interface{} `json:"value,omitempty"`
 }
 
 //type Annotations []KeyValue
@@ -36,6 +36,6 @@ type Parameters []KeyValue
 // type Parameters map[string]interface{}
 
 type Limits struct {
-	Timeout int `json:"timeout,omitempty"`
-	Memory  int `json:"memory,omitempty"`
+        Timeout int `json:"timeout,omitempty"`
+        Memory  int `json:"memory,omitempty"`
 }
