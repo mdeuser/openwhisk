@@ -32,7 +32,7 @@ var flags struct {
                 blocking   bool
                 annotation []string
                 param      []string
-                shared     bool // AKA "public" or "publish"
+                shared     string // AKA "public" or "publish"
                 skip       int  // skip first N records
                 limit      int  // return max N records
                 full       bool // return full records (docs=true for client request)
@@ -56,7 +56,7 @@ var flags struct {
                 docker   bool
                 copy     bool
                 pipe     bool
-                shared   bool
+                shared   string
                 sequence bool
                 lib      string
                 timeout  int

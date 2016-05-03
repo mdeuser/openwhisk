@@ -102,6 +102,8 @@ var packageCreateCmd = &cobra.Command{
 
         Run: func(cmd *cobra.Command, args []string) {
                 var err error
+                var shared bool
+
                 if len(args) != 1 {
                         err = errors.New("Invalid argument")
                         fmt.Println(err)
@@ -109,6 +111,12 @@ var packageCreateCmd = &cobra.Command{
                 }
 
                 packageName := args[0]
+
+                if (flags.common.shared == "yes") {
+                        shared = true
+                } else {
+                        shared = false
+                }
 
                 parameters, err := parseParameters(flags.common.param)
                 if err != nil {
@@ -124,7 +132,7 @@ var packageCreateCmd = &cobra.Command{
 
                 p := &whisk.Package{
                         Name:        packageName,
-                        Publish:     flags.common.shared,
+                        Publish:     shared,
                         Annotations: annotations,
                         Parameters:  parameters,
                 }
@@ -178,13 +186,21 @@ var packageUpdateCmd = &cobra.Command{
                 // TODO :: parse annotations
                 // TODO ::parse parameters
                 var err error
+                var shared bool
+
                 if len(args) < 1 {
                         err = errors.New("Invalid argument")
                         fmt.Println(err)
                         return
                 }
 
-                packageName := args[1 /*len(args) - 1*/]
+                packageName := args[0]
+
+                if (flags.common.shared == "yes") {
+                        shared = true
+                } else {
+                        shared = false
+                }
 
                 parameters, err := parseParameters(flags.common.param)
                 if err != nil {
@@ -200,7 +216,7 @@ var packageUpdateCmd = &cobra.Command{
 
                 p := &whisk.Package{
                         Name:        packageName,
-                        Publish:     flags.common.shared,
+                        Publish:     shared,
                         Annotations: annotations,
                         Parameters:  parameters,
                 }
@@ -274,6 +290,8 @@ var packageListCmd = &cobra.Command{
 
         Run: func(cmd *cobra.Command, args []string) {
                 var err error
+                var shared bool
+
                 qName := qualifiedName{}
                 if len(args) == 1 {
                         qName, err = parseQualifiedName(args[0])
@@ -291,10 +309,16 @@ var packageListCmd = &cobra.Command{
                         client.Namespace = ns
                 }
 
+                if (flags.common.shared == "yes") {
+                        shared = true
+                } else {
+                        shared = false
+                }
+
                 options := &whisk.PackageListOptions{
                         Skip:   flags.common.skip,
                         Limit:  flags.common.limit,
-                        Public: flags.common.shared,
+                        Public: shared,
                         Docs:   flags.common.full,
                 }
 
@@ -371,19 +395,19 @@ func init() {
         packageCreateCmd.Flags().StringSliceVarP(&flags.common.annotation, "annotation", "a", []string{}, "annotations")
         packageCreateCmd.Flags().StringSliceVarP(&flags.common.param, "param", "p", []string{}, "default parameters")
         packageCreateCmd.Flags().StringVarP(&flags.xPackage.serviceGUID, "service_guid", "s", "", "a unique identifier of the service")
-        packageCreateCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "shared action (default: private)")
+        packageCreateCmd.Flags().StringVar(&flags.common.shared, "shared", "" , "shared action (default: private)")
 
         packageUpdateCmd.Flags().StringSliceVarP(&flags.common.annotation, "annotation", "a", []string{}, "annotations")
         packageUpdateCmd.Flags().StringSliceVarP(&flags.common.param, "param", "p", []string{}, "default parameters")
         packageUpdateCmd.Flags().StringVarP(&flags.xPackage.serviceGUID, "service_guid", "s", "", "a unique identifier of the service")
-        packageUpdateCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "shared action (default: private)")
+        packageUpdateCmd.Flags().StringVar(&flags.common.shared, "shared", "", "shared action (default: private)")
 
         packageGetCmd.Flags().BoolVarP(&flags.common.summary, "summary", "s", false, "summarize entity details")
 
         packageBindCmd.Flags().StringSliceVarP(&flags.common.annotation, "annotation", "a", []string{}, "annotations")
         packageBindCmd.Flags().StringSliceVarP(&flags.common.param, "param", "p", []string{}, "default parameters")
 
-        packageListCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "include publicly shared entities in the result")
+        packageListCmd.Flags().StringVar(&flags.common.shared, "shared", "", "include publicly shared entities in the result")
         packageListCmd.Flags().IntVarP(&flags.common.skip, "skip", "s", 0, "skip this many entities from the head of the collection")
         packageListCmd.Flags().IntVarP(&flags.common.limit, "limit", "l", 0, "only return this many entities from the collection")
         packageListCmd.Flags().BoolVar(&flags.common.full, "full", false, "include full entity description")

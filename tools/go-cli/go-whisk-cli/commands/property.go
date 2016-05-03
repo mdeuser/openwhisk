@@ -300,6 +300,7 @@ func loadProperties() error {
 
 func parseConfigFlags(cmd *cobra.Command, args []string) {
 
+fmt.Println("PARSING CONFIG")
         if auth := flags.global.auth; len(auth) > 0 {
                 Properties.Auth = auth
                 client.Config.AuthToken = auth

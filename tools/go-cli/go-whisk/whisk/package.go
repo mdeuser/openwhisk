@@ -29,7 +29,7 @@ type Package struct {
         Namespace string `json:"namespace,omitempty"`
         Name      string `json:"name,omitempty"`
         Version   string `json:"version,omitempty"`
-        Publish   bool   `json:"publish,omitempty"`
+        Publish   bool   `json:"publish"`
 
         Annotations 	`json:"annotations,omitempty"`
         Parameters  	`json:"parameters"`
@@ -38,7 +38,7 @@ type Package struct {
 
 type Package2 struct {
         Annotations 	`json:"annotations,omitempty"`
-        Publish   bool   `json:"publish,omitempty"`
+        Publish   bool   `json:"publish"`
 }
 
 type Binding struct {

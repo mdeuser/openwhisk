@@ -264,11 +264,11 @@ func init() {
 
         triggerCreateCmd.Flags().StringSliceVarP(&flags.common.annotation, "annotation", "a", []string{}, "annotations")
         triggerCreateCmd.Flags().StringSliceVarP(&flags.common.param, "param", "p", []string{}, "default parameters")
-        triggerCreateCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "shared action (default: private)")
+        triggerCreateCmd.Flags().StringVar(&flags.common.shared, "shared", "", "shared action (default: private)")
 
         triggerUpdateCmd.Flags().StringSliceVarP(&flags.common.annotation, "annotation", "a", []string{}, "annotations")
         triggerUpdateCmd.Flags().StringSliceVarP(&flags.common.param, "param", "p", []string{}, "default parameters")
-        triggerUpdateCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "shared action (default: private)")
+        triggerUpdateCmd.Flags().StringVar(&flags.common.shared, "shared", "", "shared action (default: private)")
 
         triggerFireCmd.Flags().StringSliceVarP(&flags.common.param, "param", "p", []string{}, "default parameters")
 
