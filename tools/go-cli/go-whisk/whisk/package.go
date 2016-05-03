@@ -31,15 +31,14 @@ type Package struct {
         Version   string `json:"version,omitempty"`
         Publish   bool   `json:"publish,omitempty"`
 
-        Annotations 	`json:"annotations"`
+        Annotations 	`json:"annotations,omitempty"`
         Parameters  	`json:"parameters"`
         Bindings  bool  `json:"binding"`
 }
 
 type Package2 struct {
-
+        Annotations 	`json:"annotations,omitempty"`
         Publish   bool   `json:"publish,omitempty"`
-
 }
 
 type Binding struct {
@@ -105,10 +104,10 @@ func (s *PackageService) Insert(x_package *Package, overwrite bool) (*Package, *
         route := fmt.Sprintf("packages/%s?overwrite=%t", x_package.Name, overwrite)
 
         p2 := Package2{
+                Annotations: x_package.Annotations,
                 Publish: x_package.Publish,
         }
 
-        fmt.Printf("Route: %s\n", route)
         req, err := s.client.NewRequest("PUT", route, p2)
         if err != nil {
                 return nil, nil, err
