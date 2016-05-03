@@ -40,12 +40,12 @@ var flags struct {
         }
 
         property struct {
-                auth          string
-                apihost       string
-                apiversion    string
-                namespace     string
-                cliversion    string
-                apibuild      string
+                auth          bool
+                apihost       bool
+                apiversion    bool
+                namespace     bool
+                cliversion    bool
+                apibuild      bool
                 all           bool
                 apihostSet    string
                 apiversionSet string

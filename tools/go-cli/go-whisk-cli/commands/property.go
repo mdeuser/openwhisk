@@ -37,6 +37,14 @@ var Properties struct {
         PropsFile  string
 }
 
+const DefaultAuth       string = ""
+const DefaultAPIHost    string = "openwhisk.ng.bluemix.net"
+const DefaultAPIVersion string = "v1"
+const DefaultAPIBuild   string = ""
+const DefaultCLIVersion string = ""
+const DefaultNamespace  string = "_"
+const DefaultPropsFile  string = "~/.wskprops"
+
 var propertyCmd = &cobra.Command{
         Use:   "property",
         Short: "work with whisk properties",
@@ -60,12 +68,12 @@ var propertySetCmd = &cobra.Command{
                         fmt.Println("ok: whisk auth set")
                 }
 
-                if apiHost := flags.global.apihost; len(apiHost) > 0 {
+                if apiHost := flags.property.apihostSet; len(apiHost) > 0 {
                         props["APIHOST"] = apiHost
                         fmt.Println("ok: whisk API host set to ", apiHost)
                 }
 
-                if apiVersion := flags.global.apiversion; len(apiVersion) > 0 {
+                if apiVersion := flags.property.apiversionSet; len(apiVersion) > 0 {
                         props["APIVERSION"] = apiVersion
                         fmt.Println("ok: whisk API version set to ", apiVersion)
                 }
@@ -116,20 +124,44 @@ var propertyUnsetCmd = &cobra.Command{
 
                 // read in each flag, update if necessary
 
-                if len(flags.property.auth) > 0 {
+                if flags.property.auth {
                         delete(props, "AUTH")
+                        fmt.Print("ok: whisk auth deleted")
+                        if len(DefaultAuth) > 0 {
+                                fmt.Printf("; the default value of '%s' will be used.\n", DefaultAuth)
+                        } else {
+                                fmt.Println("; no default value will be used.")
+                        }
                 }
 
-                if len(flags.property.namespace) > 0 {
+                if flags.property.namespace {
                         delete(props, "NAMESPACE")
+                        fmt.Print("ok: whisk namespace deleted")
+                        if len(DefaultNamespace) > 0 {
+                                fmt.Printf("; the default value of '%s' will be used.\n", DefaultNamespace)
+                        } else {
+                                fmt.Println("; there is no default value that can be used.")
+                        }
                 }
 
-                if len(flags.property.apihost) > 0 {
+                if flags.property.apihost {
                         delete(props, "APIHOST")
+                        fmt.Print("whisk API host deleted; using default")
+                        if len(DefaultAPIHost) > 0 {
+                                fmt.Printf("; the default value of '%s' will be used.\n", DefaultAPIHost)
+                        } else {
+                                fmt.Println("; there is no default value that can be used.")
+                        }
                 }
 
-                if len(flags.property.apiversion) > 0 {
+                if flags.property.apiversion {
                         delete(props, "APIVERSION")
+                        fmt.Print("ok: whisk API version deleted")
+                        if len(DefaultAPIVersion) > 0 {
+                                fmt.Printf("; the default value of '%s' will be used.\n", DefaultAPIVersion)
+                        } else {
+                                fmt.Println("; there is no default value that can be used.")
+                        }
                 }
 
                 err = writeProps(Properties.PropsFile, props)
@@ -137,6 +169,7 @@ var propertyUnsetCmd = &cobra.Command{
                         fmt.Println(err)
                         return
                 }
+                loadProperties()
         },
 }
 
@@ -145,27 +178,27 @@ var propertyGetCmd = &cobra.Command{
         Short: "get property",
         Run: func(cmd *cobra.Command, args []string) {
 
-                if flags.property.all || len(flags.property.auth) > 0 {
+                if flags.property.all || flags.property.auth {
                         fmt.Println("whisk auth\t\t", Properties.Auth)
                 }
 
-                if flags.property.all || len(flags.property.apihost) > 0 {
+                if flags.property.all || flags.property.apihost {
                         fmt.Println("whisk API host\t\t", Properties.APIHost)
                 }
 
-                if flags.property.all || len(flags.property.apiversion) > 0 {
+                if flags.property.all || flags.property.apiversion {
                         fmt.Println("whisk API version\t", Properties.APIVersion)
                 }
 
-                if flags.property.all|| len(flags.property.cliversion) > 0 {
+                if flags.property.all|| flags.property.cliversion {
                         fmt.Println("whisk CLI version\t", Properties.CLIVersion)
                 }
 
-                if flags.property.all || len(flags.property.namespace) > 0 {
+                if flags.property.all || flags.property.namespace {
                         fmt.Println("whisk namespace\t\t", Properties.Namespace)
                 }
 
-                if flags.property.all || len(flags.property.apibuild) > 0 {
+                if flags.property.all || flags.property.apibuild {
                         info, _, err := client.Info.Get()
                         if err != nil {
                                 fmt.Println(err)
@@ -185,34 +218,34 @@ func init() {
         )
 
         // need to set property flags as booleans instead of strings... perhaps with boolApihost...
-        propertyGetCmd.Flags().StringVarP(&flags.property.auth, "auth", "a", "", "authorization key")
-        propertyGetCmd.Flags().StringVarP(&flags.property.apihost, "apihost", "h", "", "whisk API host")
-        propertyGetCmd.Flags().StringVarP(&flags.property.apiversion, "apiversion", "v", "", "whisk API version")
-        propertyGetCmd.Flags().StringVarP(&flags.property.apibuild, "apibuild", "b", "", "whisk API build version")
-        propertyGetCmd.Flags().StringVarP(&flags.property.cliversion, "cliversion", "c", "", "whisk CLI version")
-        propertyGetCmd.Flags().StringVarP(&flags.property.namespace, "namespace", "s", "", "authorization key")
+        propertyGetCmd.Flags().BoolVar(&flags.property.auth, "auth", false, "authorization key")
+        propertyGetCmd.Flags().BoolVar(&flags.property.apihost, "apihost", false, "whisk API host")
+        propertyGetCmd.Flags().BoolVar(&flags.property.apiversion, "apiversion", false, "whisk API version")
+        propertyGetCmd.Flags().BoolVar(&flags.property.apibuild, "apibuild", false, "whisk API build version")
+        propertyGetCmd.Flags().BoolVar(&flags.property.cliversion, "cliversion", false, "whisk CLI version")
+        propertyGetCmd.Flags().BoolVar(&flags.property.namespace, "namespace", false, "authorization key")
         propertyGetCmd.Flags().BoolVar(&flags.property.all, "all", false, "all properties")
 
-        /*propertySetCmd.Flags().StringVarP(&flags.global.auth, "auth", "u", "", "authorization key")
+        propertySetCmd.Flags().StringVarP(&flags.global.auth, "auth", "u", "", "authorization key")
         propertySetCmd.Flags().StringVar(&flags.property.apihostSet, "apihost", "", "whisk API host")
         propertySetCmd.Flags().StringVar(&flags.property.apiversionSet, "apiversion", "", "whisk API version")
         propertySetCmd.Flags().StringVar(&flags.property.namespaceSet, "namespace", "", "whisk namespace")
 
-        propertyUnsetCmd.Flags().BoolVarP(&flags.property.auth, "auth", "u", false, "authorization key")
+        propertyUnsetCmd.Flags().BoolVar(&flags.property.auth, "auth", false, "authorization key")
         propertyUnsetCmd.Flags().BoolVar(&flags.property.apihost, "apihost", false, "whisk API host")
         propertyUnsetCmd.Flags().BoolVar(&flags.property.apiversion, "apiversion", false, "whisk API version")
-        propertyUnsetCmd.Flags().BoolVar(&flags.property.namespace, "namespace", false, "whisk namespace")*/
+        propertyUnsetCmd.Flags().BoolVar(&flags.property.namespace, "namespace", false, "whisk namespace")
 
 }
 
 func setDefaultProperties() {
-        Properties.Auth = ""
-        Properties.Namespace = "_"
-        Properties.APIHost = "openwhisk.ng.bluemix.net"
-        Properties.APIBuild = ""
-        Properties.APIVersion = "v1"
-        Properties.CLIVersion = ""
-        Properties.PropsFile = "~/.wskprops"
+        Properties.Auth = DefaultAuth
+        Properties.Namespace = DefaultNamespace
+        Properties.APIHost = DefaultAPIHost
+        Properties.APIBuild = DefaultAPIBuild
+        Properties.APIVersion = DefaultAPIVersion
+        Properties.CLIVersion = DefaultCLIVersion
+        Properties.PropsFile = DefaultPropsFile
 }
 
 func loadProperties() error {
