@@ -337,7 +337,7 @@ public class WskCli {
         if (params != null) {
             for (String key : params.keySet()) {
                 String value = params.get(key);
-                cmd = Util.concat(cmd, new String[] { "--param", "'\"" + key + "\"','\"" + value + "\"'" });
+                cmd = Util.concat(cmd, new String[] { "--param", "'" + key + "','" + value + "'" });
             }
         }
 
@@ -389,7 +389,7 @@ public class WskCli {
         if (params != null) {
             for (String key : params.keySet()) {
                 String value = params.get(key);
-                cmd = Util.concat(cmd, new String[] { "--param", "'\"" + key + "\"','\"" + value + "\"'" });
+                cmd = Util.concat(cmd, new String[] { "--param", "'" + key + "','" + value + "'" });
             }
         }
 
@@ -416,7 +416,7 @@ public class WskCli {
         if (params != null) {
             for (String key : params.keySet()) {
                 String value = params.get(key);
-                cmd = Util.concat(cmd, new String[] { "--param", "'\"" + key + "\"','\"" + value + "\"'" });
+                cmd = Util.concat(cmd, new String[] { "--param", "'" + key + "','" + value + "'" });
             }
         }
 
@@ -535,7 +535,7 @@ public class WskCli {
         if (params != null) {
             for (String key : params.keySet()) {
                 String value = params.get(key);
-                cmd = Util.concat(cmd, new String[] { "--param", "'\"" + key + "\"','\"" + value + "\"'" });
+                cmd = Util.concat(cmd, new String[] { "--param", "'" + key + "','" + value + "'" });
             }
         }
 
@@ -583,7 +583,7 @@ public class WskCli {
         String[] cmd = new String[] { "action", "invoke", "--auth", authKey, name };
         for (String key : params.keySet()) {
             String value = params.get(key);
-            cmd = Util.concat(cmd, new String[] { "--param", "'\"" + key + "\"','\"" + value + "\"'" });
+            cmd = Util.concat(cmd, new String[] { "--param", "'" + key + "','" + value + "'"});
         }
         String[] args = blocking ? Util.concat(cmd, "--blocking") : cmd;
         return cli(expectedCode, args);
