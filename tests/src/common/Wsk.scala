@@ -680,8 +680,9 @@ trait WaitFor {
 }
 
 object Wsk {
-    private val cliDir = WhiskProperties.getFileRelativeToWhiskHome("bin")
-    //private val cliDir = WhiskProperties.getFileRelativeToWhiskHome(getBinaryPath)
+    private val goCLIPath = WhiskProperties.getGoCLIPath()
+    private val goCLIDir = WhiskProperties.getGoCLIDir()
+    //private val cliDir = WhiskProperties.getFileRelativeToWhiskHome("bin")
     private val binaryName = "wsk"
 
     /** What is the path to a downloaded CLI? **/
@@ -695,8 +696,9 @@ object Wsk {
             val f = new File(binary)
             assert(f.exists, s"did not find $f")
         } else {
-            val dir = cliDir
-            val exec = new File(dir, binaryName)
+            val dir = new File(goCLIDir)
+            val exec = new File(goCLIPath)
+
             assert(dir.exists, s"did not find $dir")
             assert(exec.exists, s"did not find $exec")
         }
@@ -705,38 +707,8 @@ object Wsk {
     def baseCommand = if (WhiskProperties.useCliDownload()) {
         Buffer(getDownloadedCliPath)
     } else {
-        Buffer(WhiskProperties.python, new File(cliDir, binaryName).toString)
-    }
-
-    def isMac = {
-        System.getProperty("os.name").toLowerCase().contains("mac")
-    }
-
-    def isWindows = {
-        System.getProperty("os.name").toLowerCase().contains("windows")
-    }
-
-    def isLinux = {
-        System.getProperty("os.name").toLowerCase().contains("linux")
-    }
-
-    def getCPUArch = {
-        System.getProperty("os.arch") match {
-            case "amd64" | "x86_64" => "amd64"
-            case "386" | "x86" | "x86_32" => "386"
-            case default => default
-        }
-    }
-
-    def getBinaryPath : String = {
-        if (isLinux)
-            s"bin\\linux\\${getCPUArch}"
-        else if (isMac)
-            s"bin\\mac\\${getCPUArch}"
-        else if (isWindows)
-            s"bin\\windows\\${getCPUArch}"
-        else
-            s"bin\\wsk"
+        //Buffer(WhiskProperties.python, new File(cliDir, binaryName).toString)
+        Buffer(new File(goCLIPath).toString)
     }
 }
 

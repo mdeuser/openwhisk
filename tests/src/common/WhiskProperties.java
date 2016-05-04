@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.Properties;
+import java.lang.System.*;
 
 /**
  * Properties that describe a whisk installation
@@ -39,11 +40,6 @@ public class WhiskProperties {
      * Default concurrency level if otherwise unspecified
      */
     private static final int DEFAULT_CONCURRENCY = 20;
-
-    /**
-     * The path to the Go CLI executable.
-     */
-    public static final String goCLIPath = System.getProperty("go.cli.path");
 
     /**
      * The deployment target, e.g., local.
@@ -112,6 +108,21 @@ public class WhiskProperties {
 
         System.out.format("deploy target %s\n", deployTarget != null ? deployTarget : "not defined");
         System.out.format("test router? %s\n", testRouter);
+    }
+
+    /**
+     * The path to the Go CLI executable.
+     */
+    public static String getGoCLIPath() {
+        return whiskProperties.getProperty("go.cli.path");
+    }
+
+    /**
+     * The path to the Go CLI directory.
+     */
+    public static String getGoCLIDir() {
+        String goCLIPath = whiskProperties.getProperty("go.cli.path");
+        return goCLIPath.substring(0, goCLIPath.lastIndexOf(File.separator));
     }
 
     public static File getFileRelativeToWhiskHome(String name) {

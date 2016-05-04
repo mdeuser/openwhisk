@@ -41,7 +41,8 @@ import common.TestUtils.RunResult;
  */
 public class WskCli {
 
-    private static final String goCLIPath = WhiskProperties.goCLIPath;
+    private static final String goCLIPath = WhiskProperties.getGoCLIPath();
+    private static final String goCLIDir = WhiskProperties.getGoCLIDir();
     private static final File cliDir = WhiskProperties.getFileRelativeToWhiskHome("bin");
     private static final String adminBinaryName = "wskadmin";
     private final File binaryPath;
@@ -97,12 +98,15 @@ public class WskCli {
     }
 
     public boolean checkExists() {
+        File dir;
+
         if (WhiskProperties.useCliDownload()) {
             String binary = getDownloadedCliPath();
             File f = new File(binary);
             assertTrue("did not find " + f, f.exists());
         } else {
-            assertTrue("did not find " + cliDir, cliDir.exists());
+            dir = new File(goCLIDir);
+            assertTrue("did not find " + dir, dir.exists());
             assertTrue("did not find " + binaryPath, binaryPath.exists());
         }
         return true;
@@ -333,7 +337,7 @@ public class WskCli {
         if (params != null) {
             for (String key : params.keySet()) {
                 String value = params.get(key);
-                cmd = Util.concat(cmd, new String[] { "--param", key, value });
+                cmd = Util.concat(cmd, new String[] { "--param", "'\"" + key + "\"','\"" + value + "\"'" });
             }
         }
 
@@ -385,7 +389,7 @@ public class WskCli {
         if (params != null) {
             for (String key : params.keySet()) {
                 String value = params.get(key);
-                cmd = Util.concat(cmd, new String[] { "--param", key, value });
+                cmd = Util.concat(cmd, new String[] { "--param", "'\"" + key + "\"','\"" + value + "\"'" });
             }
         }
 
@@ -412,7 +416,7 @@ public class WskCli {
         if (params != null) {
             for (String key : params.keySet()) {
                 String value = params.get(key);
-                cmd = Util.concat(cmd, new String[] { "--param", key, value });
+                cmd = Util.concat(cmd, new String[] { "--param", "'\"" + key + "\"','\"" + value + "\"'" });
             }
         }
 
@@ -531,7 +535,7 @@ public class WskCli {
         if (params != null) {
             for (String key : params.keySet()) {
                 String value = params.get(key);
-                cmd = Util.concat(cmd, new String[] { "--param", key, value });
+                cmd = Util.concat(cmd, new String[] { "--param", "'\"" + key + "\"','\"" + value + "\"'" });
             }
         }
 
@@ -579,7 +583,7 @@ public class WskCli {
         String[] cmd = new String[] { "action", "invoke", "--auth", authKey, name };
         for (String key : params.keySet()) {
             String value = params.get(key);
-            cmd = Util.concat(cmd, new String[] { "--param", key, value });
+            cmd = Util.concat(cmd, new String[] { "--param", "'\"" + key + "\"','\"" + value + "\"'" });
         }
         String[] args = blocking ? Util.concat(cmd, "--blocking") : cmd;
         return cli(expectedCode, args);
@@ -965,7 +969,7 @@ public class WskCli {
      * @return RunResult which contains stdout,sterr, exit code
      */
     public RunResult cli(boolean verbose, int expectedExitCode, File workingDir, String... params) throws IllegalArgumentException, IOException {
-        String[] cmd = WhiskProperties.useCliDownload() ? new String[] { getDownloadedCliPath() } : new String[] { WhiskProperties.python, new File(goCLIPath).toString() };
+        String[] cmd = WhiskProperties.useCliDownload() ? new String[] { getDownloadedCliPath() } : new String[] { new File(goCLIPath).toString() };
         String[] args = verbose ? Util.concat(cmd, "--verbose") : cmd;
         args = Util.concat(cmd, "--apihost", WhiskProperties.getEdgeHost());
         RunResult rr = TestUtils.runCmd(DONTCARE_EXIT, workingDir, TestUtils.logger, this.env, Util.concat(args, params));
