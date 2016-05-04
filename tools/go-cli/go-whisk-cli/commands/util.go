@@ -109,7 +109,7 @@ func parseKeyValueArray(args []string) ([]whisk.KeyValue, error) {
         for i := 0; i < len(args); i += 2 {
                 keyValue := whisk.KeyValue{
                         Key:   args[i],
-                        //Value: args[i+1],
+                        Value: args[i+1],
                 }
                 parsed = append(parsed, keyValue)
 

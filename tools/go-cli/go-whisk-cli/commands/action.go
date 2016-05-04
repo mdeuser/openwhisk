@@ -45,6 +45,38 @@ var actionCmd = &cobra.Command{
         Short: "work with actions",
 }
 
+/*
+usage: wsk action update [-h] [-u AUTH] [--docker] [--copy] [--sequence]
+                         [--lib LIB] [--shared [{yes,no}]]
+                         [-a ANNOTATION ANNOTATION] [-p PARAM PARAM]
+                         [-t TIMEOUT] [-m MEMORY]
+                         name [artifact]
+
+positional arguments:
+  name                  the name of the action
+  artifact              artifact (e.g., file name) containing action
+                        definition
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -u AUTH, --auth AUTH  authorization key
+  --docker              treat artifact as docker image path on dockerhub
+  --copy                treat artifact as the name of an existing action
+  --sequence            treat artifact as comma separated sequence of actions
+                        to invoke
+  --lib LIB             add library to artifact (must be a gzipped tar file)
+  --shared [{yes,no}]   shared action (default: private)
+  -a ANNOTATION ANNOTATION, --annotation ANNOTATION ANNOTATION
+                        annotations
+  -p PARAM PARAM, --param PARAM PARAM
+                        default parameters
+  -t TIMEOUT, --timeout TIMEOUT
+                        the timeout limit in milliseconds when the action will
+                        be terminated
+  -m MEMORY, --memory MEMORY
+                        the memory limit in MB of the container that runs the
+                        action
+ */
 var actionCreateCmd = &cobra.Command{
         Use:   "create <name string> <artifact string>",
         Short: "create a new action",
@@ -292,9 +324,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                 shared = false
         }
 
-
         exec := whisk.Exec{}
-
 
         parameters, err := parseParameters(flags.common.param)
         if err != nil {
@@ -306,6 +336,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                 return nil, err
         }
 
+        // TODO: exclude limits if none set
         limits := whisk.Limits{
                 Timeout: flags.action.timeout,
                 Memory:  flags.action.memory,

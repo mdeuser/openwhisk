@@ -24,7 +24,7 @@ package whisk
 
 type KeyValue struct {
         Key   string `json:"key,omitempty"`
-        Value map[string]interface{} `json:"value,omitempty"`
+        Value string `json:"value,omitempty"`
 }
 
 //type Annotations []KeyValue
