@@ -60,37 +60,40 @@ class WskBasicTests
 
     it should "show help and usage info" in {
         val stdout = wsk.cli(Seq("-h")).stdout
-        stdout should include("usage:")
-        stdout should include("optional arguments")
-        stdout should include("available commands")
-        stdout should include("-help")
+        println(s"show help and usage:\n$stdout")
+        stdout should include regex ("""(?i)Usage:""")
+        stdout should include regex ("""(?i)Flags""")
+        stdout should include regex ("""(?i)Available commands""")
+        stdout should include regex ("""(?i)--help""")
     }
 
     it should "show cli build version" in {
         val stdout = wsk.cli(Seq("property", "get", "--cliversion")).stdout
-        stdout should include regex ("""whisk CLI version\s+201.*\n""")
+        stdout should include regex ("""(?i)whisk CLI version\s+201.*""")
     }
 
     it should "show api version" in {
         val stdout = wsk.cli(Seq("property", "get", "--apiversion")).stdout
-        stdout should include regex ("""whisk API version\s+v1\n""")
+        stdout should include regex ("""(?i)whisk API version\s+v1""")
     }
 
     it should "show api build version" in {
         val stdout = wsk.cli(wskprops.overrides ++ Seq("property", "get", "--apibuild")).stdout
-        stdout should include regex ("""whisk API build*.*201.*\n""")
+        stdout should include regex ("""(?i)whisk API build\s+201.*""")
     }
 
     it should "show api build number" in {
         val stdout = wsk.cli(wskprops.overrides ++ Seq("property", "get", "--apibuildno")).stdout
-        stdout should include regex ("""whisk API build*.*.*\n""")
+        stdout should include regex ("""(?i)whisk API build.*\s+.*""")
     }
 
     it should "set auth in property file" in {
         val wskprops = File.createTempFile("wskprops", ".tmp")
+        println(s"Using property file ", wskprops.getAbsolutePath())
         val env = Map("WSK_CONFIG_FILE" -> wskprops.getAbsolutePath())
         wsk.cli(Seq("property", "set", "--auth", "testKey"), env = env)
         val fileContent = FileUtils.readFileToString(wskprops)
+        println(s"Property file contents:\n$fileContent")
         fileContent should include("AUTH=testKey")
         wskprops.delete()
     }
