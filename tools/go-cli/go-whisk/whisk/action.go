@@ -29,9 +29,9 @@ type Action struct {
         Namespace string `json:"namespace,omitempty"`
         Name      string `json:"name,omitempty"`
         Version   string `json:"version,omitempty"`
-        Publish   bool   `json:"publish,omitempty"`
+        Publish   bool   `json:"publish"`
 
-        Exec        `json:"exec,omitempty"`
+        Exec *Exec       `json:"exec,omitempty"`
         Annotations `json:"annotations,omitempty"`
         Parameters  `json:"parameters,omitempty"`
         Limits      `json:"limits,omitempty"`
@@ -40,12 +40,16 @@ type Action struct {
 type Action2 struct {
         Namespace string `json:"namespace,omitempty"`
         Version   string `json:"version,omitempty"`
-        Publish   bool   `json:"publish,omitempty"`
+        Publish   bool   `json:"publish"`
 
         Parameters  `json:"parameters,omitempty"`
-        Exec        `json:"exec,omitempty"`
+        Exec    *Exec        `json:"exec,omitempty"`
         Annotations `json:"annotations,omitempty"`
-        Limits      `json:"limits,omitempty"`
+       // Limits      `json:"limits,omitempty"`
+
+        Error   string `json:"error,omitempty"`
+        Code    int `json:"code,omitempty"`
+
 }
 
 type Exec struct {
@@ -93,6 +97,7 @@ func (s *ActionService) Insert(action *Action, overwrite bool) (*Action, *http.R
         action2 := Action2{
                 Parameters: action.Parameters,
                 Exec: action.Exec,
+                Publish: action.Publish,
 
         }
 
@@ -152,7 +157,8 @@ func (s *ActionService) Delete(actionName string) (*http.Response, error) {
                 return nil, err
         }
 
-        resp, err := s.client.Do(req, nil)
+        a := new(Action2)
+        resp, err := s.client.Do(req, a)
         if err != nil {
                 return resp, err
         }

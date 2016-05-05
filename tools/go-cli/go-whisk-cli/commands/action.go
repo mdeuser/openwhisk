@@ -83,6 +83,7 @@ var actionCreateCmd = &cobra.Command{
 
         Run: func(cmd *cobra.Command, args []string) {
                 action, err := parseAction(cmd, args)
+
                 if err != nil {
                         fmt.Println(err)
                         return
@@ -135,6 +136,8 @@ var actionUpdateCmd = &cobra.Command{
 
         Run: func(cmd *cobra.Command, args []string) {
                 action, err := parseAction(cmd, args)
+                fmt.Printf("STTRUCT%+v\n", action)
+
                 if err != nil {
                         fmt.Println(err)
                         return
@@ -318,13 +321,12 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                 artifact = args[1]
         }
 
-        if (flags.common.shared == "yes") {
+        if flags.action.shared == "yes" {
                 shared = true
         } else {
                 shared = false
         }
 
-        exec := whisk.Exec{}
 
         parameters, err := parseParameters(flags.common.param)
         if err != nil {
@@ -342,14 +344,20 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                 Memory:  flags.action.memory,
         }
 
+        action := new(whisk.Action)
+
+
         if flags.action.docker {
-                exec.Image = artifact
+                action.Exec = new(whisk.Exec)
+
+                action.Exec.Image = artifact
         } else if flags.action.copy {
                 existingAction, _, err := client.Actions.Get(actionName)
                 if err != nil {
                         return nil, err
                 }
-                exec = existingAction.Exec
+
+                action.Exec = existingAction.Exec
         } else if flags.action.sequence {
                 currentNamespace := client.Config.Namespace
                 client.Config.Namespace = "whisk.system"
@@ -357,7 +365,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                 if err != nil {
                         return nil, err
                 }
-                exec = pipeAction.Exec
+                action.Exec = pipeAction.Exec
                 client.Config.Namespace = currentNamespace
         } else if artifact != "" {
                 stat, err := os.Stat(artifact)
@@ -370,13 +378,16 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                 if err != nil {
                         return nil, err
                 }
+                if action.Exec == nil {
+                        action.Exec = new(whisk.Exec)
+                }
 
-                exec.Code = string(file)
+                action.Exec.Code = string(file)
 
                 if matched, _ := regexp.MatchString(".swift$", stat.Name()); matched {
-                        exec.Kind = "swift"
+                        action.Exec.Kind = "swift"
                 } else {
-                        exec.Kind = "nodejs"
+                        action.Exec.Kind = "nodejs"
                 }
         }
 
@@ -403,17 +414,18 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                         return nil, err
                 }
 
-                exec.Init = base64.StdEncoding.EncodeToString(lib)
+                if action.Exec == nil {
+                        action.Exec = new(whisk.Exec)
+                }
+
+                action.Exec.Init = base64.StdEncoding.EncodeToString(lib)
         }
 
-        action := &whisk.Action{
-                Name:        actionName,
-                Publish:     shared,
-                Exec:        exec,
-                Annotations: annotations,
-                Parameters:  parameters,
-                Limits:      limits,
-        }
+        action.Name = actionName
+        action.Publish = shared
+        action.Annotations = annotations
+        action.Parameters = parameters
+        action.Limits = limits
 
         return action, nil
 }

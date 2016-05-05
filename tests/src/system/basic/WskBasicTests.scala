@@ -166,17 +166,23 @@ class WskBasicTests
     }
 
     it should "reject bad command" in {
-        wsk.cli(Seq("bogus"), expectedExitCode = MISUSE_EXIT).
-            stderr should include("usage:")
+        val result = wsk.cli(Seq("bogus"), expectedExitCode = MISUSE_EXIT)
+        val stderr = result.stderr
+        val stdout = result.stdout
+        println(s"bad command stderr:\n$stderr")
+        println(s"bad command stdout:\n$stdout")
+        result.stderr should include regex ("""(?i)Run 'wsk --help' for usage""")
     }
 
     it should "reject authenticated command when no auth key is given" in {
         // override wsk props file in case it exists
         val wskprops = File.createTempFile("wskprops", ".tmp")
         val env = Map("WSK_CONFIG_FILE" -> wskprops.getAbsolutePath())
-        val stderr = wsk.cli(Seq("list"), env = env, expectedExitCode = MISUSE_EXIT).stderr
-        stderr should include("usage:")
-        stderr should include("--auth is required")
+        val result = wsk.cli(Seq("list"), env = env, expectedExitCode = MISUSE_EXIT)
+        println(s"reject auth when no auth key stderr:\n$result.stderr")
+        println(s"reject auth when no auth key stdout:\n$result.stdout")
+        result.stderr should include("usage:")
+        result.stderr should include("--auth is required")
     }
 
     behavior of "Wsk Package CLI"

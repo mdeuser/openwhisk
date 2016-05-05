@@ -26,6 +26,7 @@ import (
         "net/http"
         "net/url"
         "crypto/tls"
+        "errors"
 )
 
 const (
@@ -54,6 +55,7 @@ type Config struct {
         BaseURL   	*url.URL // NOTE :: Default is "openwhisk.ng.bluemix.net"
         Version   	string
         Verbose   	bool
+        Debug       bool     // For detailed tracing
 }
 
 func NewClient(httpClient *http.Client, config *Config) (*Client, error) {
@@ -172,14 +174,6 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
         }
         defer resp.Body.Close()
 
-        err = CheckResponse(resp)
-        if err != nil {
-                if c.Verbose {
-                        printJSON(err)
-                }
-                return resp, err
-        }
-
         if v != nil {
                 if w, ok := v.(io.Writer); ok {
                         io.Copy(w, resp.Body)
@@ -196,6 +190,15 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
                 printJSON(v)
         }
 
+        err = CheckResponse(v)
+        /*err = CheckResponse(resp)
+        if err != nil {
+                if c.Verbose {
+                        printJSON(err)
+                }
+                return resp, err
+        }*/
+
         return resp, err
 }
 
@@ -209,7 +212,7 @@ type ErrorResponse struct {
         Errors   []Error        `json:"errors"`  // more detail on individual errors
 }
 
-func (r *ErrorResponse) Error() string {
+func (r ErrorResponse) Error() string {
         return fmt.Sprintf("%v %v: %d %v %+v",
                 r.Response.Request.Method, r.Response.Request.URL,
                 r.Response.StatusCode, r.Message, r.Errors)
@@ -221,15 +224,32 @@ type Error struct {
         Code     string `json:"code"`     // validation error code
 }
 
-func (e *Error) Error() string {
+func (e Error) Error() string {
         return fmt.Sprintf("%v error caused by %v field on %v resource",
                 e.Code, e.Field, e.Resource)
 }
 
-func CheckResponse(r *http.Response) error {
+func CheckResponse(v interface{}) error {
+        var err error
+
+        x, ok := (v).(*Action2)
+
+        if (ok && x.Error != "" && x.Code != 0) {
+                err = errors.New(fmt.Sprintf("%s (code %d)\n", x.Error, x.Code))
+
+        } else {
+                err = nil
+        }
+
+        return err
+
+}
+
+func CheckResponse2(r *http.Response) error {
         if c := r.StatusCode; 200 <= c && c <= 299 {
                 return nil
         }
+
         errorResponse := &ErrorResponse{Response: r}
         data, err := ioutil.ReadAll(r.Body)
         if err == nil && data != nil {
@@ -242,3 +262,11 @@ func CheckResponse(r *http.Response) error {
 ////////////////////////////
 // Basic Client Functions //
 ////////////////////////////
+
+func (c *Client) IsVerbose() bool {
+    return c.Config.Verbose
+}
+
+func (c *Client) IsDebug() bool {
+    return c.Config.Debug
+}
