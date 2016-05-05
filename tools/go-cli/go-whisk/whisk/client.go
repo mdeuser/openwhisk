@@ -26,6 +26,7 @@ import (
         "net/http"
         "net/url"
         "crypto/tls"
+        "errors"
 )
 
 const (
@@ -172,14 +173,6 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
         }
         defer resp.Body.Close()
 
-        err = CheckResponse(resp)
-        if err != nil {
-                if c.Verbose {
-                        printJSON(err)
-                }
-                return resp, err
-        }
-
         if v != nil {
                 if w, ok := v.(io.Writer); ok {
                         io.Copy(w, resp.Body)
@@ -195,6 +188,15 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
                 fmt.Printf("\n[%d]\t%s\n", resp.StatusCode, resp.Status)
                 printJSON(v)
         }
+
+        err = CheckResponse(v)
+        /*err = CheckResponse(resp)
+        if err != nil {
+                if c.Verbose {
+                        printJSON(err)
+                }
+                return resp, err
+        }*/
 
         return resp, err
 }
@@ -226,7 +228,23 @@ func (e *Error) Error() string {
                 e.Code, e.Field, e.Resource)
 }
 
-func CheckResponse(r *http.Response) error {
+func CheckResponse(v interface{}) error {
+        var err error
+
+        x, ok := (v).(*Action2)
+
+        if (ok && x.Error != "" && x.Code != 0) {
+                err = errors.New(fmt.Sprintf("%s (code %d)\n", x.Error, x.Code))
+
+        } else {
+                err = nil
+        }
+
+        return err
+
+}
+
+func CheckResponse2(r *http.Response) error {
         if c := r.StatusCode; 200 <= c && c <= 299 {
                 return nil
         }

@@ -358,7 +358,7 @@ public class WskCli {
         }
 
         if (shared) {
-            cmd = Util.concat(cmd, new String[] { "--shared" });
+            cmd = Util.concat(cmd, new String[] { "--shared", "yes"});
         }
 
         RunResult result = cli(expectedCode, cmd);

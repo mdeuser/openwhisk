@@ -268,7 +268,6 @@ public class TestUtils {
     public static RunResult runCmd(int expectedExitCode, int timeoutMilli, File dir, Logger logger,
                                    Map<String, String> env, String... params) throws IllegalArgumentException, IOException {
 
-        System.out.println(params.toString());
         BasicLauncher bl = new BasicLauncher(true, true, logger);
         bl.setCmd(params);
         bl.setWorkingDir(dir);
