@@ -45,6 +45,38 @@ var actionCmd = &cobra.Command{
         Short: "work with actions",
 }
 
+/*
+usage: wsk action update [-h] [-u AUTH] [--docker] [--copy] [--sequence]
+                         [--lib LIB] [--shared [{yes,no}]]
+                         [-a ANNOTATION ANNOTATION] [-p PARAM PARAM]
+                         [-t TIMEOUT] [-m MEMORY]
+                         name [artifact]
+
+positional arguments:
+  name                  the name of the action
+  artifact              artifact (e.g., file name) containing action
+                        definition
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -u AUTH, --auth AUTH  authorization key
+  --docker              treat artifact as docker image path on dockerhub
+  --copy                treat artifact as the name of an existing action
+  --sequence            treat artifact as comma separated sequence of actions
+                        to invoke
+  --lib LIB             add library to artifact (must be a gzipped tar file)
+  --shared [{yes,no}]   shared action (default: private)
+  -a ANNOTATION ANNOTATION, --annotation ANNOTATION ANNOTATION
+                        annotations
+  -p PARAM PARAM, --param PARAM PARAM
+                        default parameters
+  -t TIMEOUT, --timeout TIMEOUT
+                        the timeout limit in milliseconds when the action will
+                        be terminated
+  -m MEMORY, --memory MEMORY
+                        the memory limit in MB of the container that runs the
+                        action
+ */
 var actionCreateCmd = &cobra.Command{
         Use:   "create <name string> <artifact string>",
         Short: "create a new action",
@@ -65,6 +97,38 @@ var actionCreateCmd = &cobra.Command{
         },
 }
 
+/*
+usage: wsk action update [-h] [-u AUTH] [--docker] [--copy] [--sequence]
+[--lib LIB] [--shared [{yes,no}]]
+[-a ANNOTATION ANNOTATION] [-p PARAM PARAM]
+[-t TIMEOUT] [-m MEMORY]
+name [artifact]
+
+positional arguments:
+name                  the name of the action
+artifact              artifact (e.g., file name) containing action
+definition
+
+optional arguments:
+-h, --help            show this help message and exit
+-u AUTH, --auth AUTH  authorization key
+--docker              treat artifact as docker image path on dockerhub
+--copy                treat artifact as the name of an existing action
+--sequence            treat artifact as comma separated sequence of actions
+to invoke
+--lib LIB             add library to artifact (must be a gzipped tar file)
+--shared [{yes,no}]   shared action (default: private)
+-a ANNOTATION ANNOTATION, --annotation ANNOTATION ANNOTATION
+annotations
+-p PARAM PARAM, --param PARAM PARAM
+default parameters
+-t TIMEOUT, --timeout TIMEOUT
+the timeout limit in milliseconds when the action will
+be terminated
+-m MEMORY, --memory MEMORY
+the memory limit in MB of the container that runs the
+action
+*/
 var actionUpdateCmd = &cobra.Command{
         Use:   "update <name string> <artifact string>",
         Short: "update an existing action",
@@ -231,10 +295,19 @@ var actionListCmd = &cobra.Command{
         },
 }
 
+/*
+usage: wsk action update [-h] [-u AUTH] [--docker] [--copy] [--sequence]
+[--lib LIB] [--shared [{yes,no}]]
+[-a ANNOTATION ANNOTATION] [-p PARAM PARAM]
+[-t TIMEOUT] [-m MEMORY]
+name [artifact]
+ */
 func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
         var err error
+        var shared bool
         var actionName, artifact string
-        if len(args) < 1 || len(args) > 2 {
+
+        if len(args) < 1 /*|| len(args) > 2*/ {
                 err = errors.New("Invalid argument list")
                 return nil, err
         }
@@ -243,6 +316,12 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
 
         if len(args) == 2 {
                 artifact = args[1]
+        }
+
+        if (flags.common.shared == "yes") {
+                shared = true
+        } else {
+                shared = false
         }
 
         exec := whisk.Exec{}
@@ -257,6 +336,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                 return nil, err
         }
 
+        // TODO: exclude limits if none set
         limits := whisk.Limits{
                 Timeout: flags.action.timeout,
                 Memory:  flags.action.memory,
@@ -328,7 +408,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
 
         action := &whisk.Action{
                 Name:        actionName,
-                Publish:     flags.action.shared,
+                Publish:     shared,
                 Exec:        exec,
                 Annotations: annotations,
                 Parameters:  parameters,
@@ -347,7 +427,7 @@ func init() {
         actionCreateCmd.Flags().BoolVar(&flags.action.docker, "docker", false, "treat artifact as docker image path on dockerhub")
         actionCreateCmd.Flags().BoolVar(&flags.action.copy, "copy", false, "treat artifact as the name of an existing action")
         actionCreateCmd.Flags().BoolVar(&flags.action.sequence, "sequence", false, "treat artifact as comma separated sequence of actions to invoke")
-        actionCreateCmd.Flags().BoolVar(&flags.action.shared, "shared", false, "shared action (default: private)")
+        actionCreateCmd.Flags().StringVar(&flags.action.shared, "shared", "", "shared action (default: private)")
         actionCreateCmd.Flags().StringVar(&flags.action.lib, "lib", "", "add library to artifact (must be a gzipped tar file)")
         actionCreateCmd.Flags().StringVar(&flags.action.xPackage, "package", "", "package")
         actionCreateCmd.Flags().IntVarP(&flags.action.timeout, "timeout", "t", 0, "the timeout limit in miliseconds when the action will be terminated")
@@ -358,7 +438,7 @@ func init() {
         actionUpdateCmd.Flags().BoolVar(&flags.action.docker, "docker", false, "treat artifact as docker image path on dockerhub")
         actionUpdateCmd.Flags().BoolVar(&flags.action.copy, "copy", false, "treat artifact as the name of an existing action")
         actionUpdateCmd.Flags().BoolVar(&flags.action.sequence, "sequence", false, "treat artifact as comma separated sequence of actions to invoke")
-        actionUpdateCmd.Flags().BoolVar(&flags.action.shared, "shared", false, "shared action (default: private)")
+        actionUpdateCmd.Flags().StringVar(&flags.action.shared, "shared", "", "shared action (default: private)")
         actionUpdateCmd.Flags().StringVar(&flags.action.lib, "lib", "", "add library to artifact (must be a gzipped tar file)")
         actionUpdateCmd.Flags().StringVar(&flags.action.xPackage, "package", "", "package")
         actionUpdateCmd.Flags().IntVarP(&flags.action.timeout, "timeout", "t", 0, "the timeout limit in miliseconds when the action will be terminated")

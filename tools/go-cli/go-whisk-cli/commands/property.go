@@ -210,7 +210,7 @@ var propertyGetCmd = &cobra.Command{
                                 }
                                 if flags.property.all || flags.property.apibuildno {
                                         fmt.Println("whisk API build number\t", info.BuildNo)
-                                }                                
+                                }
                         }
                 }
 

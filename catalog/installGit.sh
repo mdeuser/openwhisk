@@ -12,16 +12,16 @@ source "$CATALOG_HOME/util.sh"
 echo Installing Git package.
 
 createPackage github \
-    -a description, "Package which contains actions and feeds to interact with Github"
+    -a description,"Package which contains actions and feeds to interact with Github"
 
 waitForAll
 
 install "$CATALOG_HOME/github/webhook.js" \
     github/webhook \
-    -a feed true \
-    -a description, 'Creates a webhook on github to be notified on selected changes' \
-    -a parameters, '[ {"name":"username", "required":true, "bindTime":true}, {"name":"repository", "required":true, "bindTime":true}, {"name":"accessToken", "required":true, "bindTime":true},{"name":"events", "required":true} ]' \
-    -a sampleInput, '{"username":"whisk", "repository":"WhiskRepository", "accessToken":"123ABCXYZ", "events": "push,commit,delete"}'
+    -a 'feed','true' \
+    -a 'description','Creates a webhook on github to be notified on selected changes' \
+    -a 'parameters','"[ {'name':'username', 'required':true, 'bindTime':true}, {'name':'repository', 'required':true, 'bindTime':true}, {'name':'accessToken', 'required':true, 'bindTime':true},{'name':'events', 'required':true} ]"' \
+    -a 'sampleInput','"{'username':'whisk', 'repository':'WhiskRepository', 'accessToken':'123ABCXYZ', 'events': 'push,commit,delete'}"'
 
 waitForAll
 

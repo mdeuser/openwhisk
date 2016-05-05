@@ -37,9 +37,20 @@ type Action struct {
         Limits      `json:"limits,omitempty"`
 }
 
+type Action2 struct {
+        Namespace string `json:"namespace,omitempty"`
+        Version   string `json:"version,omitempty"`
+        Publish   bool   `json:"publish,omitempty"`
+
+        Parameters  `json:"parameters,omitempty"`
+        Exec        `json:"exec,omitempty"`
+        Annotations `json:"annotations,omitempty"`
+        Limits      `json:"limits,omitempty"`
+}
+
 type Exec struct {
-        Code  string `json:"code,omitempty"`
         Kind  string `json:"kind,omitempty"`
+        Code  string `json:"code,omitempty"`
         Image string `json:"image,omitempty"`
         Init  string `json:"init,omitempty"`
 }
@@ -79,7 +90,28 @@ func (s *ActionService) List(options *ActionListOptions) ([]Action, *http.Respon
 func (s *ActionService) Insert(action *Action, overwrite bool) (*Action, *http.Response, error) {
         route := fmt.Sprintf("actions/%s?overwrite=%t", action.Name, overwrite)
 
-        req, err := s.client.NewRequest("PUT", route, action)
+        action2 := Action2{
+                Parameters: action.Parameters,
+                Exec: action.Exec,
+
+        }
+
+        /*
+
+}
+
+type Action2 struct {
+        Namespace string `json:"namespace,omitempty"`
+        Version   string `json:"version,omitempty"`
+        Publish   bool   `json:"publish,omitempty"`
+
+        Exec        `json:"exec,omitempty"`
+        Annotations `json:"annotations,omitempty"`
+        Parameters  `json:"parameters,omitempty"`
+        Limits      `json:"limits,omitempty"`
+}         */
+
+        req, err := s.client.NewRequest("PUT", route, action2)
         if err != nil {
                 return nil, nil, err
         }

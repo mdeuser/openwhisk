@@ -96,10 +96,18 @@ var ruleCreateCmd = &cobra.Command{
 
         Run: func(cmd *cobra.Command, args []string) {
                 var err error
+                var shared bool
+
                 if len(args) != 3 {
                         err = errors.New("Invalid argument list")
                         fmt.Println(err)
                         return
+                }
+
+                if (flags.common.shared == "yes") {
+                        shared = true
+                } else {
+                        shared = false
                 }
 
                 ruleName := args[0]
@@ -110,7 +118,7 @@ var ruleCreateCmd = &cobra.Command{
                         Name:    ruleName,
                         Trigger: triggerName,
                         Action:  actionName,
-                        Publish: flags.common.shared,
+                        Publish: shared,
                 }
 
                 rule, _, err = client.Rules.Insert(rule, false)
@@ -137,6 +145,8 @@ var ruleUpdateCmd = &cobra.Command{
 
         Run: func(cmd *cobra.Command, args []string) {
                 var err error
+                var shared bool
+
                 if len(args) != 3 {
                         err = errors.New("Invalid argument list")
                         fmt.Println(err)
@@ -147,11 +157,17 @@ var ruleUpdateCmd = &cobra.Command{
                 triggerName := args[1]
                 actionName := args[2]
 
+                if (flags.common.shared == "yes") {
+                        shared = true
+                } else {
+                        shared = false
+                }
+
                 rule := &whisk.Rule{
                         Name:    ruleName,
                         Trigger: triggerName,
                         Action:  actionName,
-                        Publish: flags.common.shared,
+                        Publish: shared,
                 }
 
                 rule, _, err = client.Rules.Insert(rule, true)
@@ -261,10 +277,10 @@ var ruleListCmd = &cobra.Command{
 
 func init() {
 
-        ruleCreateCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "shared action (default: private)")
+        ruleCreateCmd.Flags().StringVar(&flags.common.shared, "shared", "", "shared action (default: private)")
         ruleCreateCmd.Flags().BoolVar(&flags.rule.enable, "enable", false, "autmatically enable rule after creating it")
 
-        ruleUpdateCmd.Flags().BoolVar(&flags.common.shared, "shared", false, "shared action (default: private)")
+        ruleUpdateCmd.Flags().StringVar(&flags.common.shared, "shared", "", "shared action (default: private)")
 
         ruleDeleteCmd.Flags().BoolVar(&flags.rule.disable, "disable", false, "autmatically disable rule before deleting it")
 
