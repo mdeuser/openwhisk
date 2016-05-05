@@ -25,6 +25,7 @@ type Info struct {
         Whisk   string `json:"whisk,omitempty"`
         Version string `json:"version,omitempty"`
         Build   string `json:"build,omitempty"`
+        BuildNo string `json:"buildno,omitempty"`
 }
 
 type InfoService struct {

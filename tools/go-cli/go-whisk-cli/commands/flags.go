@@ -16,9 +16,15 @@ limitations under the License.
 
 package commands
 
+import (
+        "os"
+)
+
 ///////////
 // Flags //
 ///////////
+
+var cliDebug = os.Getenv("WSK_CLI_DEBUG")  // Useful for tracing init() code
 
 var flags struct {
         global struct {
@@ -46,6 +52,7 @@ var flags struct {
                 namespace     bool
                 cliversion    bool
                 apibuild      bool
+                apibuildno    bool
                 all           bool
                 apihostSet    string
                 apiversionSet string

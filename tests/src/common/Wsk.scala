@@ -680,8 +680,8 @@ trait WaitFor {
 }
 
 object Wsk {
-    private val cliDir = WhiskProperties.getFileRelativeToWhiskHome("bin")
-    //private val cliDir = WhiskProperties.getFileRelativeToWhiskHome(getBinaryPath)
+    //FIXME MWD private val cliDir = WhiskProperties.getFileRelativeToWhiskHome("bin")
+    private val cliDir = WhiskProperties.getFileRelativeToWhiskHome(getBinaryPath)
     private val binaryName = "wsk"
 
     /** What is the path to a downloaded CLI? **/
@@ -705,7 +705,8 @@ object Wsk {
     def baseCommand = if (WhiskProperties.useCliDownload()) {
         Buffer(getDownloadedCliPath)
     } else {
-        Buffer(WhiskProperties.python, new File(cliDir, binaryName).toString)
+        //FIXME MWD Buffer(WhiskProperties.python, new File(cliDir, binaryName).toString)
+        Buffer(new File(cliDir, binaryName).toString)
     }
 
     def isMac = {
@@ -730,7 +731,8 @@ object Wsk {
 
     def getBinaryPath : String = {
         if (isLinux)
-            s"bin\\linux\\${getCPUArch}"
+            //FIXME MWD s"bin\\linux\\${getCPUArch}"
+            s"bin\\go-cli\\linux\\${getCPUArch}"
         else if (isMac)
             s"bin\\mac\\${getCPUArch}"
         else if (isWindows)
@@ -760,7 +762,7 @@ sealed trait RunWskCmd {
         val args = baseCommand
         if (verbose) args += "--verbose"
         if (showCmd) println(params.mkString(" "))
-        val rr = TestUtils.runCmd(DONTCARE_EXIT, workingDir, TestUtils.logger, env, args ++ params: _*)
+        val rr = TestUtils.runCmd(DONTCARE_EXIT, workingDir, TestUtils.logger, sys.env ++ env, args ++ params: _*)
         rr.validateExitCode(expectedExitCode)
         rr
     }

@@ -32,6 +32,7 @@ var Properties struct {
         APIHost    string
         APIVersion string
         APIBuild   string
+        APIBuildNo string
         CLIVersion string
         Namespace  string
         PropsFile  string
@@ -41,6 +42,7 @@ const DefaultAuth       string = ""
 const DefaultAPIHost    string = "openwhisk.ng.bluemix.net"
 const DefaultAPIVersion string = "v1"
 const DefaultAPIBuild   string = ""
+const DefaultAPIBuildNo string = ""
 const DefaultCLIVersion string = ""
 const DefaultNamespace  string = "_"
 const DefaultPropsFile  string = "~/.wskprops"
@@ -198,12 +200,17 @@ var propertyGetCmd = &cobra.Command{
                         fmt.Println("whisk namespace\t\t", Properties.Namespace)
                 }
 
-                if flags.property.all || flags.property.apibuild {
+                if flags.property.all || flags.property.apibuild || flags.property.apibuildno {
                         info, _, err := client.Info.Get()
                         if err != nil {
                                 fmt.Println(err)
                         } else {
-                                fmt.Println("whisk API build\t\t", info.Build)
+                                if flags.property.all || flags.property.apibuild {
+                                        fmt.Println("whisk API build\t\t", info.Build)
+                                }
+                                if flags.property.all || flags.property.apibuildno {
+                                        fmt.Println("whisk API build number\t", info.BuildNo)
+                                }                                
                         }
                 }
 
@@ -222,6 +229,7 @@ func init() {
         propertyGetCmd.Flags().BoolVar(&flags.property.apihost, "apihost", false, "whisk API host")
         propertyGetCmd.Flags().BoolVar(&flags.property.apiversion, "apiversion", false, "whisk API version")
         propertyGetCmd.Flags().BoolVar(&flags.property.apibuild, "apibuild", false, "whisk API build version")
+        propertyGetCmd.Flags().BoolVar(&flags.property.apibuildno, "apibuildno", false, "whisk API build number")
         propertyGetCmd.Flags().BoolVar(&flags.property.cliversion, "cliversion", false, "whisk CLI version")
         propertyGetCmd.Flags().BoolVar(&flags.property.namespace, "namespace", false, "authorization key")
         propertyGetCmd.Flags().BoolVar(&flags.property.all, "all", false, "all properties")
@@ -243,9 +251,26 @@ func setDefaultProperties() {
         Properties.Namespace = DefaultNamespace
         Properties.APIHost = DefaultAPIHost
         Properties.APIBuild = DefaultAPIBuild
+        Properties.APIBuildNo = DefaultAPIBuildNo
         Properties.APIVersion = DefaultAPIVersion
         Properties.CLIVersion = DefaultCLIVersion
         Properties.PropsFile = DefaultPropsFile
+}
+
+func getPropertiesFilePath() (propsFilePath string, err error) {
+        // Environment variable overrides the default properties file path
+        if propsFilePath := os.Getenv("WSK_CONFIG_FILE"); len(propsFilePath) > 0 {
+                if len(cliDebug) > 0 || flags.global.verbose {
+                        fmt.Println("Using property file from WSK_CONFIG_FILE environment variable: ", propsFilePath)
+                }
+                return propsFilePath, nil
+        } else {
+                propsFilePath, err = homedir.Expand(Properties.PropsFile)
+                if len(cliDebug) > 0 || flags.global.verbose {
+                        fmt.Println("Using property file home dir: ", propsFilePath)
+                }
+                return propsFilePath, err
+        }
 }
 
 func loadProperties() error {
@@ -253,7 +278,7 @@ func loadProperties() error {
 
         setDefaultProperties()
 
-        Properties.PropsFile, err = homedir.Expand(Properties.PropsFile)
+        Properties.PropsFile, err = getPropertiesFilePath()
         if err != nil {
                 return err
         }
