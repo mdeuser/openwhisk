@@ -260,13 +260,13 @@ func setDefaultProperties() {
 func getPropertiesFilePath() (propsFilePath string, err error) {
         // Environment variable overrides the default properties file path
         if propsFilePath := os.Getenv("WSK_CONFIG_FILE"); len(propsFilePath) > 0 {
-                if len(cliDebug) > 0 || flags.global.verbose {
+                if IsDebug() {
                         fmt.Println("Using property file from WSK_CONFIG_FILE environment variable: ", propsFilePath)
                 }
                 return propsFilePath, nil
         } else {
                 propsFilePath, err = homedir.Expand(Properties.PropsFile)
-                if len(cliDebug) > 0 || flags.global.verbose {
+                if IsDebug() {
                         fmt.Println("Using property file home dir: ", propsFilePath)
                 }
                 return propsFilePath, err
@@ -352,7 +352,7 @@ func parseConfigFlags(cmd *cobra.Command, args []string) {
                 }
         }
 
-        if flags.global.verbose {
+        if IsVerbose() {
                 client.Config.Verbose = flags.global.verbose
         }
 }

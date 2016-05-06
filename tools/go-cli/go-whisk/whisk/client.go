@@ -55,6 +55,7 @@ type Config struct {
         BaseURL   	*url.URL // NOTE :: Default is "openwhisk.ng.bluemix.net"
         Version   	string
         Verbose   	bool
+        Debug       bool     // For detailed tracing
 }
 
 func NewClient(httpClient *http.Client, config *Config) (*Client, error) {
@@ -211,7 +212,7 @@ type ErrorResponse struct {
         Errors   []Error        `json:"errors"`  // more detail on individual errors
 }
 
-func (r *ErrorResponse) Error() string {
+func (r ErrorResponse) Error() string {
         return fmt.Sprintf("%v %v: %d %v %+v",
                 r.Response.Request.Method, r.Response.Request.URL,
                 r.Response.StatusCode, r.Message, r.Errors)
@@ -223,7 +224,7 @@ type Error struct {
         Code     string `json:"code"`     // validation error code
 }
 
-func (e *Error) Error() string {
+func (e Error) Error() string {
         return fmt.Sprintf("%v error caused by %v field on %v resource",
                 e.Code, e.Field, e.Resource)
 }
@@ -248,6 +249,7 @@ func CheckResponse2(r *http.Response) error {
         if c := r.StatusCode; 200 <= c && c <= 299 {
                 return nil
         }
+
         errorResponse := &ErrorResponse{Response: r}
         data, err := ioutil.ReadAll(r.Body)
         if err == nil && data != nil {
@@ -260,3 +262,11 @@ func CheckResponse2(r *http.Response) error {
 ////////////////////////////
 // Basic Client Functions //
 ////////////////////////////
+
+func (c *Client) IsVerbose() bool {
+    return c.Config.Verbose
+}
+
+func (c *Client) IsDebug() bool {
+    return c.Config.Debug
+}
