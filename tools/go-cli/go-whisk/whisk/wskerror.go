@@ -28,4 +28,3 @@ type WskError struct {
 func (e WskError) Error() string {
     return e.RootErr.Error()
 }
-
