@@ -40,7 +40,7 @@ func init() {
         baseURL, err := url.Parse(apiHostBaseUrl)
         if err != nil {
                 fmt.Println(err)
-                os.Exit(-1)
+                os.Exit(whisk.EXITCODE_ERR_GENERAL)
         }
 
         clientConfig := &whisk.Config{
@@ -54,7 +54,7 @@ func init() {
         client, err = whisk.NewClient(http.DefaultClient, clientConfig)
         if err != nil {
                 fmt.Println(err)
-                os.Exit(-1)
+                os.Exit(whisk.EXITCODE_ERR_GENERAL)
         }
 }
 
