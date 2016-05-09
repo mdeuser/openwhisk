@@ -72,8 +72,8 @@ func parseQualifiedName(name string) (qName qualifiedName, err error) {
         }
 
         if IsDebug() {
-                fmt.Printf("Package entityName %s: ", qName.entityName)
-                fmt.Printf("Package namespace %s: ", qName.namespace)
+                fmt.Printf("Package entityName: %s\n", qName.entityName)
+                fmt.Printf("Package namespace: %s\n", qName.namespace)
         }
 
         return qName, err
