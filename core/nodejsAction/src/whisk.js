@@ -117,22 +117,23 @@ function Whisk(apihost, version, logger) {
             logger && logger.info('[whisk]', '[invoke]', 'response body', body);
 
             var activation = undefined;
-            var error = undefined;
-            var errorCode = undefined;
+
+            error = error || undefined;
+            response = response || {};
+            body = body || {};
 
             if (response.statusCode == 200 || response.statusCode == 202) {
                 activation = {
                    activationId: body.activationId, // id always present
                    result: (body.response || {}).result // may not exist if non-blocking
                 };
-            } else {
-                // activation failed, set error to API host error response (msg and code)
-                error = body.error || 'fatal';
-                errorCode = body.code;
+            } else if (!error) {
+                // activation failed, set error to API host error response.
+                error = body.error + ' (' + body.errorCode + ')';
             }
 
             if (next) {
-                logger && logger.info('[whisk]', '[invoke]', 'next', error+(errorCode ? ' ('+errorCode+')' : ''), activation);
+                logger && logger.info('[whisk]', '[invoke]', 'next', error, activation);
                 next(error, activation);
             }
         });
@@ -171,19 +172,20 @@ function Whisk(apihost, version, logger) {
             logger && logger.info('[whisk]', '[trigger]', 'response body', body);
 
             var activation = undefined;
-            var error = undefined;
-            var errorCode = undefined;
+
+            error = error || undefined;
+            response = response || {};
+            body = body || {};
 
             if (response.statusCode == 200) {
                 activation = { activation: body.activationId }; // id always present
-            } else {
-                // activation failed, set error to API host error response (msg and code)
-                error = body.error || 'fatal';
-                errorCode = body.code;
+            } else if (!error) {
+                // activation failed, set error to API host error response.
+                error = body.error + ' (' + body.errorCode + ')';
             }
 
             if (next) {
-                logger && logger.info('[whisk]', '[trigger]', 'next', error+(errorCode ? ' ('+errorCode+')' : ''), activation);
+                logger && logger.info('[whisk]', '[trigger]', 'next', error, activation);
                 next(error, activation);
             }
         });
@@ -271,7 +273,9 @@ function post(packet, logger, next) {
 
     request.post(options, function(error, response, body) {
         logger && logger.info('[whisk]', 'post status:', response ? response.statusCode : undefined);
-        error  && logger.info('[whisk]', 'post error:', error);
-        if (next) next(error, response, body || {});
+        // print the error to console.error to help post-mortem debugging
+        // and inform the user if for example they neglected to check for error
+        error  && console.log('Warning: whisk activation request failed with the following error', error);
+        if (next) next(error, response, body);
     });
 }
