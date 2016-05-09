@@ -136,7 +136,6 @@ var actionUpdateCmd = &cobra.Command{
 
         Run: func(cmd *cobra.Command, args []string) {
                 action, err := parseAction(cmd, args)
-                fmt.Printf("STTRUCT%+v\n", action)
 
                 if err != nil {
                         fmt.Println(err)
@@ -310,12 +309,26 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
         var shared bool
         var actionName, artifact string
 
-        if len(args) < 1 /*|| len(args) > 2*/ {
+        if (IsDebug()) {
+                fmt.Printf("Action arguments: %s\n", args)
+        }
+
+        if len(args) < 1 {
                 err = errors.New("Invalid argument list")
                 return nil, err
         }
 
         actionName = args[0]
+
+        qName := qualifiedName{}
+
+        qName, err = parseQualifiedName(args[0])
+        if err != nil {
+                fmt.Printf("error: %s", err)
+                return nil, err
+        }
+
+        client.Namespace = qName.namespace
 
         if len(args) == 2 {
                 artifact = args[1]
@@ -326,7 +339,6 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
         } else {
                 shared = false
         }
-
 
         parameters, err := parseParameters(flags.common.param)
         if err != nil {
@@ -421,11 +433,16 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                 action.Exec.Init = base64.StdEncoding.EncodeToString(lib)
         }
 
-        action.Name = actionName
+        action.Name = qName.entityName
+        action.Namespace = qName.namespace
         action.Publish = shared
         action.Annotations = annotations
         action.Parameters = parameters
         action.Limits = limits
+
+        if IsDebug() {
+                fmt.Printf("Parsed action struct: %+v\n", action)
+        }
 
         return action, nil
 }

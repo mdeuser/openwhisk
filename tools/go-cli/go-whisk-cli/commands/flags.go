@@ -97,7 +97,7 @@ var flags struct {
 }
 
 func IsVerbose() bool {
-    return flags.global.verbose
+    return flags.global.verbose || IsDebug()
 }
 
 func IsDebug() bool {

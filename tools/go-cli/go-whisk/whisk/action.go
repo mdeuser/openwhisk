@@ -101,20 +101,9 @@ func (s *ActionService) Insert(action *Action, overwrite bool) (*Action, *http.R
 
         }
 
-        /*
-
-}
-
-type Action2 struct {
-        Namespace string `json:"namespace,omitempty"`
-        Version   string `json:"version,omitempty"`
-        Publish   bool   `json:"publish,omitempty"`
-
-        Exec        `json:"exec,omitempty"`
-        Annotations `json:"annotations,omitempty"`
-        Parameters  `json:"parameters,omitempty"`
-        Limits      `json:"limits,omitempty"`
-}         */
+        if s.client.IsDebug() {
+                fmt.Printf("HTTP route: %s\n", route)
+        }
 
         req, err := s.client.NewRequest("PUT", route, action2)
         if err != nil {
