@@ -28,31 +28,31 @@ import ActionContainer.withContainer
 import scala.util.Random
 
 @RunWith(classOf[JUnitRunner])
-class SwiftActionContainerTests extends FlatSpec
+class PythonActionContainerTests extends FlatSpec
     with Matchers
     with BeforeAndAfter {
 
-    // note: "out" will likely not be empty in some swift build as the compiler
-    // prints status messages and there doesn't seem to be a way to quiet them
-    val checkStdOutEmpty = true
-    val swiftContainerImageName = "whisk/swiftaction"
-
-    // Helpers specific to swiftaction
-    def withSwiftContainer(code: ActionContainer => Unit) = withContainer(swiftContainerImageName)(code)
+    // Helpers specific to pythonaction
+    def withPythonContainer(code: ActionContainer => Unit) = withContainer("whisk/pythonaction")(code)
     def initPayload(code: String) = JsObject(
         "value" -> JsObject(
-            "name" -> JsString("someSwiftAction"),
+            "name" -> JsString("somePythonAction"),
             "code" -> JsString(code)))
     def runPayload(args: JsValue) = JsObject("value" -> args)
 
-    behavior of "whisk/swiftaction"
+    behavior of "whisk/pythonaction"
 
     it should "support valid flows" in {
-        val (out, err) = withSwiftContainer { c =>
+        val (out, err) = withPythonContainer { c =>
             val code = """
-                | func main(args: [String: Any]) -> [String: Any] {
-                |     return args
-                | }
+                |def main(dict):
+                |    if 'user' in dict:
+                |        print("hello " + dict['user'] + "!")
+                |        return {"user" : dict['user']}
+                |    else:
+                |        print("hello world!")
+                |        return {"user" : "world"}
+                |
             """.stripMargin
 
             val (initCode, _) = c.init(initPayload(code))
@@ -60,31 +60,27 @@ class SwiftActionContainerTests extends FlatSpec
             initCode should be(200)
 
             val argss = List(
-                JsObject("greeting" -> JsString("hi!")),
-                JsObject("numbers" -> JsArray(JsNumber(42), JsNumber(1))))
+                JsObject("user" -> JsString("Lulu")),
+                JsObject("user" -> JsString("Momo")))
 
             for (args <- argss) {
                 val (runCode, out) = c.run(runPayload(args))
+                println(out)
                 runCode should be(200)
                 out should be(Some(args))
             }
         }
-
-        if (checkStdOutEmpty) out.trim shouldBe empty
         err.trim shouldBe empty
     }
 
     it should "return some error on action error" in {
-        withSwiftContainer { c =>
+        withPythonContainer { c =>
             val code = """
-                | // You need an indirection, or swiftc detects the div/0
-                | // at compile-time. Smart.
-                | func div(x: Int, _ y: Int) -> Int {
-                |     return x/y
-                | }
-                | func main(args: [String: Any]) -> [String: Any] {
-                |     return [ "divBy0": div(5,0) ]
-                | }
+                |def div(x, y):
+                |    return x/y
+                |
+                |def main(dict):
+                |    return {"divBy0": div(5,0)}
             """.stripMargin
 
             val (initCode, _) = c.init(initPayload(code))
@@ -99,14 +95,15 @@ class SwiftActionContainerTests extends FlatSpec
     }
 
     it should "log compilation errors" in {
-        val (_, err) = withSwiftContainer { c =>
+        val (_, err) = withPythonContainer { c =>
             val code = """
               | 10 PRINT "Hello!"
               | 20 GOTO 10
             """.stripMargin
 
             val (initCode, _) = c.init(initPayload(code))
-            initCode should not be (200)
+            // init code does not check anything about the code, so it should return 200
+            initCode should be(200)
 
             val (runCode, runRes) = c.run(runPayload(JsObject("basic" -> JsString("forever"))))
             runCode should be(502)
@@ -114,18 +111,19 @@ class SwiftActionContainerTests extends FlatSpec
         err.toLowerCase should include("error")
     }
 
+
     it should "support application errors" in {
-        withSwiftContainer { c =>
+        withPythonContainer { c =>
             val code = """
-                | func main(args: [String: Any]) -> [String: Any] {
-                |     return [ "error": "sorry" ]
-                | }
+                |def main(args):
+                |    return { "error": "sorry" }
             """.stripMargin
 
             val (initCode, _) = c.init(initPayload(code))
             initCode should be(200)
 
             val (runCode, runRes) = c.run(runPayload(JsObject()))
+            println(runRes)
             runCode should be(200) // action writer returning an error is OK
 
             runRes shouldBe defined
@@ -134,11 +132,10 @@ class SwiftActionContainerTests extends FlatSpec
     }
 
     it should "enforce that the user returns an object" in {
-        withSwiftContainer { c =>
+        withPythonContainer { c =>
             val code = """
-                | func main(args: [String: Any]) -> String {
+                | def main(args):
                 |     return "rebel, rebel"
-                | }
             """.stripMargin
 
             val (initCode, _) = c.init(initPayload(code))

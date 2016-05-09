@@ -37,8 +37,7 @@ build/
 node_modules
 
 # Vagrant
-/tools/vagrant/.vagrant
+/tools/vagrant/.vagrant*
 
 # Webstorm
 .idea
-

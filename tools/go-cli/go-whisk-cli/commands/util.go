@@ -35,6 +35,7 @@ type qualifiedName struct {
 
 func (qName qualifiedName) String() string {
         output := []string{}
+
         if len(qName.namespace) > 0 {
                 output = append(output, "/", qName.namespace, "/")
         }
@@ -47,41 +48,35 @@ func (qName qualifiedName) String() string {
 }
 
 func parseQualifiedName(name string) (qName qualifiedName, err error) {
-        if len(name) == 0 {
-                err = whisk.MakeWskError(
-                        errors.New("Invalid name format"),
-                        whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE )
-                return
-        }
-        if name[:1] == "/" {
-                name = name[1:]
-                i := strings.Index(name, "/")
-                if i == -1 {
-                        qName.namespace = name
-                        return
+
+        if len(name) > 0 && name[0] == '/' {
+                parts := strings.Split(name, "/")
+                qName.namespace = parts[1]
+
+                if len(parts) > 2 {
+                       qName.entityName = strings.Join(parts[2:], "")
+                } else {
+                        qName.entityName = name
                 }
-                if i == 0 {
-                        err = whisk.MakeWskError(
-                                errors.New("Invalid name format"),
-                                whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE )
-                        return
+        } else if len(name) > 0 {
+                qName.entityName = name
+
+                if Properties.Namespace != "" {
+                        qName.namespace = Properties.Namespace
+                } else {
+                        qName.namespace = "_"
                 }
-
-                qName.namespace = name[:i]
-                name = name[i+1:]
+        } else {
+                err = whisk.MakeWskError(errors.New("Invalid name format"), whisk.EXITCODE_ERR_GENERAL,
+                        whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE )
         }
 
-        i := strings.Index(name, "/")
-
-        if i > 0 {
-                qName.packageName = name[:i]
-                name = name[i+1:]
+        if IsDebug() {
+                fmt.Printf("Package entityName %s: ", qName.entityName)
+                fmt.Printf("Package namespace %s: ", qName.namespace)
         }
 
-        qName.entityName = name
-
-        return
-
+        return qName, err
 }
 
 func parseGenericArray(args []string) (whisk.Annotations, error) {
