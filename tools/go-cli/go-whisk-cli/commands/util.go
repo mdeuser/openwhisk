@@ -48,7 +48,9 @@ func (qName qualifiedName) String() string {
 
 func parseQualifiedName(name string) (qName qualifiedName, err error) {
         if len(name) == 0 {
-                err = errors.New("Invalid name format")
+                err = whisk.MakeWskError(
+                        errors.New("Invalid name format"),
+                        whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE )
                 return
         }
         if name[:1] == "/" {
@@ -59,7 +61,9 @@ func parseQualifiedName(name string) (qName qualifiedName, err error) {
                         return
                 }
                 if i == 0 {
-                        err = errors.New("Invalid name format")
+                        err = whisk.MakeWskError(
+                                errors.New("Invalid name format"),
+                                whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE )
                         return
                 }
 
@@ -84,7 +88,9 @@ func parseGenericArray(args []string) (whisk.Annotations, error) {
         parsed := make(whisk.Annotations, 0)
 
         if len(args)%2 != 0 {
-                err := errors.New("key|value arguments must be submitted in comma-separated pairs")
+                err := whisk.MakeWskError(
+                        errors.New("key|value arguments must be submitted in comma-separated pairs"),
+                        whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE )
                 return parsed, err
         }
 
@@ -102,7 +108,9 @@ func parseGenericArray(args []string) (whisk.Annotations, error) {
 func parseKeyValueArray(args []string) ([]whisk.KeyValue, error) {
         parsed := []whisk.KeyValue{}
         if len(args)%2 != 0 {
-                err := errors.New("key|value arguments must be submitted in comma-separated pairs")
+                err := whisk.MakeWskError(
+                        errors.New("key|value arguments must be submitted in comma-separated pairs"),
+                        whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE )
                 return parsed, err
         }
 
