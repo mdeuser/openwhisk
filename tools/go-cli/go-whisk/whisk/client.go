@@ -27,6 +27,7 @@ import (
         "net/url"
         "crypto/tls"
         "errors"
+        "reflect"
 )
 
 const (
@@ -77,7 +78,8 @@ func NewClient(httpClient *http.Client, config *Config) (*Client, error) {
         if config.BaseURL == nil {
                 config.BaseURL, err = url.Parse(defaultBaseURL)
                 if err != nil {
-                        return nil, err
+                    werr := MakeWskError(err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+                    return nil, werr
                 }
         }
 
@@ -116,7 +118,8 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 
         rel, err := url.Parse(urlStr)
         if err != nil {
-                return nil, err
+            werr := MakeWskError(err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+            return nil, werr
         }
 
         u := c.BaseURL.ResolveReference(rel)
@@ -126,12 +129,14 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
                 buf = new(bytes.Buffer)
                 err := json.NewEncoder(buf).Encode(body)
                 if err != nil {
-                        return nil, err
+                    werr := MakeWskError(err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+                    return nil, werr
                 }
         }
         req, err := http.NewRequest(method, u.String(), buf)
         if err != nil {
-                return nil, err
+            werr := MakeWskError(err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+            return nil, werr
         }
         if req.Body != nil {
                 req.Header.Add("Content-Type", "application/json")
@@ -155,108 +160,145 @@ func (c *Client) addAuthHeader(req *http.Request) {
 // interface, the raw response body will be written to v, without attempting to
 // first decode it.
 func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
-        // TODO :: clean up verbose scheme
-        if c.Verbose {
-                fmt.Printf("\n[%s]\t%s\n", req.Method, req.URL)
-                if len(req.Header) > 0 {
-                        fmt.Println("Headers")
-                        printJSON(req.Header)
-                }
-                if req.Body != nil {
-                        fmt.Println("Body")
-                        fmt.Println(req.Body)
-                }
+    // TODO :: clean up verbose scheme
+    if c.IsVerbose() {
+        fmt.Printf("\n[%s]\t%s\n", req.Method, req.URL)
+        if len(req.Header) > 0 {
+            fmt.Println("Req Headers")
+            printJSON(req.Header)
         }
-
-        resp, err := c.client.Do(req)
-        if err != nil {
-                return nil, err
+        if req.Body != nil {
+            fmt.Println("Req Body")
+            fmt.Println(req.Body)
         }
-        defer resp.Body.Close()
+    }
 
-        if v != nil {
-                if w, ok := v.(io.Writer); ok {
-                        io.Copy(w, resp.Body)
-                } else {
-                        err = json.NewDecoder(resp.Body).Decode(v)
-                        if err == io.EOF {
-                                err = nil // ignore EOF errors caused by empty response body
-                        }
-                }
+    // Issue the request to the Whisk server endpoint
+    resp, err := c.client.Do(req)
+    if err != nil {
+        werr := MakeWskError(err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, werr
+    }
+    defer resp.Body.Close()
+
+    // Read the response body
+    data, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        if c.IsDebug() {
+            fmt.Printf("whisk.client.Do: Unable to read response body; err %s\n", err)
         }
+        werr := MakeWskError(err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return resp, werr
+    }
+    if c.IsDebug() {
+        fmt.Printf("HTTP Body:\n%s\n", string(data))
+    }
 
-        if c.Verbose {
-                fmt.Printf("\n[%d]\t%s\n", resp.StatusCode, resp.Status)
-                printJSON(v)
+    // With the HTTP response status code and the HTTP body contents,
+    // the possible response scenarios are:
+    //
+    // 1. HTTP Success + Valid body matching request expectations
+    // 2. HTTP Success + No body expected
+    // 3. HTTP Success + Body does NOT match request expectations
+    // 4. HTTP Failure + No body
+    // 5. HTTP Failure + Body matching error format expectation
+    // 6. HTTP Failure + Body NOT matching error format expectation
+
+    // Handle 4. HTTP Failure + No body
+    // If this happens, just return no data and an error
+    if !IsHttpRespSuccess(resp) && data == nil {
+        if c.IsDebug() {
+            fmt.Printf("whisk.client.Do: HTTP failure %d + no body\n", resp.StatusCode)
         }
+        werr := MakeWskError(errors.New("Command failed due to an HTTP failure"), resp.StatusCode-256, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return resp, werr
+    }
 
-        err = CheckResponse(v)
-        /*err = CheckResponse(resp)
-        if err != nil {
-                if c.Verbose {
-                        printJSON(err)
-                }
-                return resp, err
-        }*/
+    // Handle 5. HTTP Failure + Body matching error format expectation
+    // Handle 6. HTTP Failure + Body NOT matching error format expectation
+    if !IsHttpRespSuccess(resp) && data != nil {
+        if c.IsDebug() {
+            fmt.Printf("whisk.client.Do: HTTP failure %d + body\n", resp.StatusCode)
+        }
+        errorResponse := &ErrorResponse{Response: resp}
+        err = json.Unmarshal(data, errorResponse)
 
-        return resp, err
+        // If the body matches the error response format, return an error containing
+        // the response error information (#5)
+        if err == nil {
+            if c.IsDebug() {
+                fmt.Printf("whisk.client.Do: HTTP failure %d; server error %s\n", resp.StatusCode, errorResponse)
+            }
+            werr := MakeWskError(errorResponse, resp.StatusCode - 256, DISPLAY_MSG, NO_DISPLAY_USAGE)
+            return resp, werr
+        } else {
+            // Otherwise, the body contents are unknown (#6)
+            if c.IsDebug() {
+                fmt.Printf("whisk.client.Do: HTTP failure with unexpected body contents due to parsing error: '%v'\n", err)
+            }
+            werr := MakeWskError(errors.New("Command failed due to HTTP failure"), resp.StatusCode - 256, DISPLAY_MSG, NO_DISPLAY_USAGE)
+            return resp, werr
+        }
+    }
+
+    // Handle 2. HTTP Success + No body expected
+    if IsHttpRespSuccess(resp) && v == nil {
+        if c.IsDebug() {
+            fmt.Println("whisk.client.Do: No interface provided; no HTTP response body expected")
+        }
+        return resp, nil
+    }
+
+    // Handle 1. HTTP Success + Valid body matching request expectations
+    // Handle 3. HTTP Success + Body does NOT match request expectations
+    if IsHttpRespSuccess(resp) && v != nil {
+        if c.IsDebug() {
+            fmt.Printf("whisk.client.Do: Parsing HTTP response into struct type: %s\n", reflect.TypeOf(v) )
+        }
+        err = json.Unmarshal(data, v)
+
+        // If the decode was successful, return the response without error (#1)
+        if err == nil {
+            if c.IsDebug() {
+                fmt.Printf("whisk.client.Do: Successful parse of HTTP response into struct type: %s\n", reflect.TypeOf(v))
+            }
+            return resp, nil
+        } else {
+            // The decode did not work, so the server response was bad (#3)
+            if c.IsDebug() {
+                fmt.Printf("whisk.client.Do: Unsuccessful parse of HTTP response into struct type: %s; parse error '%v'\n", reflect.TypeOf(v), err)
+            }
+            werr := MakeWskError(errors.New("Command failed due to invalid HTTP response"), EXITCODE_ERR_HTTP_RESP, DISPLAY_MSG, NO_DISPLAY_USAGE)
+            return resp, werr
+        }
+    }
+
+    // We should never get here, but just in case return failure
+    // to keep the compiler happy
+    werr := MakeWskError(errors.New("Command failed due to an internal failure"), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+    return resp, werr
 }
 
 ////////////
 // Errors //
 ////////////
 
+// For containing the server response body when an error message is returned
+// Here's an example error response body with HTTP status code == 400
+// {
+//     "error": "namespace contains invalid characters",
+//     "code": 1422870
+// }
 type ErrorResponse struct {
-        Response *http.Response // HTTP response that caused this error
-        Message  string         `json:"message"` // error message
-        Errors   []Error        `json:"errors"`  // more detail on individual errors
+        Response *http.Response         // HTTP response that caused this error
+        ErrMsg   string `json:"error"`  // error message string
+        Code     int64  `json:"code"`   // validation error code
 }
 
 func (r ErrorResponse) Error() string {
-        return fmt.Sprintf("%v %v: %d %v %+v",
+        return fmt.Sprintf("%v %v: %d - '%v' %d",
                 r.Response.Request.Method, r.Response.Request.URL,
-                r.Response.StatusCode, r.Message, r.Errors)
-}
-
-type Error struct {
-        Resource string `json:"resource"` // resource on which the error occurred
-        Field    string `json:"field"`    // field on which the error occurred
-        Code     string `json:"code"`     // validation error code
-}
-
-func (e Error) Error() string {
-        return fmt.Sprintf("%v error caused by %v field on %v resource",
-                e.Code, e.Field, e.Resource)
-}
-
-func CheckResponse(v interface{}) error {
-        var err error
-
-        x, ok := (v).(*Action2)
-
-        if (ok && x.Error != "" && x.Code != 0) {
-                err = errors.New(fmt.Sprintf("%s (code %d)\n", x.Error, x.Code))
-
-        } else {
-                err = nil
-        }
-
-        return err
-
-}
-
-func CheckResponse2(r *http.Response) error {
-        if c := r.StatusCode; 200 <= c && c <= 299 {
-                return nil
-        }
-
-        errorResponse := &ErrorResponse{Response: r}
-        data, err := ioutil.ReadAll(r.Body)
-        if err == nil && data != nil {
-                json.Unmarshal(data, errorResponse)
-        }
-
-        return errorResponse
+                r.Response.StatusCode, r.ErrMsg, r.Code)
 }
 
 ////////////////////////////
@@ -269,4 +311,8 @@ func (c *Client) IsVerbose() bool {
 
 func (c *Client) IsDebug() bool {
     return c.Config.Debug
+}
+
+func IsHttpRespSuccess(r *http.Response) bool {
+    return r.StatusCode >= 200 && r.StatusCode <= 299
 }

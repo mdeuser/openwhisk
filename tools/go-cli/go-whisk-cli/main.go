@@ -26,6 +26,11 @@ import (
 )
 
 func main() {
+    var exitCode int = 0
+    var displayUsage bool = false
+    var displayMsg bool = false
+    var msgDisplayed bool = true
+
     defer func() {
         if r := recover(); r != nil {
             fmt.Println(r)
@@ -43,22 +48,38 @@ func main() {
             if commands.IsDebug() {
                 fmt.Println("Main: got a whisk.WskError error")
             }
-            os.Exit(werr.ExitCode)
+            displayUsage = werr.DisplayUsage
+            displayMsg = werr.DisplayMsg
+            msgDisplayed = werr.MsgDisplayed
+            exitCode = werr.ExitCode
         } else {
+            // FIXME MWD - The ErrorResponse error should be be returned; this temporary ErrorResponse handling is only needed while the error processing is being refactored
             rsperr, isRespError := err.(*whisk.ErrorResponse)
             if isRespError {
                 if commands.IsDebug() {
                     fmt.Print("Main: got a whisk.ErrorResponse: code = ", rsperr.Response.StatusCode)
                 }
-                os.Exit(rsperr.Response.StatusCode - 256);
+                exitCode = (rsperr.Response.StatusCode - 256);
             } else {
                 if commands.IsDebug() {
+                    // Likely a cobra generated error about bad command syntax
                     fmt.Println("Main: got some other error")
                 }
-                os.Exit(1);
+                displayUsage = false   // Cobra already displayed the usage message
+                exitCode = 1;
             }
         }
 
-        return
+        // If the err msg should be displayed to the console and it has not already been
+        // displayed, display it now.
+        if displayMsg && !msgDisplayed {
+            fmt.Println(err)
+        }
+
+        if displayUsage {
+            fmt.Printf("Run '%v --help' for usage.\n", commands.WskCmd.CommandPath())
+        } // Displays usage
     }
+    os.Exit(exitCode)
+    return
 }

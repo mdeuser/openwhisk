@@ -352,9 +352,8 @@ func parseConfigFlags(cmd *cobra.Command, args []string) {
                 }
         }
 
-        if IsVerbose() {
-                client.Config.Verbose = flags.global.verbose
-        }
+        client.Config.Verbose = flags.global.verbose
+        client.Config.Debug = flags.global.debug
 }
 
 func readProps(path string) (map[string]string, error) {
