@@ -66,7 +66,7 @@ class CLISwiftTests
             wsk.action.invoke(name, blocking = true, result = true)
                 .stdout should include("Hello stranger!")
 
-            wsk.action.invoke(name, Map("name" -> "Sir".toJson), blocking = true, result = true)
+            wsk.action.invoke(name, Map("name" -> "Sir"), blocking = true, result = true)
                 .stdout should include("Hello Sir!")
 
             withClue("Test duration exceeds expectation (ms)") {
