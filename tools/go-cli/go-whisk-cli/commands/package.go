@@ -102,7 +102,7 @@ var packageCreateCmd = &cobra.Command{
 
         Run: func(cmd *cobra.Command, args []string) {
                 var err error
-                var shared bool
+                var shared, sharedSet bool
 
                 if len(args) != 1 {
                         err = errors.New("Invalid argument")
@@ -110,12 +110,22 @@ var packageCreateCmd = &cobra.Command{
                         return
                 }
 
-                packageName := args[0]
+                qName, err := parseQualifiedName(args[0])
+                if err != nil {
+                        fmt.Printf("error: %s", err)
+                        return
+                }
+
+                client.Namespace = qName.namespace
 
                 if (flags.common.shared == "yes") {
                         shared = true
-                } else {
+                        sharedSet = true
+                } else if (flags.common.shared == "no") {
                         shared = false
+                        sharedSet = true
+                } else {
+                        sharedSet = false
                 }
 
                 parameters, err := parseParameters(flags.common.param)
@@ -131,18 +141,19 @@ var packageCreateCmd = &cobra.Command{
                 }
 
                 p := &whisk.Package{
-                        Name:        packageName,
+                        Name:        qName.entityName,
+                        Namespace:   qName.namespace,
                         Publish:     shared,
                         Annotations: annotations,
                         Parameters:  parameters,
                 }
-                p, _, err = client.Packages.Insert(p, false)
+                p, _, err = client.Packages.Insert(p, sharedSet, false)
                 if err != nil {
                         fmt.Println(err)
                         return
                 }
 
-                fmt.Printf("%s created package %s\n", color.GreenString("ok:"), boldString(packageName))
+                fmt.Printf("%s created package %s\n", color.GreenString("ok:"), boldString(qName.entityName))
         },
 }
 
@@ -186,7 +197,7 @@ var packageUpdateCmd = &cobra.Command{
                 // TODO :: parse annotations
                 // TODO ::parse parameters
                 var err error
-                var shared bool
+                var shared, sharedSet bool
 
                 if len(args) < 1 {
                         err = errors.New("Invalid argument")
@@ -194,12 +205,22 @@ var packageUpdateCmd = &cobra.Command{
                         return
                 }
 
-                packageName := args[0]
+                qName, err := parseQualifiedName(args[0])
+                if err != nil {
+                        fmt.Printf("error: %s", err)
+                        return
+                }
+
+                client.Namespace = qName.namespace
 
                 if (flags.common.shared == "yes") {
                         shared = true
-                } else {
+                        sharedSet = true
+                } else if (flags.common.shared == "no") {
                         shared = false
+                        sharedSet = true
+                } else {
+                        sharedSet = false
                 }
 
                 parameters, err := parseParameters(flags.common.param)
@@ -215,19 +236,20 @@ var packageUpdateCmd = &cobra.Command{
                 }
 
                 p := &whisk.Package{
-                        Name:        packageName,
+                        Name:        qName.entityName,
+                        Namespace:   qName.namespace,
                         Publish:     shared,
                         Annotations: annotations,
                         Parameters:  parameters,
                 }
 
-                p, _, err = client.Packages.Insert(p, true)
+                p, _, err = client.Packages.Insert(p, sharedSet, true)
                 if err != nil {
                         fmt.Println(err)
                         return
                 }
 
-                fmt.Printf("%s updated package %s\n", color.GreenString("ok:"), boldString(packageName))
+                fmt.Printf("%s updated package %s\n", color.GreenString("ok:"), boldString(qName.entityName))
         },
 }
 
@@ -243,9 +265,15 @@ var packageGetCmd = &cobra.Command{
                         return
                 }
 
-                packageName := args[0]
+                qName, err := parseQualifiedName(args[0])
+                if err != nil {
+                        fmt.Printf("error: %s", err)
+                        return
+                }
 
-                xPackage, _, err := client.Packages.Get(packageName)
+                client.Namespace = qName.namespace
+
+                xPackage, _, err := client.Packages.Get(qName.entityName)
                 if err != nil {
                         fmt.Println(err)
                         return
@@ -254,7 +282,7 @@ var packageGetCmd = &cobra.Command{
                 if flags.common.summary {
                         fmt.Printf("%s /%s/%s\n", boldString("package"), xPackage.Namespace, xPackage.Name)
                 } else {
-                        fmt.Printf("%s got package %s\n", color.GreenString("ok:"), boldString(packageName))
+                        fmt.Printf("%s got package %s\n", color.GreenString("ok:"), boldString(qName.entityName))
                         printJSON(xPackage)
                 }
         },
@@ -272,15 +300,21 @@ var packageDeleteCmd = &cobra.Command{
                         return
                 }
 
-                packageName := args[0]
+                qName, err := parseQualifiedName(args[0])
+                if err != nil {
+                        fmt.Printf("error: %s", err)
+                        return
+                }
 
-                _, err = client.Packages.Delete(packageName)
+                client.Namespace = qName.namespace
+
+                _, err = client.Packages.Delete(qName.entityName)
                 if err != nil {
                         fmt.Println(err)
                         return
                 }
 
-                fmt.Printf("%s deleted package %s\n", color.GreenString("ok:"), boldString(packageName))
+                fmt.Printf("%s deleted package %s\n", color.GreenString("ok:"), boldString(qName.entityName))
         },
 }
 
@@ -311,7 +345,7 @@ var packageListCmd = &cobra.Command{
 
                 if (flags.common.shared == "yes") {
                         shared = true
-                } else {
+                } else  {
                         shared = false
                 }
 

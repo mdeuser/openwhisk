@@ -29,28 +29,43 @@ type Action struct {
         Namespace string `json:"namespace,omitempty"`
         Name      string `json:"name,omitempty"`
         Version   string `json:"version,omitempty"`
-        Publish   bool   `json:"publish"`
+        Publish   bool   `json:"publish,omitempty"`
 
         Exec *Exec       `json:"exec,omitempty"`
-        Annotations `json:"annotations,omitempty"`
-        Parameters  `json:"parameters,omitempty"`
-        Limits      `json:"limits,omitempty"`
+        Annotations      `json:"annotations,omitempty"`
+        Parameters       `json:"parameters,omitempty"`
+        Limits           `json:"limits,omitempty"`
 }
 
-type Action2 struct {
-        Namespace string `json:"namespace,omitempty"`
-        Version   string `json:"version,omitempty"`
+type SentActionPublish struct {
+        Namespace string `json:"-"`
+        Version   string `json:"-"`
         Publish   bool   `json:"publish"`
 
         Parameters  `json:"parameters,omitempty"`
         Exec    *Exec        `json:"exec,omitempty"`
         Annotations `json:"annotations,omitempty"`
-       // Limits      `json:"limits,omitempty"`
+        Limits      `json:"-"`
 
         Error   string `json:"error,omitempty"`
         Code    int `json:"code,omitempty"`
-
 }
+
+type SentActionNoPublish struct {
+        Namespace string `json:"-"`
+        Version   string `json:"-"`
+        Publish   bool   `json:"publish,omitempty"`
+
+        Parameters  `json:"parameters,omitempty"`
+        Exec    *Exec        `json:"exec,omitempty"`
+        Annotations `json:"annotations,omitempty"`
+        Limits      `json:"-"`
+
+        Error   string `json:"error,omitempty"`
+        Code    int `json:"code,omitempty"`
+}
+
+
 
 type Exec struct {
         Kind  string `json:"kind,omitempty"`
@@ -91,21 +106,30 @@ func (s *ActionService) List(options *ActionListOptions) ([]Action, *http.Respon
 
 }
 
-func (s *ActionService) Insert(action *Action, overwrite bool) (*Action, *http.Response, error) {
+func (s *ActionService) Insert(action *Action, sharedSet bool, overwrite bool) (*Action, *http.Response, error) {
         route := fmt.Sprintf("actions/%s?overwrite=%t", action.Name, overwrite)
 
-        action2 := Action2{
-                Parameters: action.Parameters,
-                Exec: action.Exec,
-                Publish: action.Publish,
+        var sentAction interface{}
 
+        if sharedSet {
+                sentAction = SentActionPublish{
+                        Parameters: action.Parameters,
+                        Exec: action.Exec,
+                        Publish: action.Publish,
+                }
+        } else {
+                sentAction = SentActionNoPublish{
+                        Parameters: action.Parameters,
+                        Exec: action.Exec,
+                }
         }
+
 
         if s.client.IsDebug() {
                 fmt.Printf("HTTP route: %s\n", route)
         }
 
-        req, err := s.client.NewRequest("PUT", route, action2)
+        req, err := s.client.NewRequest("PUT", route, sentAction)
         if err != nil {
                 return nil, nil, err
         }
@@ -150,7 +174,7 @@ func (s *ActionService) Delete(actionName string) (*http.Response, error) {
                 return nil, err
         }
 
-        a := new(Action2)
+        a := new(SentActionNoPublish)
         resp, err := s.client.Do(req, a)
         if err != nil {
                 return resp, err

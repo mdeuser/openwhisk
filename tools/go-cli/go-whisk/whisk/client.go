@@ -160,8 +160,8 @@ func (c *Client) addAuthHeader(req *http.Request) {
 // interface, the raw response body will be written to v, without attempting to
 // first decode it.
 func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
-    // TODO :: clean up verbose scheme
-    if c.IsVerbose() {
+// TODO :: clean up verbose scheme
+    if (IsDebug()) {
         fmt.Printf("\n[%s]\t%s\n", req.Method, req.URL)
         if len(req.Header) > 0 {
             fmt.Println("Req Headers")
