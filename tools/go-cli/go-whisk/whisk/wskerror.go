@@ -23,7 +23,7 @@ const EXITCODE_ERR_HTTP_RESP    int = 3
 const DISPLAY_MSG bool      = true
 const NO_DISPLAY_MSG bool   = false
 const DISPLAY_USAGE bool    = true
-const NO_DISPLAY_USAGE bool = true
+const NO_DISPLAY_USAGE bool = false
 
 type WskError struct {
     RootErr         error

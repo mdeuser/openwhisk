@@ -17,41 +17,62 @@ limitations under the License.
 package whisk
 
 import (
-        "net/http"
-        "net/url"
+    "net/http"
+    "net/url"
+    "fmt"
+    "errors"
 )
 
 type Info struct {
-        Whisk   string `json:"whisk,omitempty"`
-        Version string `json:"version,omitempty"`
-        Build   string `json:"build,omitempty"`
-        BuildNo string `json:"buildno,omitempty"`
+    Whisk   string `json:"whisk,omitempty"`
+    Version string `json:"version,omitempty"`
+    Build   string `json:"build,omitempty"`
+    BuildNo string `json:"buildno,omitempty"`
 }
 
 type InfoService struct {
-        client *Client
+    client *Client
 }
 
 func (s *InfoService) Get() (*Info, *http.Response, error) {
-        // make a request to c.BaseURL / v1
+    // make a request to c.BaseURL / v1
 
-        ref, err := url.Parse(s.client.Config.Version)
-        if err != nil {
-                return nil, nil, err
+    ref, err := url.Parse(s.client.Config.Version)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("InfoService.Get: url.Parse error - URL '%s'; err '%s'", s.client.Config.Version, err)
         }
+        errStr := fmt.Sprintf("Unable to URL parse '%s'; error: %s", s.client.Config.Version, err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
+    }
 
-        u := s.client.BaseURL.ResolveReference(ref)
+    u := s.client.BaseURL.ResolveReference(ref)
 
-        req, err := http.NewRequest("GET", u.String(), nil)
-        if err != nil {
-                return nil, nil, err
+    req, err := http.NewRequest("GET", u.String(), nil)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("InfoService.Get: http.NewRequest error - URL GET '%s'; err '%s'", u.String(), err)
         }
+        errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", u.String(), err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
+    }
 
-        info := new(Info)
-        resp, err := s.client.Do(req, &info)
-        if err != nil {
-                return nil, resp, err
+    if IsDebug() {
+        fmt.Printf("InfoService.Get: Sending HTTP req %#v", req)
+    }
+
+    info := new(Info)
+    resp, err := s.client.Do(req, &info)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("InfoService.Get: s.client.Do() error - HTTP req %#v; error '%s'", req, err)
         }
+        errStr := fmt.Sprintf("HTTP GET request failure '%s'; error %s", u.String(), err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
+    }
 
-        return info, resp, nil
+    return info, resp, nil
 }

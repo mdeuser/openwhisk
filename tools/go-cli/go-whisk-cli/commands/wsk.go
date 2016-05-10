@@ -23,7 +23,8 @@ var WskCmd = &cobra.Command{
         Use:              "wsk",
         Short:            "Whisk cloud computing command line interface.",
         Long:             logoText(),
-        PersistentPreRun: parseConfigFlags,
+        SilenceUsage:     true,
+        PersistentPreRunE:parseConfigFlags,
 }
 
 func init() {

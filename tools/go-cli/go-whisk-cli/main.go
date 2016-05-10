@@ -43,10 +43,10 @@ func main() {
             fmt.Println("Main: err type: ", reflect.TypeOf(err))
         }
 
-        werr, isWskError := err.(whisk.WskError)  // Is the err a WskError?
+        werr, isWskError := err.(*whisk.WskError)  // Is the err a WskError?
         if isWskError {
             if commands.IsDebug() {
-                fmt.Println("Main: got a whisk.WskError error")
+                fmt.Printf("Main: got a *whisk.WskError error: %#v\n", werr)
             }
             displayUsage = werr.DisplayUsage
             displayMsg = werr.DisplayMsg

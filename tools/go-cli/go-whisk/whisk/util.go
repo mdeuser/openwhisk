@@ -17,37 +17,51 @@ limitations under the License.
 package whisk
 
 import (
-        "fmt"
-        "net/url"
-        "reflect"
+    "fmt"
+    "net/url"
+    "reflect"
 
-        "github.com/google/go-querystring/query"
-        "github.com/hokaccha/go-prettyjson"
+    "github.com/google/go-querystring/query"
+    "github.com/hokaccha/go-prettyjson"
 )
+
+// Flags struct separate from the go-whisk-cli flags to avoid a circular dependency
+var Flags struct {
+    Verbose bool
+    Debug   bool
+}
 
 // addOptions adds the parameters in opt as URL query parameters to s.  opt
 // must be a struct whose fields may contain "url" tags.
 func addRouteOptions(route string, options interface{}) (string, error) {
-        v := reflect.ValueOf(options)
-        if v.Kind() == reflect.Ptr && v.IsNil() {
-                return route, nil
-        }
+    v := reflect.ValueOf(options)
+    if v.Kind() == reflect.Ptr && v.IsNil() {
+        return route, nil
+    }
 
-        u, err := url.Parse(route)
-        if err != nil {
-                return route, err
-        }
+    u, err := url.Parse(route)
+    if err != nil {
+        return route, err
+    }
 
-        qs, err := query.Values(options)
-        if err != nil {
-                return route, err
-        }
+    qs, err := query.Values(options)
+    if err != nil {
+        return route, err
+    }
 
-        u.RawQuery = qs.Encode()
-        return u.String(), nil
+    u.RawQuery = qs.Encode()
+    return u.String(), nil
 }
 
 func printJSON(v interface{}) {
-        output, _ := prettyjson.Marshal(v)
-        fmt.Println(string(output))
+    output, _ := prettyjson.Marshal(v)
+    fmt.Println(string(output))
+}
+
+func IsVerbose() bool {
+    return Flags.Verbose || IsDebug()
+}
+
+func IsDebug() bool {
+    return Flags.Debug
 }
