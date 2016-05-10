@@ -306,7 +306,7 @@ func (r ErrorResponse) Error() string {
 ////////////////////////////
 
 func (c *Client) IsVerbose() bool {
-    return c.Config.Verbose
+    return c.Config.Verbose || IsDebug()
 }
 
 func (c *Client) IsDebug() bool {
