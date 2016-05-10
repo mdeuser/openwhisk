@@ -246,7 +246,13 @@ var propertyGetCmd = &cobra.Command{
             }
             if err != nil {
                 errStr := fmt.Sprintf("Unable to obtain API build information: %s", err)
-                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                var exitCode int
+                if e, ok := err.(*whisk.WskError); ok {
+                    exitCode = e.ExitCode
+                } else {
+                    exitCode = whisk.EXITCODE_ERR_GENERAL
+                }
+                werr := whisk.MakeWskError(errors.New(errStr), exitCode, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
             }
         }
@@ -297,7 +303,7 @@ func setDefaultProperties() {
 
 func getPropertiesFilePath() (propsFilePath string, werr error) {
     // Environment variable overrides the default properties file path
-    if propsFilePath := os.Getenv("WSK_CONFIG_FILE"); len(propsFilePath) > 0 {
+    if propsFilePath = os.Getenv("WSK_CONFIG_FILE"); len(propsFilePath) > 0 {
         if IsDebug() {
             fmt.Println("getPropertiesFilePath: Using properties file from WSK_CONFIG_FILE environment variable: ", propsFilePath)
         }
@@ -306,7 +312,7 @@ func getPropertiesFilePath() (propsFilePath string, werr error) {
         var err error
         propsFilePath, err = homedir.Expand(Properties.PropsFile)
         if err != nil {
-            errStr := fmt.Sprintf("Unable to locate properties file: %s", err)
+            errStr := fmt.Sprintf("Unable to locate properties file '%s'; error %s", Properties.PropsFile, err)
             werr = whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             if IsDebug() {
                 fmt.Printf("getPropertiesFilePath: Home directory '%s' expansion failure: %s", Properties.PropsFile, err)
@@ -413,6 +419,8 @@ func parseConfigFlags(cmd *cobra.Command, args []string) error {
 
     client.Config.Verbose = flags.global.verbose
     client.Config.Debug = flags.global.debug
+    whisk.Flags.Debug = flags.global.debug
+    whisk.Flags.Verbose = flags.global.verbose
 
     return nil
 }
@@ -425,7 +433,7 @@ func readProps(path string) (map[string]string, error) {
     if err != nil {
         // If file does not exist, just return props
         if IsDebug() {
-            fmt.Printf("Unable to open whisk properties file '%s'; using default properties. Open failure: %s\n" ,path, err)
+            fmt.Printf("Unable to read whisk properties file '%s' (file open error: %s); falling back to default properties" ,path, err)
         }
         return props, nil
     }
