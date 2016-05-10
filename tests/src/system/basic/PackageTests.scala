@@ -71,8 +71,8 @@ class PackageTests
             }
     }
 
-    val params1 = Map("p1" -> "v1".toJson, "p2" -> "".toJson)
-    val params2 = Map("p1" -> "v1".toJson, "p2" -> "v2".toJson, "p3" -> "v3".toJson)
+    val params1 = Map("p1" -> "v1", "p2" -> "")
+    val params2 = Map("p1" -> "v1", "p2" -> "v2", "p3" -> "v3")
 
     it should "allow creation of a package with parameters" in withAssetCleaner(wskprops) {
         (wp, assetHelper) =>
@@ -110,9 +110,9 @@ class PackageTests
             val actionName = "print"
             val packageActionName = packageName + "/" + actionName
             val bindActionName = bindName + "/" + actionName
-            val packageParams = Map("key1a" -> "value1a".toJson, "key1b" -> "value1b".toJson)
-            val bindParams = Map("key2a" -> "value2a".toJson, "key1b" -> "value2b".toJson)
-            val actionParams = Map("key0" -> "value0".toJson)
+            val packageParams = Map("key1a" -> "value1a", "key1b" -> "value1b")
+            val bindParams = Map("key2a" -> "value2a", "key1b" -> "value2b")
+            val actionParams = Map("key0" -> "value0")
             val file = TestUtils.getCatalogFilename("samples/printParams.js")
             assetHelper.withCleaner(wsk.pkg, packageName) { (pkg, _) =>
                 pkg.create(packageName, packageParams)
@@ -136,7 +136,7 @@ class PackageTests
 
             // Check that inherited parameters are passed to the action.
             val now = new Date().toString()
-            val activation = wsk.action.invoke(bindActionName, Map("payload" -> now.toJson))
+            val activation = wsk.action.invoke(bindActionName, Map("payload" -> now))
             val activationId = wsk.action.extractActivationId(activation)
             val expected = String.format(".*key0: value0.*key1a: value1a.*key1b: value2b.*key2a: value2a.*payload: %s", now)
             val (found, logs) = wsk.activation.contains(activationId.get, expected, totalWait = LOG_DELAY)
@@ -147,14 +147,14 @@ class PackageTests
      * Check that a description of an item includes the specified parameters.
      * Parameters keys in later parameter maps override earlier ones.
      */
-    def checkForParameters(itemDescription: String, paramSets: Map[String, JsValue]*) {
+    def checkForParameters(itemDescription: String, paramSets: Map[String, String]*) {
         // Merge and the parameters handling overrides.
-        val merged = HashMap.empty[String, JsValue]
+        val merged = HashMap.empty[String, String]
         paramSets.foreach { merged ++= _ }
         val flatDescription = itemDescription.replace("\n", "").replace("\r", "")
         merged.foreach {
-            case (key: String, value: JsValue) =>
-                val toFind = s""""key": "${key}",            "value": ${value.toString}"""
+            case (key: String, value: String) =>
+                val toFind = s""""key": "${key}",            "value": ${value}"""
                 flatDescription should include regex toFind
         }
     }

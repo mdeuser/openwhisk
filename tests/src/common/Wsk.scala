@@ -195,8 +195,8 @@ class WskAction()
         name: String,
         artifact: Option[String],
         kind: Option[String] = None, // one of docker, copy, sequence or none for autoselect else an explicit type
-        parameters: Map[String, JsValue] = Map(),
-        annotations: Map[String, JsValue] = Map(),
+        parameters: Map[String, String] = Map(),
+        annotations: Map[String, String] = Map(),
         timeout: Option[Duration] = None,
         memory: Option[Int] = None,
         shared: Option[Boolean] = None,
@@ -211,8 +211,8 @@ class WskAction()
                     else Seq("--kind", k)
                 } getOrElse Seq()
             } ++
-            { parameters flatMap { p => Seq("-p", p._1, p._2.compactPrint) } } ++
-            { annotations flatMap { p => Seq("-p", p._1, p._2.compactPrint) } } ++
+            { parameters flatMap { p => Seq("-p", "'" + p._1 + "','" +  p._2 + "'") } } ++
+            { annotations flatMap { p => Seq("-p", "'" + p._1 + "','" +  p._2 + "'") } } ++
             { timeout map { t => Seq("-t", t.toMillis.toString) } getOrElse Seq() } ++
             { memory map { m => Seq("-m", m.toString) } getOrElse Seq() } ++
             { shared map { s => Seq("--shared", if (s) "yes" else "no") } getOrElse Seq() }
@@ -228,13 +228,13 @@ class WskAction()
      */
     def invoke(
         name: String,
-        parameters: Map[String, JsValue] = Map(),
+        parameters: Map[String, String] = Map(),
         blocking: Boolean = false,
         result: Boolean = false,
         expectedExitCode: Int = SUCCESS_EXIT)(
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, "invoke", "--auth", wp.authKey, fqn(name)) ++
-            { parameters flatMap { p => Seq("-p", p._1, p._2.compactPrint) } } ++
+            { parameters flatMap { p => Seq("-p", "'" + p._1 + "','" +  p._2 + "'") } } ++
             { if (blocking) Seq("--blocking") else Seq() } ++
             { if (result) Seq("--result") else Seq() }
         cli(wp.overrides ++ params, expectedExitCode)
@@ -273,8 +273,8 @@ class WskTrigger()
      */
     def create(
         name: String,
-        parameters: Map[String, JsValue] = Map(),
-        annotations: Map[String, JsValue] = Map(),
+        parameters: Map[String, String] = Map(),
+        annotations: Map[String, String] = Map(),
         feed: Option[String] = None,
         shared: Option[Boolean] = None,
         update: Boolean = false,
@@ -282,8 +282,8 @@ class WskTrigger()
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, if (!update) "create" else "update", "--auth", wp.authKey, fqn(name)) ++
             { feed map { f => Seq("--feed", fqn(f)) } getOrElse Seq() } ++
-            { parameters flatMap { p => Seq("-p", p._1, p._2.compactPrint) } } ++
-            { annotations flatMap { p => Seq("-p", p._1, p._2.compactPrint) } } ++
+            { parameters flatMap { p => Seq("-p", "'" + p._1 + "','" +  p._2 + "'") } } ++
+            { annotations flatMap { p => Seq("-p", "'" + p._1 + "','" +  p._2 + "'") } } ++
             { shared map { s => Seq("--shared", if (s) "yes" else "no") } getOrElse Seq() }
         cli(wp.overrides ++ params, expectedExitCode)
     }
@@ -297,11 +297,11 @@ class WskTrigger()
      */
     def fire(
         name: String,
-        parameters: Map[String, JsValue] = Map(),
+        parameters: Map[String, String] = Map(),
         expectedExitCode: Int = SUCCESS_EXIT)(
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, "fire", "--auth", wp.authKey, fqn(name)) ++
-            { parameters flatMap { p => Seq("-p", p._1, p._2.compactPrint) } }
+            { parameters flatMap { p => Seq("-p", "'" + p._1 + "','" +  p._2 + "'") } }
         cli(wp.overrides ++ params, expectedExitCode)
     }
 }
@@ -327,14 +327,14 @@ class WskRule()
         name: String,
         trigger: String,
         action: String,
-        annotations: Map[String, JsValue] = Map(),
+        annotations: Map[String, String] = Map(),
         shared: Option[Boolean] = None,
         update: Boolean = false,
         enable: Boolean = false,
         expectedExitCode: Int = SUCCESS_EXIT)(
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, if (!update) "create" else "update", "--auth", wp.authKey, fqn(name), (trigger), (action)) ++
-            { annotations flatMap { p => Seq("-p", p._1, p._2.compactPrint) } } ++
+            { annotations flatMap { p => Seq("-p", "'" + p._1 + "','" +  p._2 + "'") } } ++
             { if (enable) Seq("--enable") else Seq() } ++
             { shared map { s => Seq("--shared", if (s) "yes" else "no") } getOrElse Seq() }
         val result = cli(wp.overrides ++ params, expectedExitCode)
@@ -622,15 +622,15 @@ class WskPackage()
      */
     def create(
         name: String,
-        parameters: Map[String, JsValue] = Map(),
-        annotations: Map[String, JsValue] = Map(),
+        parameters: Map[String, String] = Map(),
+        annotations: Map[String, String] = Map(),
         shared: Option[Boolean] = None,
         update: Boolean = false,
         expectedExitCode: Int = SUCCESS_EXIT)(
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, if (!update) "create" else "update", "--auth", wp.authKey, fqn(name)) ++
-            { parameters flatMap { p => Seq("-p", p._1, p._2.compactPrint) } } ++
-            { annotations flatMap { p => Seq("-p", p._1, p._2.compactPrint) } } ++
+            { parameters flatMap { p => Seq("-p", "'" + p._1 + "','" +  p._2 + "'") } } ++
+            { annotations flatMap { p => Seq("-p", "'" + p._1 + "','" +  p._2 + "'") } } ++
             { shared map { s => Seq("--shared", if (s) "yes" else "no") } getOrElse Seq() }
         cli(wp.overrides ++ params, expectedExitCode)
     }
@@ -645,11 +645,11 @@ class WskPackage()
     def bind(
         provider: String,
         name: String,
-        parameters: Map[String, JsValue] = Map(),
+        parameters: Map[String, String] = Map(),
         expectedExitCode: Int = SUCCESS_EXIT)(
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, "bind", "--auth", wp.authKey, fqn(provider), fqn(name)) ++
-            { parameters flatMap { p => Seq("-p", p._1, p._2.compactPrint) } }
+            { parameters flatMap { p => Seq("-p", "'" + p._1 + "','" +  p._2 + "'") } }
         cli(wp.overrides ++ params, expectedExitCode)
     }
 }

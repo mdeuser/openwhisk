@@ -222,8 +222,15 @@ var actionGetCmd = &cobra.Command{
                         return
                 }
 
-                actionName := args[0]
-                action, _, err := client.Actions.Get(actionName)
+                qName, err := parseQualifiedName(args[0])
+                if err != nil {
+                        fmt.Printf("error: %s", err)
+                        return
+                }
+
+                client.Namespace = qName.namespace
+
+                action, _, err := client.Actions.Get(qName.entityName)
                 if err != nil {
                         fmt.Printf("error: %s", err)
                         return
@@ -233,7 +240,7 @@ var actionGetCmd = &cobra.Command{
                 if flags.common.summary {
                         fmt.Printf("%s /%s/%s\n", boldString("action"), action.Namespace, action.Name)
                 } else {
-                        fmt.Printf("%s got action %s\n", color.GreenString("ok:"), boldString(actionName))
+                        fmt.Printf("%s got action %s\n", color.GreenString("ok:"), boldString(qName.entityName))
                         printJSON(action)
                 }
 

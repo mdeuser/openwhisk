@@ -202,7 +202,7 @@ class WskBasicTests
     it should "create, update, get and list a package" in withAssetCleaner(wskprops) {
         (wp, assetHelper) =>
             val name = "samplePackage"
-            val params = Map("a" -> "A".toJson)
+            val params = Map("a" -> "A")
             assetHelper.withCleaner(wsk.pkg, name) {
                 (pkg, _) =>
                     pkg.create(name, parameters = params, shared = Some(true))
@@ -228,7 +228,7 @@ class WskBasicTests
         (wp, assetHelper) =>
             val name = "createAndUpdate"
             val file = Some(TestUtils.getCatalogFilename("samples/hello.js"))
-            val params = Map("a" -> "A".toJson)
+            val params = Map("a" -> "A")
             assetHelper.withCleaner(wsk.action, name) {
                 (action, _) =>
                     action.create(name, file, parameters = params, shared = Some(true))
@@ -271,7 +271,7 @@ class WskBasicTests
                 (action, _) => action.create(name, Some(TestUtils.getTestActionFilename("malformed.js")))
             }
 
-            val activation = wsk.action.invoke(name, Map("payload" -> "whatever".toJson))
+            val activation = wsk.action.invoke(name, Map("payload" -> "whatever"))
             val activationId = wsk.action.extractActivationId(activation)
             activationId shouldBe a[Some[_]]
 
@@ -286,7 +286,7 @@ class WskBasicTests
             assetHelper.withCleaner(wsk.action, name) {
                 (action, _) => action.create(name, Some(TestUtils.getCatalogFilename("samples/wc.js")))
             }
-            wsk.action.invoke(name, Map("payload" -> "one two three".toJson), blocking = true, result = true)
+            wsk.action.invoke(name, Map("payload" -> "one two three"), blocking = true, result = true)
                 .stdout should include regex (""""count": 3""")
     }
 
@@ -295,7 +295,7 @@ class WskBasicTests
     it should "create trigger, get trigger, update trigger and list trigger" in withAssetCleaner(wskprops) {
         (wp, assetHelper) =>
             val name = "listTriggers"
-            val params = Map("a" -> "A".toJson)
+            val params = Map("a" -> "A")
             assetHelper.withCleaner(wsk.trigger, name) {
                 (trigger, _) =>
                     trigger.create(name, parameters = params, shared = Some(true))
