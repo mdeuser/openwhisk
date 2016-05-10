@@ -141,6 +141,10 @@ func (s *ActionService) Get(actionName string) (*Action, *http.Response, error) 
 func (s *ActionService) Delete(actionName string) (*http.Response, error) {
         route := fmt.Sprintf("actions/%s", actionName)
 
+        if s.client.IsDebug() {
+                fmt.Printf("HTTP route: %s\n", route)
+        }
+
         req, err := s.client.NewRequest("DELETE", route, nil)
         if err != nil {
                 return nil, err

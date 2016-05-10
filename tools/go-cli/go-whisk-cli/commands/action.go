@@ -245,14 +245,23 @@ var actionDeleteCmd = &cobra.Command{
         Short: "delete action",
 
         Run: func(cmd *cobra.Command, args []string) {
-                actionName := args[0]
-                _, err := client.Actions.Delete(actionName)
+                qName, err := parseQualifiedName(args[0])
                 if err != nil {
                         fmt.Printf("error: %s", err)
                         return
                 }
+
+                client.Namespace = qName.namespace
+
+                _, err = client.Actions.Delete(qName.entityName)
+
+                if err != nil {
+                        fmt.Printf("error: %s", err)
+                        return
+                }
+
                 // print out response
-                fmt.Printf("%s deleted action %s\n", color.GreenString("ok:"), boldString(actionName))
+                fmt.Printf("%s deleted action %s\n", color.GreenString("ok:"), boldString(qName.entityName))
         },
 }
 
