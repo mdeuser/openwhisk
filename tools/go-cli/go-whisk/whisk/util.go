@@ -17,6 +17,7 @@ limitations under the License.
 package whisk
 
 import (
+    "errors"
     "fmt"
     "net/url"
     "reflect"
@@ -41,15 +42,28 @@ func addRouteOptions(route string, options interface{}) (string, error) {
 
     u, err := url.Parse(route)
     if err != nil {
-        return route, err
+        if IsDebug() {
+            fmt.Printf("addRouteOptions: url.Parse failed to parse route '%s' error %s\n", route, err)
+        }
+        errStr := fmt.Sprintf("Unable to parse URL '%s': %s", route, err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return route, werr
     }
 
     qs, err := query.Values(options)
     if err != nil {
-        return route, err
+        if IsDebug() {
+            fmt.Printf("addRouteOptions: queryValues failure, options '%#v' error %s\n", options, err)
+        }
+        errStr := fmt.Sprintf("Unable to process URL query options '%#v': %s", options, err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return route, werr
     }
 
     u.RawQuery = qs.Encode()
+    if IsDebug() {
+        fmt.Printf("addRouteOptions: returning route options '%s'\n", u.String())
+    }
     return u.String(), nil
 }
 
