@@ -286,7 +286,7 @@ class WskBasicTests
             assetHelper.withCleaner(wsk.action, name) {
                 (action, _) => action.create(name, Some(TestUtils.getCatalogFilename("samples/wc.js")))
             }
-            wsk.action.invoke(name, Map("payload" -> "one two three"), blocking = true, result = true)
+            wsk.action.invoke(name, Map("payload" -> "'one two three'"), blocking = true, result = true)
                 .stdout should include regex (""""count": 3""")
     }
 

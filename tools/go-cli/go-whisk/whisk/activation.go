@@ -37,7 +37,8 @@ type Activation struct {
         Start        int64  `json:"start,omitempty"`
         End          int64  `json:"end,omitempty"`
         Response     `json:"response,omitempty"`
-        Logs         []Log `json:"logs,omitempty"`
+        //Logs         []Log `json:"logs,omitempty"`
+        Logs         []string `json:"logs,omitempty"`
 }
 
 type Response struct {

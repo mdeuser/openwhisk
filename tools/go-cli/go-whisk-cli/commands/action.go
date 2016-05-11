@@ -158,14 +158,20 @@ var actionInvokeCmd = &cobra.Command{
         Run: func(cmd *cobra.Command, args []string) {
 
                 var err error
-                var actionName, payloadArg string
+                var payloadArg string
                 if len(args) < 1 || len(args) > 2 {
                         err = errors.New("Invalid argument list")
                         fmt.Println(err)
                         return
                 }
 
-                actionName = args[0]
+                qName, err := parseQualifiedName(args[0])
+                if err != nil {
+                        fmt.Printf("error: %s", err)
+                        return
+                }
+
+                client.Namespace = qName.namespace
 
                 payload := map[string]interface{}{}
 
@@ -190,7 +196,7 @@ var actionInvokeCmd = &cobra.Command{
                         }
                 }
 
-                activation, _, err := client.Actions.Invoke(actionName, payload, flags.common.blocking)
+                activation, _, err := client.Actions.Invoke(qName.entityName, payload, flags.common.blocking)
                 if err != nil {
                         fmt.Printf("error: %s", err)
                         return
@@ -199,11 +205,11 @@ var actionInvokeCmd = &cobra.Command{
                 if flags.common.blocking && flags.action.result {
                         printJSON(activation.Response.Result)
                 } else if flags.common.blocking {
-                        fmt.Printf("%s invoked %s with id %s\n", color.GreenString("ok:"), boldString(actionName), boldString(activation.ActivationID))
+                        fmt.Printf("%s invoked %s with id %s\n", color.GreenString("ok:"), boldString(qName.entityName), boldString(activation.ActivationID))
                         boldPrintf("response:\n")
                         printJSON(activation.Response)
                 } else {
-                        fmt.Printf("%s invoked %s with id %s\n", color.GreenString("ok:"), boldString(actionName), boldString(activation.ActivationID))
+                        fmt.Printf("%s invoked %s with id %s\n", color.GreenString("ok:"), boldString(qName.entityName), boldString(activation.ActivationID))
                 }
 
         },
