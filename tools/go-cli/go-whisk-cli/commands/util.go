@@ -65,30 +65,32 @@ func (qName qualifiedName) String() string {
 //
 func parseQualifiedName(name string) (qName qualifiedName, err error) {
 
-    // If name has a preceding delimiter (/), it contains a namespace
-    if len(name) > 0 && name[0] == '/' {
-        parts := strings.Split(name, "/")
-        qName.namespace = parts[1]
+    // If name has a preceding delimiter (/), it contains a namespace. Otherwise the name does not specify a namespace,
+    // so default the namespace to the namespace value set in the properties file; if that is not set, use "_"
+    if len(name) > 0 {
+        if name[0] == '/' {
+            parts := strings.Split(name, "/")
+            qName.namespace = parts[1]
 
-        if len(parts) > 2 {
-            qName.entityName = strings.Join(parts[2:], "")
+            if len(parts) > 2 {
+                qName.entityName = strings.Join(parts[2:], "")
+            } else {
+                qName.entityName = name
+            }
         } else {
             qName.entityName = name
-        }
-    // otherwise the name does not specify a namespace, so default the namespace
-    // to the namespace value set in the properties file; if that is not set, use "_"
-    } else if len(name) > 0 {
-        qName.entityName = name
 
-        if Properties.Namespace != "" {
-            qName.namespace = Properties.Namespace
-        } else {
-            qName.namespace = "_"
+            if Properties.Namespace != "" {
+                qName.namespace = Properties.Namespace
+            } else {
+                qName.namespace = "_"
+            }
         }
     } else {
         if IsDebug() {
             fmt.Println("parseQualifiedName: Error - empty name string could not be parsed")
         }
+
         err = whisk.MakeWskError(errors.New("Invalid name format"), whisk.EXITCODE_ERR_GENERAL,
             whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE )
     }

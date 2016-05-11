@@ -18,6 +18,7 @@ package whisk
 
 import (
 )
+import "fmt"
 
 const EXITCODE_ERR_GENERAL      int = 1
 const EXITCODE_ERR_NETWORK      int = 2
@@ -37,10 +38,10 @@ type WskError struct {
 }
 
 func (e WskError) Error() string {
-    return e.RootErr.Error()
+    return fmt.Sprintf("error: %s", e.RootErr.Error())
 }
 
-// Instantiate a WskError stucture
+// Instantiate a WskError structure
 // Parameters:
 //  error   - RootErr. object implementing the error interface
 //  int     - ExitCode.  Used if error object does not have an exit code OR if ExitCodeOverride is true
@@ -55,7 +56,7 @@ func MakeWskError (e error, ec int, flags ...bool ) (we *WskError) {
     return we
 }
 
-// Instantiate a WskError stucture
+// Instantiate a WskError structure
 // Parameters:
 //  error   - RootErr. object implementing the error interface
 //  WskError -WskError being wrappered.  It's exitcode will be used as this WskError's exitcode

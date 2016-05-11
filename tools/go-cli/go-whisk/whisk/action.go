@@ -19,6 +19,7 @@ package whisk
 import (
         "fmt"
         "net/http"
+        "net/url"
 )
 
 type ActionService struct {
@@ -107,7 +108,7 @@ func (s *ActionService) List(options *ActionListOptions) ([]Action, *http.Respon
 }
 
 func (s *ActionService) Insert(action *Action, sharedSet bool, overwrite bool) (*Action, *http.Response, error) {
-        route := fmt.Sprintf("actions/%s?overwrite=%t", action.Name, overwrite)
+        route := fmt.Sprintf("actions/%s?overwrite=%t", url.QueryEscape(action.Name), overwrite)
 
         var sentAction interface{}
 
@@ -145,7 +146,7 @@ func (s *ActionService) Insert(action *Action, sharedSet bool, overwrite bool) (
 }
 
 func (s *ActionService) Get(actionName string) (*Action, *http.Response, error) {
-        route := fmt.Sprintf("actions/%s", actionName)
+        route := fmt.Sprintf("actions/%s", url.QueryEscape(actionName))
 
         req, err := s.client.NewRequest("GET", route, nil)
         if err != nil {
@@ -163,7 +164,7 @@ func (s *ActionService) Get(actionName string) (*Action, *http.Response, error) 
 }
 
 func (s *ActionService) Delete(actionName string) (*http.Response, error) {
-        route := fmt.Sprintf("actions/%s", actionName)
+        route := fmt.Sprintf("actions/%s", url.QueryEscape(actionName))
 
         if s.client.IsDebug() {
                 fmt.Printf("HTTP route: %s\n", route)
@@ -184,7 +185,7 @@ func (s *ActionService) Delete(actionName string) (*http.Response, error) {
 }
 
 func (s *ActionService) Invoke(actionName string, payload map[string]interface{}, blocking bool) (*Activation, *http.Response, error) {
-        route := fmt.Sprintf("actions/%s?blocking=%t", actionName, blocking)
+        route := fmt.Sprintf("actions/%s?blocking=%t", url.QueryEscape(actionName), blocking)
 
         req, err := s.client.NewRequest("POST", route, payload)
         if err != nil {

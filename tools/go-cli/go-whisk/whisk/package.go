@@ -19,6 +19,7 @@ package whisk
 import (
         "fmt"
         "net/http"
+        "net/url"
 )
 
 type PackageService struct {
@@ -100,7 +101,7 @@ func (s *PackageService) List(options *PackageListOptions) ([]Package, *http.Res
 }
 
 func (s *PackageService) Get(packageName string) (*Package, *http.Response, error) {
-        route := fmt.Sprintf("packages/%s", packageName)
+        route := fmt.Sprintf("packages/%s", url.QueryEscape(packageName))
 
         req, err := s.client.NewRequest("GET", route, nil)
         if err != nil {
@@ -118,7 +119,7 @@ func (s *PackageService) Get(packageName string) (*Package, *http.Response, erro
 }
 
 func (s *PackageService) Insert(x_package *Package, shared bool, overwrite bool) (*Package, *http.Response, error) {
-        route := fmt.Sprintf("packages/%s?overwrite=%t", x_package.Name, overwrite)
+        route := fmt.Sprintf("packages/%s?overwrite=%t", url.QueryEscape(x_package.Name), overwrite)
 
         var sentPackage interface{}
 
@@ -150,7 +151,7 @@ func (s *PackageService) Insert(x_package *Package, shared bool, overwrite bool)
 }
 
 func (s *PackageService) Delete(packageName string) (*http.Response, error) {
-        route := fmt.Sprintf("packages/%s", packageName)
+        route := fmt.Sprintf("packages/%s", url.QueryEscape(packageName))
 
         req, err := s.client.NewRequest("DELETE", route, nil)
         if err != nil {
