@@ -58,8 +58,8 @@ var activationListCmd = &cobra.Command{
                 if IsDebug() {
                     fmt.Printf("activationListCmd: parseQualifiedName(%#v) error: %s\n", args[0], err)
                 }
-                errStr := fmt.Sprintf("Unable to obtain a valid qualified name: %s", err)
-                werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                errStr := fmt.Sprintf("'%s' is not a valid qualified name: %s", args[0], err)
+                werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
             }
             ns := qName.namespace

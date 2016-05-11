@@ -17,47 +17,47 @@ limitations under the License.
 package commands
 
 import (
-        "fmt"
-        "net/http"
-        "net/url"
-        "os"
+"fmt"
+"net/http"
+"net/url"
+"os"
 
-        "../../go-whisk/whisk"
+"../../go-whisk/whisk"
 )
 
 var client *whisk.Client
 
 func init() {
-        var err error
+    var err error
 
-        err = loadProperties()
-        if err != nil {
-                fmt.Println(err)
-                os.Exit(-1)
-        }
+    err = loadProperties()
+    if err != nil {
+        fmt.Println(err)
+        os.Exit(-1)
+    }
 
-        var apiHostBaseUrl = fmt.Sprintf("https://%s/api/", Properties.APIHost)
-        baseURL, err := url.Parse(apiHostBaseUrl)
-        if err != nil {
-                fmt.Println(err)
-                os.Exit(whisk.EXITCODE_ERR_GENERAL)
-        }
+    var apiHostBaseUrl = fmt.Sprintf("https://%s/api/", Properties.APIHost)
+    baseURL, err := url.Parse(apiHostBaseUrl)
+    if err != nil {
+        fmt.Println(err)
+        os.Exit(whisk.EXITCODE_ERR_GENERAL)
+    }
 
-        clientConfig := &whisk.Config{
-                AuthToken: Properties.Auth,
-                Namespace: Properties.Namespace,
-                BaseURL:   baseURL,
-                Version:   Properties.APIVersion,
-        }
+    clientConfig := &whisk.Config{
+        AuthToken: Properties.Auth,
+        Namespace: Properties.Namespace,
+        BaseURL:   baseURL,
+        Version:   Properties.APIVersion,
+    }
 
-        // Setup client
-        client, err = whisk.NewClient(http.DefaultClient, clientConfig)
-        if err != nil {
-                fmt.Println(err)
-                os.Exit(whisk.EXITCODE_ERR_GENERAL)
-        }
+    // Setup client
+    client, err = whisk.NewClient(http.DefaultClient, clientConfig)
+    if err != nil {
+        fmt.Println(err)
+        os.Exit(whisk.EXITCODE_ERR_GENERAL)
+    }
 }
 
 func Execute() error {
-        return WskCmd.Execute()
+    return WskCmd.Execute()
 }

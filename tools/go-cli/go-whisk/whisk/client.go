@@ -176,10 +176,16 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
     // Issue the request to the Whisk server endpoint
     resp, err := c.client.Do(req)
     if err != nil {
+        if c.IsDebug() {
+            fmt.Printf("whisk.client.Do: HTTP [req %s] failure: %s\n", req.URL.String(), err)
+        }
         werr := MakeWskError(err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, werr
     }
     defer resp.Body.Close()
+    if c.IsDebug() {
+        fmt.Printf("whisk.client.Do: HTTP [req %s] response status code: %d\n", req.URL.String(), resp.StatusCode)
+    }
 
     // Read the response body
     data, err := ioutil.ReadAll(resp.Body)
@@ -191,7 +197,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
         return resp, werr
     }
     if c.IsDebug() {
-        fmt.Printf("HTTP Body:\n%s\n", string(data))
+        fmt.Printf("HTTP resp Body:\n%s\n", string(data))
     }
 
     // With the HTTP response status code and the HTTP body contents,
@@ -236,7 +242,8 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
             if c.IsDebug() {
                 fmt.Printf("whisk.client.Do: HTTP failure with unexpected body contents due to parsing error: '%v'\n", err)
             }
-            werr := MakeWskError(errors.New("Command failed due to HTTP failure"), resp.StatusCode - 256, DISPLAY_MSG, NO_DISPLAY_USAGE)
+            var errStr = fmt.Sprintf("Request failed (status code = %d). Unstructured error details:\n%s", resp.StatusCode, data)
+            werr := MakeWskError(errors.New(errStr), resp.StatusCode - 256, DISPLAY_MSG, NO_DISPLAY_USAGE)
             return resp, werr
         }
     }
@@ -264,12 +271,12 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
             }
             return resp, nil
         } else {
-            // The decode did not work, so the server response was bad (#3)
+            // The decode did not work, so the server response was unexpected (#3)
             if c.IsDebug() {
-                fmt.Printf("whisk.client.Do: Unsuccessful parse of HTTP response into struct type: %s; parse error '%v'\n", reflect.TypeOf(v), err)
+                fmt.Printf("whisk.client.Do: Warning! Unsuccessful parse of HTTP response into struct type: %s; parse error '%v'\n", reflect.TypeOf(v), err)
+                fmt.Printf("whisk.client.Do: Warning! Request was successful, so ignoring the following unexpected response body that could not be parsed: %s\n", data)
             }
-            werr := MakeWskError(errors.New("Command failed due to invalid HTTP response"), EXITCODE_ERR_HTTP_RESP, DISPLAY_MSG, NO_DISPLAY_USAGE)
-            return resp, werr
+            return resp, nil
         }
     }
 

@@ -101,7 +101,7 @@ func (s *ActivationService) List(options *ActivationListOptions) ([]Activation, 
         if IsDebug() {
             fmt.Printf("ActivationService.List: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
-        errStr := fmt.Sprintf("HTTP GET request failure '%s'; error %s", req.URL.String(), err)
+        errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
@@ -136,7 +136,7 @@ func (s *ActivationService) Get(activationID string) (*Activation, *http.Respons
         if IsDebug() {
             fmt.Printf("ActivationService.Get: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
-        errStr := fmt.Sprintf("HTTP GET request failure '%s'; error %s", req.URL.String(), err)
+        errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
@@ -170,7 +170,7 @@ func (s *ActivationService) Logs(activationID string) (*Activation, *http.Respon
         if IsDebug() {
             fmt.Printf("ActivationService.Logs: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
-        errStr := fmt.Sprintf("HTTP GET request failure '%s'; error %s", req.URL.String(), err)
+        errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
@@ -203,7 +203,7 @@ func (s *ActivationService) Result(activationID string) (*Response, *http.Respon
         if IsDebug() {
             fmt.Printf("ActivationService.Result: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
-        errStr := fmt.Sprintf("HTTP GET request failure '%s'; error %s", req.URL.String(), err)
+        errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
