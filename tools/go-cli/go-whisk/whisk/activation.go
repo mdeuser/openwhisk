@@ -17,133 +17,197 @@ limitations under the License.
 package whisk
 
 import (
-        "fmt"
-        "net/http"
+    "fmt"
+    "net/http"
+    "errors"
 )
 
 type ActivationService struct {
-        client *Client
+    client *Client
 }
 
 type Activation struct {
-        Namespace string `json:"namespace,omitempty"`
-        Name      string `json:"name,omitempty"`
-        Version   string `json:"version,omitempty"`
-        Publish   bool   `json:"publish,omitempty"`
+    Namespace string `json:"namespace,omitempty"`
+    Name      string `json:"name,omitempty"`
+    Version   string `json:"version,omitempty"`
+    Publish   bool   `json:"publish,omitempty"`
 
-        Subject      string `json:"subject,omitempty"`
-        ActivationID string `json:"activationId,omitempty"`
-        Cause        string `json:"cause,omitempty"`
-        Start        int64  `json:"start,omitempty"`
-        End          int64  `json:"end,omitempty"`
-        Response     `json:"response,omitempty"`
-        Logs         []Log `json:"logs,omitempty"`
+    Subject      string `json:"subject,omitempty"`
+    ActivationID string `json:"activationId,omitempty"`
+    Cause        string `json:"cause,omitempty"`
+    Start        int64  `json:"start,omitempty"`
+    End          int64  `json:"end,omitempty"`
+    Response     `json:"response,omitempty"`
+    //MWD - REPLACED Logs   []Log `json:"logs,omitempty"`
+    Logs         []string `json:"logs,omitempty"`
 }
 
 type Response struct {
-        Status     string `json:"status,omitempty"`
-        StatusCode int    `json:"statusCode,omitempty"`
-        Success    bool   `json:"success,omitempty"`
-        Result     `json:"result,omitempty"`
+    Status     string `json:"status,omitempty"`
+    StatusCode int    `json:"statusCode,omitempty"`
+    Success    bool   `json:"success,omitempty"`
+    Result     `json:"result,omitempty"`
 }
 
 type Result map[string]interface{}
 
 type ActivationListOptions struct {
-        Name  string `url:"name,omitempty"`
-        Limit int    `url:"limit,omitempty"`
-        Skip  int    `url:"skip,omitempty"`
-        Since int64  `url:"since,omitempty"`
-        Upto  int64  `url:"upto,omitempty"`
-        Docs  bool   `url:"docs,omitempty"`
+    Name  string `url:"name,omitempty"`
+    Limit int    `url:"limit,omitempty"`
+    Skip  int    `url:"skip,omitempty"`
+    Since int64  `url:"since,omitempty"`
+    Upto  int64  `url:"upto,omitempty"`
+    Docs  bool   `url:"docs,omitempty"`
 }
 
+//MWD - This structure may no longer be needed as the log format is now a string and not JSON
 type Log struct {
-        Log    string `json:"log,omitempty"`
-        Stream string `json:"stream,omitempty"`
-        Time   string `json:"time,omitempty"`
+    Log    string `json:"log,omitempty"`
+    Stream string `json:"stream,omitempty"`
+    Time   string `json:"time,omitempty"`
 }
 
 func (s *ActivationService) List(options *ActivationListOptions) ([]Activation, *http.Response, error) {
-        // TODO :: for some reason /activations only works with "_" as namespace
-        s.client.Namespace = "_"
-        route := "activations"
-        route, err := addRouteOptions(route, options)
-        if err != nil {
-                return nil, nil, err
+    // TODO :: for some reason /activations only works with "_" as namespace
+    s.client.Namespace = "_"
+    route := "activations"
+    route, err := addRouteOptions(route, options)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("ActivationService.List: addRouteOptions('%s',%#v) error '%s'\n", route, options, err)
         }
+        errStr := fmt.Sprintf("Unable to append options %#v to URL route '%s': error %s", options, route, err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
+    }
 
-        req, err := s.client.NewRequest("GET", route, nil)
-        if err != nil {
-                return nil, nil, err
+    req, err := s.client.NewRequest("GET", route, nil)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("ActivationService.List: http.NewRequest(GET, %s); error '%s'\n", route, err)
         }
+        errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", route, err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
+    }
 
-        var activations []Activation
-        resp, err := s.client.Do(req, &activations)
-        if err != nil {
-                return nil, resp, err
+    if IsDebug() {
+        fmt.Printf("ActivationService.List: Sending HTTP request - URL '%s'; req %#v\n", req.URL.String(), req)
+    }
+
+    var activations []Activation
+    resp, err := s.client.Do(req, &activations)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("ActivationService.List: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
+        errStr := fmt.Sprintf("HTTP GET request failure '%s'; error %s", req.URL.String(), err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, resp, werr
+    }
 
-        return activations, resp, err
+    return activations, resp, nil
 
 }
 
 func (s *ActivationService) Get(activationID string) (*Activation, *http.Response, error) {
-        // TODO :: for some reason /activations/:id only works with "_" as namespace
-        s.client.Namespace = "_"
+    // TODO :: for some reason /activations/:id only works with "_" as namespace
+    s.client.Namespace = "_"
 
-        route := fmt.Sprintf("activations/%s", activationID)
+    route := fmt.Sprintf("activations/%s", activationID)
 
-        req, err := s.client.NewRequest("GET", route, nil)
-        if err != nil {
-                return nil, nil, err
+    req, err := s.client.NewRequest("GET", route, nil)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("ActivationService.Get: http.NewRequest(GET, %s); error '%s'\n", route, err)
         }
+        errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", route, err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
+    }
 
-        a := new(Activation)
-        resp, err := s.client.Do(req, &a)
-        if err != nil {
-                return nil, resp, err
+    if IsDebug() {
+        fmt.Printf("ActivationService.Get: Sending HTTP request - URL '%s'; req %#v\n", req.URL.String(), req)
+    }
+
+    a := new(Activation)
+    resp, err := s.client.Do(req, &a)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("ActivationService.Get: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
+        errStr := fmt.Sprintf("HTTP GET request failure '%s'; error %s", req.URL.String(), err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, resp, werr
+    }
 
-        return a, resp, nil
+    return a, resp, nil
 
 }
 
 func (s *ActivationService) Logs(activationID string) (*Activation, *http.Response, error) {
-        // TODO :: for some reason /activations/:id/logs only works with "_" as namespace
-        s.client.Namespace = "_"
-        route := fmt.Sprintf("activations/%s/logs", activationID)
+    // TODO :: for some reason /activations/:id/logs only works with "_" as namespace
+    s.client.Namespace = "_"
+    route := fmt.Sprintf("activations/%s/logs", activationID)
 
-        req, err := s.client.NewRequest("GET", route, nil)
-        if err != nil {
-                return nil, nil, err
+    req, err := s.client.NewRequest("GET", route, nil)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("ActivationService.Logs: http.NewRequest(GET, %s); error '%s'\n", route, err)
         }
+        errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", route, err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
+    }
 
-        activation := new(Activation)
-        resp, err := s.client.Do(req, &activation)
-        if err != nil {
-                return nil, resp, err
+    if IsDebug() {
+        fmt.Printf("ActivationService.Logs: Sending HTTP request - URL '%s'; req %#v\n", req.URL.String(), req)
+    }
+
+    activation := new(Activation)
+    resp, err := s.client.Do(req, &activation)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("ActivationService.Logs: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
+        errStr := fmt.Sprintf("HTTP GET request failure '%s'; error %s", req.URL.String(), err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, resp, werr
+    }
 
-        return activation, resp, nil
+    return activation, resp, nil
 }
 
 func (s *ActivationService) Result(activationID string) (*Response, *http.Response, error) {
-        // TODO :: for some reason /activations only works with "_" as namespace
-        s.client.Namespace = "_"
-        route := fmt.Sprintf("activations/%s", activationID)
+    // TODO :: for some reason /activations only works with "_" as namespace
+    s.client.Namespace = "_"
+    route := fmt.Sprintf("activations/%s/result", activationID)
 
-        req, err := s.client.NewRequest("get", route, nil)
-        if err != nil {
-                return nil, nil, err
+    req, err := s.client.NewRequest("GET", route, nil)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("ActivationService.Result: http.NewRequest(GET, %s); error '%s'\n", route, err)
         }
+        errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", route, err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
+    }
 
-        r := new(Response)
-        resp, err := s.client.Do(req, &r)
-        if err != nil {
-                return nil, resp, err
+    if IsDebug() {
+        fmt.Printf("ActivationService.Result: Sending HTTP request - URL '%s'; req %#v\n", req.URL.String(), req)
+    }
+
+    r := new(Response)
+    resp, err := s.client.Do(req, &r)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("ActivationService.Result: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
+        errStr := fmt.Sprintf("HTTP GET request failure '%s'; error %s", req.URL.String(), err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, resp, werr
+    }
 
-        return r, resp, nil
+    return r, resp, nil
 
 }

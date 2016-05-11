@@ -46,7 +46,7 @@ var namespaceListCmd = &cobra.Command{
                 fmt.Printf("namespaceListCmd: client.Namespaces.List() error: %s\n", err)
             }
             errStr := fmt.Sprintf("Unable to obtain list of available namspaces: %s", err)
-            werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE) //FIXME MWD exitCode
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
         printList(namespaces)
@@ -71,7 +71,7 @@ var namespaceGetCmd = &cobra.Command{
                 fmt.Printf("namespaceGetCmd: client.Namespaces.Get(%s) error: %s\n", nsName, err)
             }
             errStr := fmt.Sprintf("Unable to obtain namespace entities for namespace '%s': %s", nsName, err)
-            werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE) //FIXME MWD exitCode
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
 
