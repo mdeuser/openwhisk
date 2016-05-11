@@ -66,7 +66,7 @@ var propertySetCmd = &cobra.Command{
         // get current props
         props, err := readProps(Properties.PropsFile)
         if err != nil {
-            errStr := fmt.Sprintf("Unable to set the property value: %s", err)
+            errStr := fmt.Sprintf("Unable to set the property value: %s\n", err)
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
@@ -246,13 +246,7 @@ var propertyGetCmd = &cobra.Command{
             }
             if err != nil {
                 errStr := fmt.Sprintf("Unable to obtain API build information: %s", err)
-                var exitCode int
-                if e, ok := err.(*whisk.WskError); ok {
-                    exitCode = e.ExitCode
-                } else {
-                    exitCode = whisk.EXITCODE_ERR_GENERAL
-                }
-                werr := whisk.MakeWskError(errors.New(errStr), exitCode, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
             }
         }
@@ -315,7 +309,7 @@ func getPropertiesFilePath() (propsFilePath string, werr error) {
             errStr := fmt.Sprintf("Unable to locate properties file '%s'; error %s", Properties.PropsFile, err)
             werr = whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             if IsDebug() {
-                fmt.Printf("getPropertiesFilePath: Home directory '%s' expansion failure: %s", Properties.PropsFile, err)
+                fmt.Printf("getPropertiesFilePath: Home directory '%s' expansion failure: %s\n", Properties.PropsFile, err)
             }
             return propsFilePath, werr
         }
@@ -433,7 +427,7 @@ func readProps(path string) (map[string]string, error) {
     if err != nil {
         // If file does not exist, just return props
         if IsDebug() {
-            fmt.Printf("Unable to read whisk properties file '%s' (file open error: %s); falling back to default properties" ,path, err)
+            fmt.Printf("Unable to read whisk properties file '%s' (file open error: %s); falling back to default properties\n" ,path, err)
         }
         return props, nil
     }

@@ -16,6 +16,9 @@ limitations under the License.
 
 package whisk
 
+import (
+)
+
 const EXITCODE_ERR_GENERAL      int = 1
 const EXITCODE_ERR_NETWORK      int = 2
 const EXITCODE_ERR_HTTP_RESP    int = 3
@@ -37,10 +40,44 @@ func (e WskError) Error() string {
     return e.RootErr.Error()
 }
 
+// Instantiate a WskError stucture
+// Parameters:
+//  error   - RootErr. object implementing the error interface
+//  int     - ExitCode.  Used if error object does not have an exit code OR if ExitCodeOverride is true
+//  bool    - DisplayMsg.  If true, the error message should be displayed on the console
+//  bool    - DisplayUsage.  If true, the command usage syntax/help should be displayed on the console
+//  bool    - MsgDisplay.  If true, the error message has been displayed on the console
 func MakeWskError (e error, ec int, flags ...bool ) (we *WskError) {
     we = &WskError{RootErr: e, ExitCode: ec, DisplayMsg: false, DisplayUsage: false, MsgDisplayed: false}
     if len(flags) > 0 { we.DisplayMsg = flags[0] }
     if len(flags) > 1 { we.DisplayUsage = flags[1] }
     if len(flags) > 2 { we.MsgDisplayed = flags[2] }
     return we
+}
+
+// Instantiate a WskError stucture
+// Parameters:
+//  error   - RootErr. object implementing the error interface
+//  WskError -WskError being wrappered.  It's exitcode will be used as this WskError's exitcode
+//  int     - ExitCode.  Used if error object does not have an exit code OR if ExitCodeOverride is true
+//  bool    - DisplayMsg.  If true, the error message should be displayed on the console
+//  bool    - DisplayUsage.  If true, the command usage syntax/help should be displayed on the console
+//  bool    - MsgDisplay.  If true, the error message has been displayed on the console
+func MakeWskErrorFromWskError (e error, werr error, ec int, flags ...bool ) (we *WskError) {
+    // Pull exit code from error if it exists
+    var exitCode int
+
+    // Input WskError can be a pointer reference
+    if we, ok := werr.(*WskError); ok {
+        exitCode = we.ExitCode
+    } else {
+        exitCode = ec
+    }
+
+    // If input WskError is NOT a pointer reference, use it
+    if we, ok := werr.(WskError); ok {
+        exitCode = we.ExitCode
+    }
+
+    return MakeWskError(e, exitCode, flags...)
 }
