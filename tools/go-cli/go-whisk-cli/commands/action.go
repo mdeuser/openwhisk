@@ -82,13 +82,13 @@ var actionCreateCmd = &cobra.Command{
         Short: "create a new action",
 
         Run: func(cmd *cobra.Command, args []string) {
-                action, err := parseAction(cmd, args)
+                action, sharedSet, err := parseAction(cmd, args)
 
                 if err != nil {
                         fmt.Println(err)
                         return
                 }
-                action, _, err = client.Actions.Insert(action, false)
+                action, _, err = client.Actions.Insert(action, sharedSet, false)
                 if err != nil {
                         fmt.Println(err)
                         return
@@ -135,13 +135,13 @@ var actionUpdateCmd = &cobra.Command{
         Short: "update an existing action",
 
         Run: func(cmd *cobra.Command, args []string) {
-                action, err := parseAction(cmd, args)
+                action, sharedSet, err := parseAction(cmd, args)
 
                 if err != nil {
                         fmt.Println(err)
                         return
                 }
-                action, _, err = client.Actions.Insert(action, true)
+                action, _, err = client.Actions.Insert(action, sharedSet, true)
                 if err != nil {
                         fmt.Println(err)
                         return
@@ -320,9 +320,9 @@ usage: wsk action update [-h] [-u AUTH] [--docker] [--copy] [--sequence]
 [-t TIMEOUT] [-m MEMORY]
 name [artifact]
  */
-func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
+func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error) {
         var err error
-        var shared bool
+        var shared, sharedSet bool
         var actionName, artifact string
 
         if (IsDebug()) {
@@ -331,7 +331,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
 
         if len(args) < 1 {
                 err = errors.New("Invalid argument list")
-                return nil, err
+                return nil, sharedSet, err
         }
 
         actionName = args[0]
@@ -341,7 +341,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
         qName, err = parseQualifiedName(args[0])
         if err != nil {
                 fmt.Printf("error: %s", err)
-                return nil, err
+                return nil, sharedSet, err
         }
 
         client.Namespace = qName.namespace
@@ -352,25 +352,29 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
 
         if flags.action.shared == "yes" {
                 shared = true
-        } else {
+                sharedSet = true
+        } else if flags.action.shared == "no" {
                 shared = false
+                sharedSet = true
+        } else {
+                sharedSet = false
         }
 
         parameters, err := parseParameters(flags.common.param)
         if err != nil {
-                return nil, err
+                return nil, sharedSet, err
         }
 
         annotations, err := parseAnnotations(flags.common.annotation)
         if err != nil {
-                return nil, err
+                return nil, sharedSet, err
         }
 
         // TODO: exclude limits if none set
-        limits := whisk.Limits{
+        /*limits := whisk.Limits{
                 Timeout: flags.action.timeout,
                 Memory:  flags.action.memory,
-        }
+        }*/
 
         action := new(whisk.Action)
 
@@ -382,7 +386,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
         } else if flags.action.copy {
                 existingAction, _, err := client.Actions.Get(actionName)
                 if err != nil {
-                        return nil, err
+                        return nil, sharedSet, err
                 }
 
                 action.Exec = existingAction.Exec
@@ -391,7 +395,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                 client.Config.Namespace = "whisk.system"
                 pipeAction, _, err := client.Actions.Get("system/pipe")
                 if err != nil {
-                        return nil, err
+                        return nil, sharedSet, err
                 }
                 action.Exec = pipeAction.Exec
                 client.Config.Namespace = currentNamespace
@@ -399,12 +403,12 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                 stat, err := os.Stat(artifact)
                 if err != nil {
                         // file does not exist
-                        return nil, err
+                        return nil, sharedSet, err
                 }
 
                 file, err := ioutil.ReadFile(artifact)
                 if err != nil {
-                        return nil, err
+                        return nil, sharedSet, err
                 }
                 if action.Exec == nil {
                         action.Exec = new(whisk.Exec)
@@ -422,7 +426,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
         if flags.action.lib != "" {
                 file, err := os.Open(flags.action.lib)
                 if err != nil {
-                        return nil, err
+                        return nil, sharedSet, err
                 }
 
                 var r io.Reader
@@ -435,11 +439,11 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
                         err = fmt.Errorf("Unrecognized file compression %s", ext)
                 }
                 if err != nil {
-                        return nil, err
+                        return nil, sharedSet, err
                 }
                 lib, err := ioutil.ReadAll(r)
                 if err != nil {
-                        return nil, err
+                        return nil, sharedSet, err
                 }
 
                 if action.Exec == nil {
@@ -454,13 +458,13 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, error) {
         action.Publish = shared
         action.Annotations = annotations
         action.Parameters = parameters
-        action.Limits = limits
+        //action.Limits = limits
 
         if IsDebug() {
                 fmt.Printf("Parsed action struct: %+v\n", action)
         }
 
-        return action, nil
+        return action, sharedSet, nil
 }
 
 ///////////

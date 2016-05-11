@@ -25,6 +25,28 @@ type PackageService struct {
         client *Client
 }
 
+type SentPackagePublish struct {
+        Namespace string `json:"-"`
+        Name      string `json:"-"`
+        Version   string `json:"version,omitempty"`
+        Publish   bool   `json:"publish"`
+
+        Annotations 	`json:"annotations,omitempty"`
+        Parameters  	`json:"parameters,omitempty"`
+        Bindings  bool  `json:"binding,omitempty"`
+}
+
+type SentPackageNoPublish struct {
+        Namespace string `json:"-"`
+        Name      string `json:"-"`
+        Version   string `json:"version,omitempty"`
+        Publish   bool   `json:"publish,omitempty"`
+
+        Annotations 	`json:"annotations,omitempty"`
+        Parameters  	`json:"parameters,omitempty"`
+        Bindings  bool  `json:"binding,omitempty"`
+}
+
 type Package struct {
         Namespace string `json:"namespace,omitempty"`
         Name      string `json:"name,omitempty"`
@@ -32,13 +54,8 @@ type Package struct {
         Publish   bool   `json:"publish"`
 
         Annotations 	`json:"annotations,omitempty"`
-        Parameters  	`json:"parameters"`
-        Bindings  bool  `json:"binding"`
-}
-
-type Package2 struct {
-        Annotations 	`json:"annotations,omitempty"`
-        Publish   bool   `json:"publish"`
+        Parameters  	`json:"parameters,omitempty"`
+        Bindings  bool  `json:"binding,omitempty"`
 }
 
 type Binding struct {
@@ -100,15 +117,25 @@ func (s *PackageService) Get(packageName string) (*Package, *http.Response, erro
 
 }
 
-func (s *PackageService) Insert(x_package *Package, overwrite bool) (*Package, *http.Response, error) {
+func (s *PackageService) Insert(x_package *Package, shared bool, overwrite bool) (*Package, *http.Response, error) {
         route := fmt.Sprintf("packages/%s?overwrite=%t", x_package.Name, overwrite)
 
-        p2 := Package2{
-                Annotations: x_package.Annotations,
-                Publish: x_package.Publish,
+        var sentPackage interface{}
+
+        if shared {
+                sentPackage = SentPackagePublish{
+                        Annotations: x_package.Annotations,
+                        Parameters: x_package.Parameters,
+                        Publish: x_package.Publish,
+                }
+        } else {
+                sentPackage = SentPackageNoPublish{
+                        Annotations: x_package.Annotations,
+                        Parameters: x_package.Parameters,
+                }
         }
 
-        req, err := s.client.NewRequest("PUT", route, p2)
+        req, err := s.client.NewRequest("PUT", route, sentPackage)
         if err != nil {
                 return nil, nil, err
         }
