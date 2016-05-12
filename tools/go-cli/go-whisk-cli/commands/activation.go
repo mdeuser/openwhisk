@@ -111,86 +111,114 @@ var activationListCmd = &cobra.Command{
 var activationGetCmd = &cobra.Command{
     Use:   "get <id string>",
     Short: "get activation",
-
-    Run: func(cmd *cobra.Command, args []string) {
+    SilenceUsage:   true,
+    SilenceErrors:  true,
+    RunE: func(cmd *cobra.Command, args []string) error {
         if len(args) != 1 {
-            err := errors.New("Invalid ID argument")
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("activationGetCmd: Invalid number of arguments: %d\n", len(args))
+            }
+            errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
+            werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
         id := args[0]
         activation, _, err := client.Activations.Get(id)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("activationGetCmd: client.Activations.Get(%s) failed: %s\n", id, err)
+            }
+            errStr := fmt.Sprintf("Unable to obtain activation record for '%s': %s", id, err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
         if flags.common.summary {
             fmt.Printf("activation result for /%s/%s (%s at %s)\n", activation.Namespace, activation.Name, activation.Response.Status, time.Unix(activation.End/1000, 0))
             printJsonNoColor(activation.Response.Result)
         } else {
-            //fmt.Printf("%s got activation %s\n", color.GreenString("ok:"), boldString(id))  - Does not work on Windows
+            //fmt.Printf("%s got activation %s\n", color.GreenString("ok:"), boldString(id))  - MWD Does not work on Windows
             fmt.Printf("ok: got activation %s\n", id)
             printJsonNoColor(activation)
         }
 
+        return nil
     },
 }
 
 var activationLogsCmd = &cobra.Command{
     Use:   "logs",
     Short: "get the logs of an activation",
-
-    Run: func(cmd *cobra.Command, args []string) {
+    SilenceUsage:   true,
+    SilenceErrors:  true,
+    RunE: func(cmd *cobra.Command, args []string) error {
         if len(args) != 1 {
-            err := errors.New("Invalid ID argument")
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("activationLogsCmd: Invalid number of arguments: %d\n", len(args))
+            }
+            errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
+            werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
 
         id := args[0]
         activation, _, err := client.Activations.Logs(id)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("activationLogsCmd: client.Activations.Logs(%s) failed: %s\n", id, err)
+            }
+            errStr := fmt.Sprintf("Unable to obtain logs for activation '%s': %s", id, err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
-        //fmt.Printf("%s got activation %s logs\n", color.GreenString("ok:"), boldString(id)) - Does not work on Windows
+        //fmt.Printf("%s got activation %s logs\n", color.GreenString("ok:"), boldString(id)) - MWD Does not work on Windows
         fmt.Printf("ok: got activation %s logs\n", id)
 
         printJsonNoColor(activation.Logs)
+        return nil
     },
 }
 
 var activationResultCmd = &cobra.Command{
     Use:   "result",
     Short: "get the result of an activation",
-
-    Run: func(cmd *cobra.Command, args []string) {
+    SilenceUsage:   true,
+    SilenceErrors:  true,
+    RunE: func(cmd *cobra.Command, args []string) error {
         if len(args) != 1 {
-            err := errors.New("Invalid ID argument")
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("activationResultCmd: Invalid number of arguments: %d\n", len(args))
+            }
+            errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
+            werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
 
         id := args[0]
         result, _, err := client.Activations.Result(id)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("activationResultCmd: client.Activations.result(%s) failed: %s\n", id, err)
+            }
+            errStr := fmt.Sprintf("Unable to obtain result information for activation '%s': %s", id, err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
-        //fmt.Printf("%s got activation %s result\n", color.GreenString("ok:"), boldString(id))  - Does not work on Windows
+        //fmt.Printf("%s got activation %s result\n", color.GreenString("ok:"), boldString(id))  - MWD Does not work on Windows
         fmt.Printf("ok: got activation %s result\n", id)
         printJsonNoColor(result.Result)
+        return nil
     },
 }
 
 var activationPollCmd = &cobra.Command{
     Use:   "poll <namespace string>",
     Short: "poll continuously for log messages from currently running actions",
-
-    Run: func(cmd *cobra.Command, args []string) {
+    SilenceUsage:   true,
+    SilenceErrors:  true,
+    RunE: func(cmd *cobra.Command, args []string) error {
         var name string
         if len(args) == 1 {
             name = args[0]
@@ -218,43 +246,66 @@ var activationPollCmd = &cobra.Command{
                 Limit: 1,
                 Docs:  true,
             }
-            activationList, _, _ := client.Activations.List(options)
-            if len(activationList) > 0 {
-                lastActivation := activationList[0]
-                pollSince = time.Unix(lastActivation.Start+1, 0).Add(Delay)
+            activationList, _, err := client.Activations.List(options)
+            if err != nil {
+                if IsDebug() {
+                    fmt.Printf("activationPollCmd: Warning! client.Activations.List() error: %s\n", err)
+                    fmt.Println("activationPollCmd: Ignoring client.Activations.List failure; polling for activations since 'now'")
+                }
+            } else {
+                if len(activationList) > 0 {
+                    lastActivation := activationList[0]
+                    pollSince = time.Unix(lastActivation.Start+1, 0).Add(Delay)
+                }
             }
         } else {
             t0 := time.Now()
 
-            duration, err := time.ParseDuration(fmt.Sprintf("%ds %dm %dh",
-                flags.activation.sinceSeconds,
+            // ParseDuration takes a string like "2h45m15s"; create one from the arguments
+            durationStr := fmt.Sprintf("%dh%dm%ds",
+                flags.activation.sinceHours + flags.activation.sinceDays*24,
                 flags.activation.sinceMinutes,
-                flags.activation.sinceHours+
-                flags.activation.sinceDays*24,
-            ))
+                flags.activation.sinceSeconds,
+            )
+            duration, err := time.ParseDuration(durationStr)
             if err == nil {
                 pollSince = t0.Add(-duration)
+            } else {
+                if IsDebug() {
+                    fmt.Printf("activationPollCmd: time.ParseDuration(%s) failure: %s\n", durationStr, err)
+                }
             }
         }
-
+        if IsVerbose() {
+            fmt.Printf("Polling for activations since %s\n", pollSince)
+        }
         fmt.Println("Polling for logs")
         localStartTime := time.Now()
+
+        // Polling loop
         for {
             if flags.activation.exit > 0 {
                 localDuration := time.Since(localStartTime)
                 if int(localDuration.Seconds()) > flags.activation.exit {
-                    return
+                    if IsDebug() {
+                        fmt.Printf("activationPollCmd: Poll time (%d seconds) expired; polling loop stopped\n", flags.activation.exit)
+                    }
+                    return nil
                 }
             }
 
             options := &whisk.ActivationListOptions{
                 Name:  name,
-                Since: pollSince.Unix(),
+                Since: pollSince.Unix()*1000,   // Whisk server expects Since time formt in ms (since Unix epoch)
                 Docs:  true,
             }
 
             activations, _, err := client.Activations.List(options)
             if err != nil {
+                if IsDebug() {
+                    fmt.Printf("activationPollCmd: Warning! client.Activations.List() error: %s\n", err)
+                    fmt.Println("activationPollCmd: Ignoring client.Activations.List failure; continuing to poll for activations")
+                }
                 continue
             }
 
@@ -265,15 +316,19 @@ var activationPollCmd = &cobra.Command{
                     }
                 }
                 fmt.Printf("\nActivation: %s (%s)\n", activation.Name, activation.ActivationID)
-                printJSON(activation.Logs)
+                //MWD printJSON(activation.Logs)
+                printJsonNoColor(activation.Logs)
 
                 reported = append(reported, activation.ActivationID)
+
+                //
                 if activationTime := time.Unix(activation.Start, 0); activationTime.After(pollSince) {
                     pollSince = activationTime
                 }
             }
             time.Sleep(time.Second * 2)
         }
+        return nil
     },
 }
 

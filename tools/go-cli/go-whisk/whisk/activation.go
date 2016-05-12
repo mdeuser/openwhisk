@@ -35,7 +35,7 @@ type Activation struct {
     Subject      string `json:"subject,omitempty"`
     ActivationID string `json:"activationId,omitempty"`
     Cause        string `json:"cause,omitempty"`
-    Start        int64  `json:"start,omitempty"`
+    Start        int64  `json:"start,omitempty"`        // When action started (in seconds since January 1, 1970 UTC)
     End          int64  `json:"end,omitempty"`
     Response     `json:"response,omitempty"`
     //MWD - REPLACED Logs   []Log `json:"logs,omitempty"`

@@ -161,8 +161,9 @@ func (c *Client) addAuthHeader(req *http.Request) {
 // first decode it.
 func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 // TODO :: clean up verbose scheme
-    if (IsDebug()) {
-        fmt.Printf("\n[%s]\t%s\n", req.Method, req.URL)
+    if (IsVerbose()) {
+        fmt.Println("REQUEST:")
+        fmt.Printf("[%s]\t%s\n", req.Method, req.URL)
         if len(req.Header) > 0 {
             fmt.Println("Req Headers")
             printJSON(req.Header)
@@ -183,8 +184,9 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
         return nil, werr
     }
     defer resp.Body.Close()
-    if c.IsDebug() {
-        fmt.Printf("whisk.client.Do: HTTP [req %s] response status code: %d\n", req.URL.String(), resp.StatusCode)
+    if c.IsVerbose() {
+        fmt.Println("RESPONSE:")
+        fmt.Printf("Got response with code %d\n", resp.StatusCode)
     }
 
     // Read the response body
@@ -196,8 +198,8 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
         werr := MakeWskError(err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return resp, werr
     }
-    if c.IsDebug() {
-        fmt.Printf("HTTP resp Body:\n%s\n", string(data))
+    if c.IsVerbose() {
+        fmt.Printf("Response boby received:\n%s\n", string(data))
     }
 
     // With the HTTP response status code and the HTTP body contents,
