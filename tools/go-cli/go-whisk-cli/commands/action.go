@@ -322,7 +322,7 @@ var actionListCmd = &cobra.Command{
             Limit: flags.common.limit,
         }
 
-        actions, _, err := client.Actions.List(options)
+        actions, _, err := client.Actions.List(qName.entityName, options)
         if err != nil {
             return err
         }
