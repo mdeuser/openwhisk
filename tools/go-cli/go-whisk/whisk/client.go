@@ -199,7 +199,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
         return resp, werr
     }
     if c.IsVerbose() {
-        fmt.Printf("Response boby received:\n%s\n", string(data))
+        fmt.Printf("Response body received:\n%s\n", string(data))
     }
 
     // With the HTTP response status code and the HTTP body contents,
@@ -244,7 +244,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
             if c.IsDebug() {
                 fmt.Printf("whisk.client.Do: HTTP failure with unexpected body contents due to parsing error: '%v'\n", err)
             }
-            var errStr = fmt.Sprintf("Request failed (status code = %d). Unstructured error details:\n%s", resp.StatusCode, data)
+            var errStr = fmt.Sprintf("Request failed (status code = %d). Error details: %s", resp.StatusCode, data)
             werr := MakeWskError(errors.New(errStr), resp.StatusCode - 256, DISPLAY_MSG, NO_DISPLAY_USAGE)
             return resp, werr
         }
