@@ -76,35 +76,41 @@ type Exec struct {
 }
 
 type ActionListOptions struct {
-        Limit int  `url:"limit,omitempty"`
-        Skip  int  `url:"skip,omitempty"`
-        Docs  bool `url:"docs,omitempty"`
+        Limit           int  `url:"limit,omitempty"`
+        Skip            int  `url:"skip,omitempty"`
+        Docs            bool `url:"docs,omitempty"`
 }
 
 ////////////////////
 // Action Methods //
 ////////////////////
 
-func (s *ActionService) List(options *ActionListOptions) ([]Action, *http.Response, error) {
-        route := "actions"
-        route, err := addRouteOptions(route, options)
-        if err != nil {
-                return nil, nil, err
-        }
+func (s *ActionService) List(packageName string, options *ActionListOptions) ([]Action, *http.Response, error) {
+    var route string
 
-        req, err := s.client.NewRequest("GET", route, nil)
-        if err != nil {
-                return nil, nil, err
-        }
+    if (len(packageName) > 0) {
+        route = fmt.Sprintf("actions/%s/", url.QueryEscape(packageName))
+    } else {
+        route = fmt.Sprintf("actions")
+    }
 
-        var actions []Action
-        resp, err := s.client.Do(req, &actions)
-        if err != nil {
-                return nil, resp, err
-        }
+    route, err := addRouteOptions(route, options)
+    if err != nil {
+        return nil, nil, err
+    }
 
-        return actions, resp, err
+    req, err := s.client.NewRequest("GET", route, nil)
+    if err != nil {
+        return nil, nil, err
+    }
 
+    var actions []Action
+    resp, err := s.client.Do(req, &actions)
+    if err != nil {
+        return nil, resp, err
+    }
+
+    return actions, resp, err
 }
 
 func (s *ActionService) Insert(action *Action, sharedSet bool, overwrite bool) (*Action, *http.Response, error) {

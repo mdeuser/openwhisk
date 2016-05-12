@@ -73,9 +73,9 @@ func parseQualifiedName(name string) (qName qualifiedName, err error) {
             qName.namespace = parts[1]
 
             if len(parts) > 2 {
-                qName.entityName = strings.Join(parts[2:], "")
+                qName.entityName = strings.Join(parts[2:], "/")
             } else {
-                qName.entityName = name
+                qName.entityName = ""
             }
         } else {
             qName.entityName = name
