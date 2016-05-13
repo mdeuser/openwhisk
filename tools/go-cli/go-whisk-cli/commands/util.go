@@ -107,9 +107,12 @@ func parseGenericArray(args []string) (whisk.Annotations, error) {
     parsed := make(whisk.Annotations, 0)
 
     if len(args)%2 != 0 {
+        if IsDebug() {
+            fmt.Printf("parseKeyValueArray: Number of arguments (%d) must be an even number; args: %#v\n", len(args), args)
+        }
         err := whisk.MakeWskError(
-            errors.New("key|value arguments must be submitted in comma-separated pairs"),
-            whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE )
+            errors.New("key|value arguments must be submitted in comma-separated pairs; keys or values with spaces must be quoted"),
+            whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE )
         return parsed, err
     }
 
@@ -127,9 +130,12 @@ func parseGenericArray(args []string) (whisk.Annotations, error) {
 func parseKeyValueArray(args []string) ([]whisk.KeyValue, error) {
     parsed := []whisk.KeyValue{}
     if len(args)%2 != 0 {
+        if IsDebug() {
+            fmt.Printf("parseKeyValueArray: Number of arguments (%d) must be an even number; args: %#v\n", len(args), args)
+        }
         err := whisk.MakeWskError(
-            errors.New("key|value arguments must be submitted in comma-separated pairs"),
-            whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE )
+            errors.New("key|value arguments must be submitted in comma-separated pairs; keys or values with spaces must be quoted"),
+            whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE )
         return parsed, err
     }
 
