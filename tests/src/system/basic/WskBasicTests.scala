@@ -254,8 +254,8 @@ class WskBasicTests
 
     it should "reject create with missing file" in {
         wsk.action.create("missingFile", Some("notfound"),
-            expectedExitCode = MISUSE_EXIT).
-            stdout should include("not a valid file")
+            expectedExitCode = ERROR_EXIT).
+            stdout should include("Unable to parse action")
     }
 
     /**

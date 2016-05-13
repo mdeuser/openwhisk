@@ -500,7 +500,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
     var actionName, artifact string
 
     if (IsDebug()) {
-        fmt.Printf("Action arguments: %s\n", args)
+        fmt.Printf("Parse action arguments: %s\n", args)
     }
 
     if len(args) < 1 {
