@@ -16,20 +16,52 @@ limitations under the License.
 
 package whisk
 
+import (
+    "fmt"
+    "errors"
+    "net/http"
+)
+
 type SdkService struct {
-        client *Client
+    client *Client
 }
 
 // Structure for SDK request responses
 type Sdk struct {
-        // TODO :: Add SDK fields
+    // TODO :: Add SDK fields
 }
 
 type SdkRequest struct {
-        // TODO :: Add SDK
+    // TODO :: Add SDK
 }
 
-// Install artifact {component = docker || swift}
-func (s *SdkService) Install(component string) {
+// Install artifact {component = docker || swift || iOS}
+func (s *SdkService) Install(relFileUrl string) (*http.Response, error) {
 
+    urlStr := fmt.Sprintf("https://%s/%s", s.client.Config.BaseURL.Host, relFileUrl)
+
+    req, err := http.NewRequest("GET", urlStr, nil)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("SdkService.Install: http.NewRequest(GET, %s, nil) error: %s\n", urlStr, err)
+        }
+        errStr := fmt.Sprintf("Error initializing request: %s", err)
+        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, werr
+    }
+
+    s.client.addAuthHeader(req)
+
+    // Directly use the HTTP client, not the Whisk CLI client, so that the response body is left alone
+    resp, err := s.client.client.Do(req)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("SdkService.Install: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
+        }
+        errStr := fmt.Sprintf("Request failure: %s", err)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return resp, werr
+    }
+
+    return resp, nil
 }

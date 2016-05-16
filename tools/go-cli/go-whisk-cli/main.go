@@ -63,7 +63,7 @@ func main() {
             } else {
                 if commands.IsDebug() {
                     // Likely a cobra generated error about bad command syntax
-                    fmt.Printf("Main: got some other error - %s", err)
+                    fmt.Printf("Main: got some other error - %s\n", err)
                 }
                 fmt.Printf("%s\n", err)
                 displayUsage = false   // Cobra already displayed the usage message

@@ -25,6 +25,11 @@ import (
 
     "github.com/fatih/color"
     prettyjson "github.com/hokaccha/go-prettyjson"
+    "archive/tar"
+    "io"
+    "os"
+    "compress/gzip"
+    "archive/zip"
 )
 
 type qualifiedName struct {
@@ -154,6 +159,9 @@ func parseParameters(args []string) (whisk.Parameters, error) {
     parameters := whisk.Parameters{}
     parsedArgs, err := parseKeyValueArray(args)
     if err != nil {
+        if IsDebug() {
+            fmt.Printf("util.parseParameters: parseKeyValueArray(%#v) error: %s", args, err)
+        }
         return parameters, err
     }
     parameters = whisk.Parameters(parsedArgs)
@@ -166,6 +174,9 @@ func parseAnnotations(args []string) (whisk.Annotations, error) {
 
     parsedArgs, err := parseGenericArray(args)
     if err != nil {
+        if IsDebug() {
+            fmt.Printf("util.parseAnnotations: parseGenericArray(%#v) error: %s", args, err)
+        }
         return annotations, err
     }
 
@@ -335,4 +346,225 @@ func printJsonNoColor(v interface{}) {
         fmt.Printf("printJsonNoColor: Marshal() failure: %s\n", err)
     }
     fmt.Println(string(output))
+}
+
+func unpackGzip(inpath string, outpath string) error {
+    // Make sure the target file does not exist
+    if _, err := os.Stat(outpath); err == nil {
+        if IsDebug() {
+            fmt.Printf("unpackGzip: os.Stat reports file '%s' exists\n", outpath)
+        }
+        errStr := fmt.Sprintf("The file %s already exists.  Delete it and retry.", outpath)
+        werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        return werr
+    }
+
+    // Make sure the input file exists
+    if _, err := os.Stat(inpath); err != nil {
+        if IsDebug() {
+            fmt.Printf("unpackGzip: os.Stat reports file '%s' does not exist\n", inpath)
+        }
+        errStr := fmt.Sprintf("The file '%s' does not exists.", inpath)
+        werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        return werr
+    }
+
+    unGzFile, err := os.Create(outpath)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("unpackGzip: os.Create(%s) failed: %s\n", outpath, err)
+        }
+        errStr := fmt.Sprintf("Error creating unGzip file %s: %s", outpath, err)
+        werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        return werr
+    }
+    defer unGzFile.Close()
+
+    gzFile, err := os.Open(inpath)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("unpackGzip: os.Open(%s) failed: %s\n", inpath, err)
+        }
+        errStr := fmt.Sprintf("Error opening Gzip file %s: %s", inpath, err)
+        werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        return werr
+    }
+    defer gzFile.Close()
+
+    gzReader, err := gzip.NewReader(gzFile)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("unpackGzip: gzip.NewReader() failed: %s\n", err)
+        }
+        errStr := fmt.Sprintf("Unable to unzip %s: %s", inpath, err)
+        werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        return werr
+    }
+
+    _, err = io.Copy(unGzFile, gzReader)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("unpackGzip: io.Copy() failed: %s\n", err)
+        }
+        errStr := fmt.Sprintf("Unable to unzip %s: %s", inpath, err)
+        werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        return werr
+    }
+
+    return nil
+}
+
+func unpackZip(inpath string) error {
+    // Make sure the input file exists
+    if _, err := os.Stat(inpath); err != nil {
+        if IsDebug() {
+            fmt.Printf("unpackZip: os.Stat reports file '%s' does not exist\n", inpath)
+        }
+        errStr := fmt.Sprintf("The file '%s' does not exists.", inpath)
+        werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        return werr
+    }
+
+    zipFileReader, err := zip.OpenReader(inpath)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("unpackZip: zip.OpenReader(%s) failed: %s\n", inpath, err)
+        }
+        errStr := fmt.Sprintf("Unable to opens %s for unzipping: %s", inpath, err)
+        werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        return werr
+    }
+    defer zipFileReader.Close()
+
+    // Loop through the files in the zipfile
+    for _, item := range zipFileReader.File {
+        itemName := item.Name
+        itemType := item.Mode()
+
+        if IsDebug() {
+            fmt.Printf("unpackZip: file item - %#v\n", item)
+        }
+
+        if itemType.IsDir() {
+            if err := os.MkdirAll(item.Name, item.Mode()); err != nil {
+                if IsDebug() {
+                    fmt.Printf("unpackZip: os.MkdirAll(%s, %d) failed: %s\n", item.Name, item.Mode(), err)
+                }
+                errStr := fmt.Sprintf("Unable to create directory '%s' while unzipping %s: %s", item.Name, inpath, err)
+                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                return werr
+            }
+        }
+
+        if itemType.IsRegular() {
+            unzipFile, err := item.Open()
+            defer unzipFile.Close()
+            if err != nil {
+                if IsDebug() {
+                    fmt.Printf("unpackZip: '%s' Open() failed: %s\n", item.Name, err)
+                }
+                errStr := fmt.Sprintf("Unable to open zipped file '%s' while unzipping %s: %s", item.Name, inpath, err)
+                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                return werr
+            }
+            targetFile, err := os.Create(itemName)
+            if err != nil {
+                if IsDebug() {
+                    fmt.Printf("unpackZip: os.Create(%s) failed: %s\n", itemName, err)
+                }
+                errStr := fmt.Sprintf("Unable to create file '%s' while unzipping %s: %s", item.Name, inpath, err)
+                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                return werr
+            }
+            if _, err := io.Copy(targetFile, unzipFile); err != nil {
+                if IsDebug() {
+                    fmt.Printf("unpackZip: io.Copy() of '%s' failed: %s\n", itemName, err)
+                }
+                errStr := fmt.Sprintf("Unable to unzip file '%s': %s", itemName, err)
+                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                return werr
+            }
+        }
+    }
+
+    return nil
+}
+
+func unpackTar(inpath string) error {
+
+    // Make sure the input file exists
+    if _, err := os.Stat(inpath); err != nil {
+        if IsDebug() {
+            fmt.Printf("unpackTar: os.Stat reports file '%s' does not exist\n", inpath)
+        }
+        errStr := fmt.Sprintf("The file '%s' does not exists.", inpath)
+        werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        return werr
+    }
+
+    tarFileReader, err := os.Open(inpath)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("unpackTar: os.Open(%s) failed: %s\n", inpath, err)
+        }
+        errStr := fmt.Sprintf("Error opening tar file %s: %s", inpath, err)
+        werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        return werr
+    }
+    defer tarFileReader.Close()
+
+    // Loop through the files in the tarfile
+    tReader := tar.NewReader(tarFileReader)
+    for {
+        item, err := tReader.Next()
+        if err == io.EOF {
+            if IsDebug() {fmt.Printf("unpackTar: EOF reach during untar\n")}
+            break  // end of tar
+        }
+        if err != nil {
+            if IsDebug() {
+                fmt.Printf("unpackTar: tReader.Next() failed: %s\n", err)
+            }
+            errStr := fmt.Sprintf("Error reading tar file %s: %s", inpath, err)
+            werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
+        }
+
+        if IsDebug() {
+            fmt.Printf("unpackTar: tar file item - %#v\n", item)
+        }
+        switch item.Typeflag {
+        case tar.TypeDir:
+            if err := os.MkdirAll(item.Name, os.FileMode(item.Mode)); err != nil {
+                if IsDebug() {
+                    fmt.Printf("unpackTar: os.MkdirAll(%s, %d) failed: %s\n", item.Name, item.Mode, err)
+                }
+                errStr := fmt.Sprintf("Unable to create directory '%s' while untarring %s: %s", item.Name, inpath, err)
+                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                return werr
+            }
+        case tar.TypeReg:
+            untarFile, err := os.Create(item.Name)
+            defer untarFile.Close()
+            if err != nil {
+                if IsDebug() {
+                    fmt.Printf("unpackTar: os.Create(%s) failed: %s\n", item.Name, err)
+                }
+                errStr := fmt.Sprintf("Unable to create file '%s' while untarring %s: %s", item.Name, inpath, err)
+                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                return werr
+            }
+            if _, err := io.Copy(untarFile, tReader); err != nil {
+                if IsDebug() {
+                    fmt.Printf("unpackTar: io.Copy() of '%s' failed: %s\n", item.Name, err)
+                }
+                errStr := fmt.Sprintf("Unable to untar file '%s': %s", item.Name, err)
+                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                return werr
+            }
+        default:
+            fmt.Printf("Unable to untar '%s' due to unexpected tar file type of %c\n", item.Name, item.Typeflag)
+        }
+    }
+    return nil
 }
