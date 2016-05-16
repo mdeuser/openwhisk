@@ -167,7 +167,7 @@ class WskBasicTests
     }
 
     it should "reject bad command" in {
-        val result = wsk.cli(Seq("bogus"), expectedExitCode = MISUSE_EXIT)
+        val result = wsk.cli(Seq("bogus"), expectedExitCode = ERROR_EXIT)
         val stderr = result.stderr
         val stdout = result.stdout
         println(s"bad command stderr:\n$stderr")
