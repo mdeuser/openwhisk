@@ -60,24 +60,55 @@ var namespaceGetCmd = &cobra.Command{
     SilenceUsage:   true,
     SilenceErrors:  true,
     RunE: func(cmd *cobra.Command, args []string) error {
-        var nsName string
-        if len(args) > 0 {
-            nsName = args[0]
+        var qName qualifiedName
+
+        if len(args) < 1 {
+
+            if IsDebug() {
+                fmt.Printf("namespaceGetCmd: Invalid argument list: %s\n", cmd, args)
+            }
+
+            errMsg := "Invalid argument list.\n"
+            whiskErr := whisk.MakeWskError(errors.New(errMsg), whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+
+            return whiskErr
         }
 
-        namespace, _, err := client.Namespaces.Get(nsName)
+        qName, err := parseQualifiedName(args[0])
+
+        if err != nil {
+
+            if IsDebug() {
+                fmt.Println("namespaceGetCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+
+            return whiskErr
+        }
+
+        namespace, _, err := client.Namespaces.Get(qName.packageName)
         if err != nil {
             if IsDebug() {
-                fmt.Printf("namespaceGetCmd: client.Namespaces.Get(%s) error: %s\n", nsName, err)
+                fmt.Printf("namespaceGetCmd: client.Namespaces.Get(%s) error: %s\n", qName.namespace, err)
             }
-            errStr := fmt.Sprintf("Unable to obtain namespace entities for namespace '%s': %s", nsName, err)
+            errStr := fmt.Sprintf("Unable to obtain namespace entities for namespace '%s': %s", qName.namespace, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
 
         //fmt.Printf("Entities in namespace: %s\n", boldString(namespace.Name))  // Did not work on Windows; so replaced with following two lines
         fmt.Printf("Entities in namespace: ")
-        color.New(color.Bold).Printf("%s\n", namespace.Name)
+
+        if (qName.namespace != "_") {
+            color.New(color.Bold).Printf("%s\n", namespace.Name)
+        } else {
+            color.New(color.Bold).Printf("default\n")
+        }
+
         printList(namespace.Contents.Packages)
         printList(namespace.Contents.Actions)
         printList(namespace.Contents.Triggers)

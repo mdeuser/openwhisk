@@ -207,11 +207,11 @@ var actionInvokeCmd = &cobra.Command{
         if len(args) < 1 || len(args) > 2 {
 
             if IsDebug() {
-                fmt.Printf("actionInvokeCmd: parseAction(%s, %s)\nerror: %s\n", cmd, args, err)
+                fmt.Printf("actionInvokeCmd: Invalid argument list: %s\n", cmd, args)
             }
 
             errMsg := "Invalid argument list.\n"
-            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+            whiskErr := whisk.MakeWskError(errors.New(errMsg), whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
 
             return whiskErr
@@ -419,47 +419,53 @@ var actionListCmd = &cobra.Command{
     SilenceUsage:   true,
     SilenceErrors:  true,
     RunE: func(cmd *cobra.Command, args []string) error {
-        var err error
 
-        qName := qualifiedName{}
+        if len(args) < 1 {
 
-        if len(args) == 1 {
-            qName, err = parseQualifiedName(args[0])
-
-            if err != nil {
-
-                if IsDebug() {
-                    fmt.Println("actionListCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-                }
-
-                errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
-                whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
-                    whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
-                return whiskErr
+            if IsDebug() {
+                fmt.Printf("actionListCmd: invalid number of arguments: %s\n", args)
             }
 
-            ns := qName.namespace
+            errMsg := fmt.Sprintf("Unable to invoke action: Invalid number of arguments: %s\n", args)
+            whiskErr := whisk.MakeWskError(errors.New(errMsg), whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
 
-            if len(ns) == 0 {
+            return whiskErr
+        }
 
-                if IsDebug() {
-                    fmt.Println("actionListCmd: parseQualifiedName(%s)\nerror: Namespace is blank\n", args[0])
-                }
+        qName, err := parseQualifiedName(args[0])
 
-                errMsg :=
-                fmt.Sprintf("No valid namespace detected. Make sure that namespace argument is preceded by a \"/\"\n")
-                whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
-                    whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+        if err != nil {
 
-                return whiskErr
+            if IsDebug() {
+                fmt.Println("actionGetCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
             }
 
-            client.Namespace = ns
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
 
-            if pkg := qName.packageName; len(pkg) > 0 {
-                // todo :: scope call to package
+            return whiskErr
+        }
+
+        if len(qName.namespace) == 0 {
+
+            if IsDebug() {
+                fmt.Println("actionListCmd: Namespace is blank: %s\n", args[0])
             }
+
+            errMsg :=
+            fmt.Sprintf("No valid namespace detected. Make sure that namespace argument is preceded by a \"/\"\n")
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+
+            return whiskErr
+        }
+
+        client.Namespace = qName.namespace
+
+        if pkg := qName.packageName; len(pkg) > 0 {
+            // todo :: scope call to package
         }
 
         options := &whisk.ActionListOptions{
