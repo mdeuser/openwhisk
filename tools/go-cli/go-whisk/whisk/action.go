@@ -17,68 +17,68 @@ limitations under the License.
 package whisk
 
 import (
-        "fmt"
-        "net/http"
-        "net/url"
+    "fmt"
+    "net/http"
+    "net/url"
+    "errors"
 )
 
 type ActionService struct {
-        client *Client
+    client *Client
 }
 
 type Action struct {
-        Namespace string `json:"namespace,omitempty"`
-        Name      string `json:"name,omitempty"`
-        Version   string `json:"version,omitempty"`
-        Publish   bool   `json:"publish,omitempty"`
+    Namespace string `json:"namespace,omitempty"`
+    Name      string `json:"name,omitempty"`
+    Version   string `json:"version,omitempty"`
+    Publish   bool   `json:"publish,omitempty"`
 
-        Exec *Exec       `json:"exec,omitempty"`
-        Annotations      `json:"annotations,omitempty"`
-        Parameters       `json:"parameters,omitempty"`
-        Limits           `json:"limits,omitempty"`
+    Exec *Exec       `json:"exec,omitempty"`
+    Annotations      `json:"annotations,omitempty"`
+    Parameters       `json:"parameters,omitempty"`
+    Limits           `json:"limits,omitempty"`
 }
 
 type SentActionPublish struct {
-        Namespace string `json:"-"`
-        Version   string `json:"-"`
-        Publish   bool   `json:"publish"`
+    Namespace string `json:"-"`
+    Version   string `json:"-"`
+    Publish   bool   `json:"publish"`
 
-        Parameters  `json:"parameters,omitempty"`
-        Exec    *Exec        `json:"exec,omitempty"`
-        Annotations `json:"annotations,omitempty"`
-        Limits      `json:"-"`
+    Parameters  `json:"parameters,omitempty"`
+    Exec    *Exec        `json:"exec,omitempty"`
+    Annotations `json:"annotations,omitempty"`
+    Limits      `json:"-"`
 
-        Error   string `json:"error,omitempty"`
-        Code    int `json:"code,omitempty"`
+    Error   string `json:"error,omitempty"`
+    Code    int `json:"code,omitempty"`
 }
 
 type SentActionNoPublish struct {
-        Namespace string `json:"-"`
-        Version   string `json:"-"`
-        Publish   bool   `json:"publish,omitempty"`
+    Namespace string `json:"-"`
+    Version   string `json:"-"`
+    Publish   bool   `json:"publish,omitempty"`
 
-        Parameters  `json:"parameters,omitempty"`
-        Exec    *Exec        `json:"exec,omitempty"`
-        Annotations `json:"annotations,omitempty"`
-        Limits      `json:"-"`
+    Parameters  `json:"parameters,omitempty"`
+    Exec    *Exec        `json:"exec,omitempty"`
+    Annotations `json:"annotations,omitempty"`
+    Limits      `json:"-"`
 
-        Error   string `json:"error,omitempty"`
-        Code    int `json:"code,omitempty"`
+    Error   string `json:"error,omitempty"`
+    Code    int `json:"code,omitempty"`
 }
-
 
 
 type Exec struct {
-        Kind  string `json:"kind,omitempty"`
-        Code  string `json:"code,omitempty"`
-        Image string `json:"image,omitempty"`
-        Init  string `json:"init,omitempty"`
+    Kind  string `json:"kind,omitempty"`
+    Code  string `json:"code,omitempty"`
+    Image string `json:"image,omitempty"`
+    Init  string `json:"init,omitempty"`
 }
 
 type ActionListOptions struct {
-        Limit           int  `url:"limit,omitempty"`
-        Skip            int  `url:"skip,omitempty"`
-        Docs            bool `url:"docs,omitempty"`
+    Limit           int  `url:"limit,omitempty"`
+    Skip            int  `url:"skip,omitempty"`
+    Docs            bool `url:"docs,omitempty"`
 }
 
 ////////////////////
@@ -87,6 +87,7 @@ type ActionListOptions struct {
 
 func (s *ActionService) List(packageName string, options *ActionListOptions) ([]Action, *http.Response, error) {
     var route string
+    var actions []Action
 
     if (len(packageName) > 0) {
         route = fmt.Sprintf("actions/%s/", url.QueryEscape(packageName))
@@ -95,60 +96,112 @@ func (s *ActionService) List(packageName string, options *ActionListOptions) ([]
     }
 
     route, err := addRouteOptions(route, options)
+
     if err != nil {
-        return nil, nil, err
+
+        if IsDebug() {
+            fmt.Printf("ActionService.List: addRouteOptions(%s, %s)\nerror: %s\n", route, options, err)
+        }
+
+        errMsg := fmt.Sprintf("Unable to add route options: %s\n", options)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
+
+        return nil, nil, whiskErr
+    }
+
+    if IsDebug() {
+        fmt.Printf("Action list route with options: %s\n", route)
     }
 
     req, err := s.client.NewRequest("GET", route, nil)
+
     if err != nil {
-        return nil, nil, err
+
+        if IsDebug() {
+            fmt.Printf("ActionService.List: s.client.NewRequest(\"GET\", %s, nil) error: %s\n", route, err)
+        }
+
+        errMsg := fmt.Sprintf("New request failure: %s\n", err)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
+
+        return nil, nil, whiskErr
     }
 
-    var actions []Action
     resp, err := s.client.Do(req, &actions)
+
     if err != nil {
-        return nil, resp, err
+
+        if IsDebug() {
+            fmt.Printf("ActionService.List: s.client.Do(%#v) error: %s\n", req, err)
+        }
+
+        errMsg := fmt.Sprintf("Request failure: %s\n", err)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
+
+        return nil, resp, whiskErr
     }
 
     return actions, resp, err
 }
 
 func (s *ActionService) Insert(action *Action, sharedSet bool, overwrite bool) (*Action, *http.Response, error) {
-        route := fmt.Sprintf("actions/%s?overwrite=%t", url.QueryEscape(action.Name), overwrite)
+    var sentAction interface{}
 
-        var sentAction interface{}
+    route := fmt.Sprintf("actions/%s?overwrite=%t", url.QueryEscape(action.Name), overwrite)
 
-        if sharedSet {
-                sentAction = SentActionPublish{
-                        Parameters: action.Parameters,
-                        Exec: action.Exec,
-                        Publish: action.Publish,
-                }
-        } else {
-                sentAction = SentActionNoPublish{
-                        Parameters: action.Parameters,
-                        Exec: action.Exec,
-                }
+    if sharedSet {
+        sentAction = SentActionPublish{
+            Parameters: action.Parameters,
+            Exec: action.Exec,
+            Publish: action.Publish,
+        }
+    } else {
+        sentAction = SentActionNoPublish{
+            Parameters: action.Parameters,
+            Exec: action.Exec,
+        }
+    }
+
+
+    if s.client.IsDebug() {
+        fmt.Printf("Action insert route: %s\n", route)
+    }
+
+    req, err := s.client.NewRequest("PUT", route, sentAction)
+
+    if err != nil {
+
+        if IsDebug() {
+            fmt.Printf("ActionService.Insert: s.client.NewRequest(\"PUT\", %s, nil) error: %s\n", route, err)
         }
 
+        errMsg := fmt.Sprintf("New request failure: %s\n", err)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
 
-        if s.client.IsDebug() {
-                fmt.Printf("HTTP route: %s\n", route)
+        return nil, nil, whiskErr
+    }
+
+    a := new(Action)
+    resp, err := s.client.Do(req, &a)
+
+    if err != nil {
+
+        if IsDebug() {
+            fmt.Printf("ActionService.Insert: s.client.Do(%#v) error: %s\n", req, err)
         }
 
-        req, err := s.client.NewRequest("PUT", route, sentAction)
-        if err != nil {
-                return nil, nil, err
-        }
+        errMsg := fmt.Sprintf("Request failure: %s\n", err)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
 
-        a := new(Action)
-        resp, err := s.client.Do(req, &a)
-        if err != nil {
-                return nil, resp, err
-        }
+        return nil, resp, whiskErr
+    }
 
-        return a, resp, nil
-
+    return a, resp, nil
 }
 
 func (s *ActionService) Get(actionName string) (*Action, *http.Response, error) {
@@ -156,13 +209,31 @@ func (s *ActionService) Get(actionName string) (*Action, *http.Response, error) 
 
         req, err := s.client.NewRequest("GET", route, nil)
         if err != nil {
-                return nil, nil, err
+
+            if IsDebug() {
+                fmt.Printf("ActionService.Get: s.client.NewRequest(\"GET\", %s, nil) error: %s\n", route, err)
+            }
+
+            errMsg := fmt.Sprintf("New request failure: %s\n", err)
+            whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+                NO_DISPLAY_USAGE)
+
+            return nil, nil, whiskErr
         }
 
         a := new(Action)
         resp, err := s.client.Do(req, &a)
         if err != nil {
-                return nil, resp, err
+
+            if IsDebug() {
+                fmt.Printf("ActionService.Get: s.client.Do(%#v) error: %s\n", req, err)
+            }
+
+            errMsg := fmt.Sprintf("Request failure: %s\n", err)
+            whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+                NO_DISPLAY_USAGE)
+
+            return nil, resp, whiskErr
         }
 
         return a, resp, nil
@@ -170,40 +241,82 @@ func (s *ActionService) Get(actionName string) (*Action, *http.Response, error) 
 }
 
 func (s *ActionService) Delete(actionName string) (*http.Response, error) {
-        route := fmt.Sprintf("actions/%s", url.QueryEscape(actionName))
+    route := fmt.Sprintf("actions/%s", url.QueryEscape(actionName))
 
-        if s.client.IsDebug() {
-                fmt.Printf("HTTP route: %s\n", route)
+    if s.client.IsDebug() {
+        fmt.Printf("HTTP route: %s\n", route)
+    }
+
+    req, err := s.client.NewRequest("DELETE", route, nil)
+
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("ActionService.Delete: s.client.NewRequest(\"DELETE\", %s, nil) error: %s\n", route, err)
         }
 
-        req, err := s.client.NewRequest("DELETE", route, nil)
-        if err != nil {
-                return nil, err
+        errMsg := fmt.Sprintf("New request failure: %s\n", err)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
+
+        return nil, whiskErr
+    }
+
+    a := new(SentActionNoPublish)
+    resp, err := s.client.Do(req, a)
+
+    if err != nil {
+
+        if IsDebug() {
+            fmt.Printf("ActionService.Delete: s.client.Do(%#v) error: %s\n", req, err)
         }
 
-        a := new(SentActionNoPublish)
-        resp, err := s.client.Do(req, a)
-        if err != nil {
-                return resp, err
-        }
+        errMsg := fmt.Sprintf("Request failure: %s\n", err)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
 
-        return resp, nil
+        return resp, whiskErr
+    }
+
+    return resp, nil
 }
 
 func (s *ActionService) Invoke(actionName string, payload map[string]interface{}, blocking bool) (*Activation, *http.Response, error) {
-        route := fmt.Sprintf("actions/%s?blocking=%t", url.QueryEscape(actionName), blocking)
+    route := fmt.Sprintf("actions/%s?blocking=%t", url.QueryEscape(actionName), blocking)
 
-        req, err := s.client.NewRequest("POST", route, payload)
-        if err != nil {
-                return nil, nil, err
+    if s.client.IsDebug() {
+        fmt.Printf("HTTP route: %s\n", route)
+    }
+
+    req, err := s.client.NewRequest("POST", route, payload)
+
+    if err != nil {
+
+        if IsDebug() {
+            fmt.Printf("ActionService.Invoke: s.client.NewRequest(\"POST\", %s, nil) error: %s\n", route, err)
         }
 
-        a := new(Activation)
-        resp, err := s.client.Do(req, &a)
-        if err != nil {
-                return nil, resp, err
+        errMsg := fmt.Sprintf("New request failure: %s\n", err)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
+
+        return nil, nil, whiskErr
+    }
+
+    a := new(Activation)
+    resp, err := s.client.Do(req, &a)
+
+    if err != nil {
+
+        if IsDebug() {
+            fmt.Printf("ActionService.Invoke: s.client.Do(%#v) error: %s\n", req, err)
         }
 
-        return a, resp, nil
+        errMsg := fmt.Sprintf("Request failure: %s\n", err)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
 
+        return nil, resp, whiskErr
+    }
+
+    return a, resp, nil
 }

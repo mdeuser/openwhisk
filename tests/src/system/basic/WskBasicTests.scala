@@ -42,6 +42,7 @@ import common.TestHelpers
 import common.WskTestHelpers
 import common.TestHelpers
 import common.WskProps
+import whisk.core.entity.WhiskPackage
 
 @RunWith(classOf[JUnitRunner])
 class WskBasicTests
@@ -216,6 +217,22 @@ class WskBasicTests
             wsk.pkg.list().stdout should include(name)
     }
 
+    it should "create a package binding" in withAssetCleaner(wskprops) {
+        (wp, assetHelper) =>
+            val name = "bindPackage"
+            val provider = "/whisk.system/samples"
+            val annotations = Map("a" -> "A", WhiskPackage.bindingFieldName -> "xxx")
+            assetHelper.withCleaner(wsk.pkg, name) {
+                (pkg, _) =>
+                    pkg.bind(provider, name, annotations = annotations)
+            }
+            val stdout = wsk.pkg.get(name).stdout
+            stdout should include regex (""""key": "a"""")
+            stdout should include regex (""""value": "A"""")
+            stdout should include regex (s""""key": "${WhiskPackage.bindingFieldName}"""")
+            stdout should not include regex(""""key": "xxx"""")
+    }
+
     behavior of "Wsk Action CLI"
 
     it should "create the same action twice with different cases" in withAssetCleaner(wskprops) {
@@ -254,8 +271,8 @@ class WskBasicTests
 
     it should "reject create with missing file" in {
         wsk.action.create("missingFile", Some("notfound"),
-            expectedExitCode = MISUSE_EXIT).
-            stdout should include("not a valid file")
+            expectedExitCode = ERROR_EXIT).
+            stdout should include("Unable to parse action")
     }
 
     /**
@@ -307,6 +324,21 @@ class WskBasicTests
             stdout should include regex (""""publish": true""")
             stdout should include regex (""""version": "0.0.2"""")
             wsk.trigger.list().stdout should include(name)
+    }
+
+    it should "not create a trigger when feed fails to initialize" in {
+        val name = "badfeed"
+        wsk.trigger.create(name, feed = Some(s"bogus"), expectedExitCode = ANY_ERROR_EXIT).
+            exitCode should { equal(NOT_FOUND) or equal(FORBIDDEN) }
+        wsk.trigger.get(name, expectedExitCode = NOT_FOUND)
+
+        wsk.trigger.create(name, feed = Some(s"bogus/feed"), expectedExitCode = ANY_ERROR_EXIT).
+            exitCode should { equal(NOT_FOUND) or equal(FORBIDDEN) }
+        wsk.trigger.get(name, expectedExitCode = NOT_FOUND)
+
+        // verify that the feed runs and returns an application error (502 or Gateway Timeout)
+        wsk.trigger.create(name, feed = Some(s"/whisk.system/github/webhook"), expectedExitCode = TIMEOUT)
+        wsk.trigger.get(name, expectedExitCode = NOT_FOUND)
     }
 
     behavior of "Wsk Rule CLI"
