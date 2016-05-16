@@ -78,7 +78,6 @@ func (s *RuleService) List(options *RuleListOptions) ([]Rule, *http.Response, er
     }
 
     return rules, resp, err
-
 }
 
 func (s *RuleService) Insert(rule *Rule, overwrite bool) (*Rule, *http.Response, error) {
@@ -106,7 +105,6 @@ func (s *RuleService) Insert(rule *Rule, overwrite bool) (*Rule, *http.Response,
     }
 
     return r, resp, nil
-
 }
 
 func (s *RuleService) Get(ruleName string) (*Rule, *http.Response, error) {
@@ -134,7 +132,6 @@ func (s *RuleService) Get(ruleName string) (*Rule, *http.Response, error) {
     }
 
     return r, resp, nil
-
 }
 
 func (s *RuleService) Delete(ruleName string) (*http.Response, error) {

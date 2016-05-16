@@ -78,7 +78,11 @@ func NewClient(httpClient *http.Client, config *Config) (*Client, error) {
         if config.BaseURL == nil {
                 config.BaseURL, err = url.Parse(defaultBaseURL)
                 if err != nil {
-                    werr := MakeWskError(err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+                    if IsDebug() {
+                        fmt.Printf("client.NewClient: url.Parse(%s) error: %s", defaultBaseURL, err)
+                    }
+                    errStr := fmt.Sprintf("Unable to create request URL '%s': %s", defaultBaseURL, err)
+                    werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
                     return nil, werr
                 }
         }
@@ -118,7 +122,11 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 
         rel, err := url.Parse(urlStr)
         if err != nil {
-            werr := MakeWskError(err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+            if IsDebug() {
+                fmt.Printf("client.NewRequest: url.Parse(%s) error: %s\n", urlStr, err)
+            }
+            errStr := fmt.Sprintf("Invalid request URL '%s': %s", urlStr, err)
+            werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
             return nil, werr
         }
 
@@ -129,13 +137,21 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
                 buf = new(bytes.Buffer)
                 err := json.NewEncoder(buf).Encode(body)
                 if err != nil {
-                    werr := MakeWskError(err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+                    if IsDebug() {
+                        fmt.Printf("client.NewRequest: json.Encode(%#v) error: %s\n", body, err)
+                    }
+                    errStr := fmt.Sprintf("Error encoding request body: %s", err)
+                    werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
                     return nil, werr
                 }
         }
         req, err := http.NewRequest(method, u.String(), buf)
         if err != nil {
-            werr := MakeWskError(err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+            if IsDebug() {
+                fmt.Printf("client.NewRequest: http.NewRequest(%v, %s, buf) error: %s\n", method, u.String(), err)
+            }
+            errStr := fmt.Sprintf("Error initializing request: %s", err)
+            werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
             return nil, werr
         }
         if req.Body != nil {
@@ -199,6 +215,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
         return resp, werr
     }
     if c.IsVerbose() {
+        fmt.Printf("Response body size is %d bytes\n", len(data))
         fmt.Printf("Response body received:\n%s\n", string(data))
     }
 

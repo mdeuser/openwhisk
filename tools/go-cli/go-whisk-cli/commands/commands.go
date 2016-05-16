@@ -32,14 +32,20 @@ func init() {
 
     err = loadProperties()
     if err != nil {
+        if IsDebug() {
+            fmt.Printf("commands.init: loadProperties error: %s\n", err)
+        }
         fmt.Println(err)
-        os.Exit(-1)
+        os.Exit(whisk.EXITCODE_ERR_GENERAL)
     }
 
     var apiHostBaseUrl = fmt.Sprintf("https://%s/api/", Properties.APIHost)
     baseURL, err := url.Parse(apiHostBaseUrl)
     if err != nil {
-        fmt.Println(err)
+        if IsDebug() {
+            fmt.Printf("commands.init: url.Parse(%s) error: %s\n", apiHostBaseUrl, err)
+        }
+        fmt.Printf("Invalid apiHost value '%s' : %s", Properties.APIHost, err)
         os.Exit(whisk.EXITCODE_ERR_GENERAL)
     }
 
@@ -53,7 +59,10 @@ func init() {
     // Setup client
     client, err = whisk.NewClient(http.DefaultClient, clientConfig)
     if err != nil {
-        fmt.Println(err)
+        if IsDebug() {
+            fmt.Printf("commands.init: whisk.NewClient(%#v, %#v) error: %s\n", http.DefaultClient, clientConfig, err)
+        }
+        fmt.Printf("Unable to initialize server connection: %s", err)
         os.Exit(whisk.EXITCODE_ERR_GENERAL)
     }
 }
