@@ -60,7 +60,7 @@ func (s *NamespaceService) List() ([]Namespace, *http.Response, error) {
             fmt.Printf("NamespaceService.List: http.NewRequest('GET', %s) error: %s\n", u.String(), err)
         }
         errStr := fmt.Sprintf("Unable to create HTTP request for URL '%s': %s", u.String(), err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }
 
@@ -73,7 +73,7 @@ func (s *NamespaceService) List() ([]Namespace, *http.Response, error) {
             fmt.Printf("NamespaceService.List: s.client.Do(%#v) error: %s\n", req, err)
         }
         errStr := fmt.Sprintf("Request failure: %s", err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
 
@@ -133,7 +133,7 @@ func (s *NamespaceService) Get(nsName string) (*Namespace, *http.Response, error
             fmt.Printf("NamespaceService.Get: s.client.Do(%#v) error: %s\n", req, err)
         }
         errStr := fmt.Sprintf("Request failure: %s", err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
 

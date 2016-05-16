@@ -58,10 +58,10 @@ type SentActionNoPublish struct {
     Version   string `json:"-"`
     Publish   bool   `json:"publish,omitempty"`
 
-    Parameters  `json:"parameters,omitempty"`
-    Exec    *Exec        `json:"exec,omitempty"`
-    Annotations `json:"annotations,omitempty"`
-    Limits      `json:"-"`
+    Parameters      `json:"parameters,omitempty"`
+    Exec    *Exec   `json:"exec,omitempty"`
+    Annotations     `json:"annotations,omitempty"`
+    Limits          `json:"-"`
 
     Error   string `json:"error,omitempty"`
     Code    int `json:"code,omitempty"`
