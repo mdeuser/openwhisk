@@ -231,14 +231,14 @@ trait WhiskActionsApi extends WhiskCollectionAPI {
      * to the loadbalancer.
      *
      * Responses are one of (Code, Message)
-     * - 200 Activation as JSON if blocking
+     * - 200 Activation as JSON if blocking or just the result JSON iff '&result=true'
      * - 202 ActivationId as JSON (this is issued on non-blocking activation or blocking activation that times out)
      * - 404 Not Found
      * - 502 Bad Gateway
      * - 500 Internal Server Error
      */
     override def activate(user: Subject, namespace: Namespace, name: EntityName, env: Option[Parameters])(implicit transid: TransactionId) = {
-        parameter('blocking ? false) { blocking =>
+        parameter('blocking ? false, 'result ? false) { (blocking, result) =>
             entity(as[Option[JsObject]]) { payload =>
                 val docid = DocId(WhiskEntity.qualifiedName(namespace, name))
                 getEntity(WhiskAction, entityStore, docid, Some {
@@ -248,12 +248,18 @@ trait WhiskActionsApi extends WhiskCollectionAPI {
                             case Success((activationId, None)) =>
                                 complete(Accepted, activationId.toJsObject)
                             case Success((activationId, Some(activation))) =>
-                                if (activation.response.isSuccess) {
-                                    complete(OK, activation.toExtendedJson)
-                                } else if (activation.response.isWhiskError) {
-                                    complete(InternalServerError, activation.toExtendedJson)
+                                val response = if (result) {
+                                    activation.getResultJson
                                 } else {
-                                    complete(BadGateway, activation.toExtendedJson)
+                                    activation.toExtendedJson
+                                }
+
+                                if (activation.response.isSuccess) {
+                                    complete(OK, response)
+                                } else if (activation.response.isWhiskError) {
+                                    complete(InternalServerError, response)
+                                } else {
+                                    complete(BadGateway, response)
                                 }
                             case Failure(t: BlockingInvokeTimeout) =>
                                 info(this, s"[POST] action activation waiting period expired")
@@ -295,7 +301,7 @@ trait WhiskActionsApi extends WhiskCollectionAPI {
     override def fetch(namespace: Namespace, name: EntityName, env: Option[Parameters])(implicit transid: TransactionId) = {
         val docid = DocId(WhiskEntity.qualifiedName(namespace, name))
         getEntity(WhiskAction, entityStore, docid, Some { action: WhiskAction =>
-            val mergedAction = env map { action ++ _ } getOrElse action
+            val mergedAction = env map { action inherit _ } getOrElse action
             complete(OK, mergedAction)
         })
     }
@@ -502,7 +508,7 @@ trait WhiskActionsApi extends WhiskCollectionAPI {
         } getOrElse {
             // a subject has implied rights to all resources in a package, so dispatch
             // operation without further entitlement checks
-            val params = { ref map { _ ++ wp.parameters } getOrElse wp } parameters
+            val params = { ref map { _ inherit wp.parameters } getOrElse wp } parameters
             val ns = wp.namespace.addpath(wp.name) // the package namespace
             val resource = Resource(ns, collection, Some { action() }, Some { params })
             val right = collection.determineRight(method, resource.entity)

@@ -2,6 +2,7 @@ OpenWhisk
 =========
 
 [![Build Status](https://travis-ci.org/openwhisk/openwhisk.svg?branch=master)](https://travis-ci.org/openwhisk/openwhisk)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 OpenWhisk is a cloud-first distributed event-based programming service. It provides a programming model to upload event handlers to a cloud service, and register the handlers to respond to various events. Learn more at https://developer.ibm.com/openwhisk or try it on [IBM Bluemix OpenWhisk](https://ibm.biz/openwhisk).
 
@@ -72,7 +73,7 @@ Login to the virtual machine either using the VirtualBox terminal or with `vagra
 
 #### Alternate instructions for Mac developers
 
-Mac users can clone, build and deploy OpenWhisk either with a Vagrant or Docker machine. The following detail how to install OpenWhisk with Vagrant using a shared filesystem so that you can develop OpenWhisk natively on the Mac but deploy it inside a virtual machine.
+Mac users can clone, build and deploy OpenWhisk either with a Vagrant or Docker machine. The following detail how to install OpenWhisk with Vagrant using a shared file system so that you can develop OpenWhisk natively on the Mac but deploy it inside a virtual machine.
 
   ```
   git clone https://github.com/openwhisk/openwhisk.git
@@ -107,8 +108,9 @@ Before you can build and deploy OpenWhisk, you must configure a backing datastor
 If you are using your own installation of CouchDB, make a note of the host, port, username and password. Then within your `openwhisk` directory, copy the file `template-couchdb-local.env` to `couchdb-local.env` and edit as appropriate. Note that:
 
   * the username must have administrative rights
-  * the CouchDB instance must be accessible over `https` (although the certificate does not need to be valid)
-  * make sure you do not have a `cloudant-local.env` file, as it takes precendence over the CouchDB configuration
+  * the CouchDB instance must be accessible over `http` or `https` (the latter requires a valid certificate)
+  * the CouchDB instance must set `reduce_limit` on views to `false` (see [this](tools/db/couchdb/createAdmin.sh#L55) for how to do this via REST)
+  * make sure you do not have a `cloudant-local.env` file, as it takes precedence over the CouchDB configuration
 
 ##### Using an ephemeral CouchDB container
 

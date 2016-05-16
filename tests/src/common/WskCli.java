@@ -267,7 +267,7 @@ public class WskCli {
     }
 
     public String copyAction(String name, String existingAction) throws IOException {
-        return createAction(SUCCESS_EXIT, name, existingAction, null, null, false, true, true, false, 0);
+        return createAction(SUCCESS_EXIT, name, existingAction, null, null, false, false, true, false, 0);
     }
 
     public String createAction(String name, String file) throws IOException {
@@ -913,10 +913,10 @@ public class WskCli {
     }
 
     protected static String extractActivationResultFromCliResult(String result) {
-        assertTrue(result, result.contains("response:"));
         // a characteristic string that comes right before the result
-        String resultPrefix = "response:";
-        int start = result.indexOf(resultPrefix) + resultPrefix.length();
+        String resultPrefix = "{";
+        assertTrue(result, result.contains(resultPrefix));
+        int start = result.indexOf(resultPrefix);
         int end = result.length();
         return result.substring(start, end); // the result
     }
