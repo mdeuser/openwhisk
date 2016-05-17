@@ -117,7 +117,22 @@ var triggerCreateCmd = &cobra.Command{
             return werr
         }
 
-        triggerName := args[0]
+        qName, err := parseQualifiedName(args[0])
+
+        if err != nil {
+
+            if IsDebug() {
+                fmt.Println("actionInvokeCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+
+            return whiskErr
+        }
+
+        client.Namespace = qName.namespace
 
         // Convert the trigger's list of default parameters from a string into []KeyValue
         // The 1 or more --param arguments have all been combined into a single []string
@@ -149,7 +164,7 @@ var triggerCreateCmd = &cobra.Command{
         }
 
         trigger := &whisk.Trigger{
-            Name:        triggerName,
+            Name:        qName.entityName,
             Parameters:  parameters,
             Annotations: annotations,
         }
@@ -289,18 +304,33 @@ var triggerDeleteCmd = &cobra.Command{
             return werr
         }
 
-        triggerName := args[0]
+        qName, err := parseQualifiedName(args[0])
 
-        _, err = client.Triggers.Delete(triggerName)
+        if err != nil {
+
+            if IsDebug() {
+                fmt.Println("actionInvokeCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+
+            return whiskErr
+        }
+
+        client.Namespace = qName.namespace
+
+        _, err = client.Triggers.Delete(qName.entityName)
         if err != nil {
             if IsDebug() {
-                fmt.Printf("triggerDeleteCmd: client.Triggers.Delete(%s) failed: %s\n", triggerName, err)
+                fmt.Printf("triggerDeleteCmd: client.Triggers.Delete(%s) failed: %s\n", qName.entityName, err)
             }
-            errStr := fmt.Sprintf("Unable to delete trigger '%s': %s", triggerName, err)
+            errStr := fmt.Sprintf("Unable to delete trigger '%s': %s", qName.entityName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
-        fmt.Println("ok: deleted trigger ", triggerName)
+        fmt.Println("ok: deleted trigger ", qName.entityName)
         return nil
     },
 }

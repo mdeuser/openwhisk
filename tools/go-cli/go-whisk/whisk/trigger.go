@@ -28,14 +28,14 @@ type TriggerService struct {
 
 type Trigger struct {
     Namespace string `json:"namespace,omitempty"`
-    Name      string `json:"name,omitempty"`
+    Name      string `json:"-"`
     Version   string `json:"version,omitempty"`
     Publish   bool   `json:"publish,omitempty"`
 
-    ID          string `json:"id"`
-    Annotations `json:"annotations"`
-    Parameters  `json:"parameters"`
-    Limits      `json:"limits"`
+    ID          string `json:"id,omitempty"`
+    Annotations `json:"annotations,omitempty"`
+    Parameters  `json:"parameters,omitempty"`
+    //Limits      `json:"limits,omitempty"`
 }
 
 type TriggerListOptions struct {
@@ -82,9 +82,9 @@ func (s *TriggerService) List(options *TriggerListOptions) ([]Trigger, *http.Res
 }
 
 func (s *TriggerService) Insert(trigger *Trigger, overwrite bool) (*Trigger, *http.Response, error) {
-    route := fmt.Sprintf("triggers/%s?overwrite=%t", trigger.Name, overwrite)
+    route := fmt.Sprintf("triggers/%s", trigger.Name)
 
-    req, err := s.client.NewRequest("POST", route, trigger)
+    req, err := s.client.NewRequest("PUT", route, trigger)
     if err != nil {
         if IsDebug() {
             fmt.Printf("TriggerService.Insert: http.NewRequest(POST, %s); error '%s'\n", route, err)
