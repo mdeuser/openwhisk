@@ -41,7 +41,7 @@ var triggerFireCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
 
         var err error
-        var triggerName, payloadArg string
+        var payloadArg string
         if len(args) < 1 || len(args) > 2 {
             if IsDebug() {
                 fmt.Printf("triggerFireCmd: Invalid number of arguments %d (expected 1 or 2); args: %#v\n", len(args), args)
@@ -51,7 +51,22 @@ var triggerFireCmd = &cobra.Command{
             return werr
         }
 
-        triggerName = args[0]
+        qName, err := parseQualifiedName(args[0])
+
+        if err != nil {
+
+            if IsDebug() {
+                fmt.Println("actionInvokeCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+
+            return whiskErr
+        }
+
+        client.Namespace = qName.namespace
 
         payload := map[string]interface{}{}
 
@@ -85,12 +100,12 @@ var triggerFireCmd = &cobra.Command{
             }
         }
 
-        _, _, err = client.Triggers.Fire(triggerName, payload)
+        _, _, err = client.Triggers.Fire(qName.entityName, payload)
         if err != nil {
             if IsDebug() {
-                fmt.Printf("triggerFireCmd: client.Triggers.Fire(%s, %#v) failed: %s\n", triggerName, payload, err)
+                fmt.Printf("triggerFireCmd: client.Triggers.Fire(%s, %#v) failed: %s\n", qName.entityName, payload, err)
             }
-            errStr := fmt.Sprintf("Unable to fire trigger '%s': %s", triggerName, err)
+            errStr := fmt.Sprintf("Unable to fire trigger '%s': %s", qName.entityName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
@@ -202,7 +217,22 @@ var triggerUpdateCmd = &cobra.Command{
             return werr
         }
 
-        triggerName := args[0]
+        qName, err := parseQualifiedName(args[0])
+
+        if err != nil {
+
+            if IsDebug() {
+                fmt.Println("actionInvokeCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+
+            return whiskErr
+        }
+
+        client.Namespace = qName.namespace
 
         // Convert the trigger's list of default parameters from a string into []KeyValue
         // The 1 or more --param arguments have all been combined into a single []string
@@ -234,7 +264,7 @@ var triggerUpdateCmd = &cobra.Command{
         }
 
         trigger := &whisk.Trigger{
-            Name:        triggerName,
+            Name:        qName.entityName,
             Parameters:  parameters,
             Annotations: annotations,
         }
@@ -271,18 +301,33 @@ var triggerGetCmd = &cobra.Command{
             return werr
         }
 
-        triggerName := args[0]
+        qName, err := parseQualifiedName(args[0])
 
-        retTrigger, _, err := client.Triggers.Get(triggerName)
+        if err != nil {
+
+            if IsDebug() {
+                fmt.Println("actionInvokeCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+
+            return whiskErr
+        }
+
+        client.Namespace = qName.namespace
+
+        retTrigger, _, err := client.Triggers.Get(qName.entityName)
         if err != nil {
             if IsDebug() {
-                fmt.Printf("triggerGetCmd: client.Triggers.Get(%s) failed: %s\n", triggerName, err)
+                fmt.Printf("triggerGetCmd: client.Triggers.Get(%s) failed: %s\n", qName.entityName, err)
             }
-            errStr := fmt.Sprintf("Unable to get trigger '%s': %s", triggerName, err)
+            errStr := fmt.Sprintf("Unable to get trigger '%s': %s", qName.entityName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
-        fmt.Println("ok: got trigger ", triggerName)
+        fmt.Println("ok: got trigger ", qName.entityName)
         printJSON(retTrigger)
         return nil
     },
