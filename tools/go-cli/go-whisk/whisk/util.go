@@ -62,7 +62,7 @@ func addRouteOptions(route string, options interface{}) (string, error) {
 
     u.RawQuery = qs.Encode()
     if IsDebug() {
-        fmt.Printf("addRouteOptions: returning route options '%s'\n", u.String())
+        fmt.Printf("addRouteOptions: returning route options '%s' from input struct %+v\n", u.String(), options)
     }
     return u.String(), nil
 }
