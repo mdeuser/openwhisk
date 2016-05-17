@@ -35,10 +35,9 @@ type Activation struct {
     Subject      string `json:"subject,omitempty"`
     ActivationID string `json:"activationId,omitempty"`
     Cause        string `json:"cause,omitempty"`
-    Start        int64  `json:"start,omitempty"`        // When action started (in seconds since January 1, 1970 UTC)
+    Start        int64  `json:"start,omitempty"`        // When action started (in milliseconds since January 1, 1970 UTC)
     End          int64  `json:"end,omitempty"`
     Response     `json:"response,omitempty"`
-    //MWD - REPLACED Logs   []Log `json:"logs,omitempty"`
     Logs         []string `json:"logs,omitempty"`
 }
 
@@ -53,8 +52,8 @@ type Result map[string]interface{}
 
 type ActivationListOptions struct {
     Name  string `url:"name,omitempty"`
-    Limit int    `url:"limit,omitempty"`
-    Skip  int    `url:"skip,omitempty"`
+    Limit int    `url:"limit"`
+    Skip  int    `url:"skip"`
     Since int64  `url:"since,omitempty"`
     Upto  int64  `url:"upto,omitempty"`
     Docs  bool   `url:"docs,omitempty"`
@@ -77,7 +76,7 @@ func (s *ActivationService) List(options *ActivationListOptions) ([]Activation, 
             fmt.Printf("ActivationService.List: addRouteOptions('%s',%#v) error '%s'\n", route, options, err)
         }
         errStr := fmt.Sprintf("Unable to append options %#v to URL route '%s': error %s", options, route, err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }
 
@@ -87,7 +86,7 @@ func (s *ActivationService) List(options *ActivationListOptions) ([]Activation, 
             fmt.Printf("ActivationService.List: http.NewRequest(GET, %s); error '%s'\n", route, err)
         }
         errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", route, err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }
 
@@ -102,7 +101,7 @@ func (s *ActivationService) List(options *ActivationListOptions) ([]Activation, 
             fmt.Printf("ActivationService.List: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
         errStr := fmt.Sprintf("Request failure: %s", err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
 
@@ -122,7 +121,7 @@ func (s *ActivationService) Get(activationID string) (*Activation, *http.Respons
             fmt.Printf("ActivationService.Get: http.NewRequest(GET, %s); error '%s'\n", route, err)
         }
         errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", route, err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }
 
@@ -137,7 +136,7 @@ func (s *ActivationService) Get(activationID string) (*Activation, *http.Respons
             fmt.Printf("ActivationService.Get: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
         errStr := fmt.Sprintf("Request failure: %s", err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
 
@@ -156,7 +155,7 @@ func (s *ActivationService) Logs(activationID string) (*Activation, *http.Respon
             fmt.Printf("ActivationService.Logs: http.NewRequest(GET, %s); error '%s'\n", route, err)
         }
         errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", route, err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }
 
@@ -171,7 +170,7 @@ func (s *ActivationService) Logs(activationID string) (*Activation, *http.Respon
             fmt.Printf("ActivationService.Logs: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
         errStr := fmt.Sprintf("Request failure: %s", err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
 
@@ -189,7 +188,7 @@ func (s *ActivationService) Result(activationID string) (*Response, *http.Respon
             fmt.Printf("ActivationService.Result: http.NewRequest(GET, %s); error '%s'\n", route, err)
         }
         errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", route, err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }
 
@@ -204,7 +203,7 @@ func (s *ActivationService) Result(activationID string) (*Response, *http.Respon
             fmt.Printf("ActivationService.Result: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         }
         errStr := fmt.Sprintf("Request failure: %s", err)
-        werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
 
