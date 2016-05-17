@@ -220,6 +220,7 @@ var activationPollCmd = &cobra.Command{
     SilenceErrors:  true,
     RunE: func(cmd *cobra.Command, args []string) error {
         var name string
+        var pollSince int64 // Represents an instant in time (in milliseconds since Jan 1 1970)
         if len(args) == 1 {
             name = args[0]
         }
@@ -234,8 +235,8 @@ var activationPollCmd = &cobra.Command{
         }()
         fmt.Println("Enter Ctrl-c to exit.")
 
-        pollSince := time.Now()
-        reported := []string{}
+        // Map used to track activation records already displayed to the console
+        reported := make(map[string]bool)
 
         if flags.activation.sinceSeconds+
         flags.activation.sinceMinutes+
@@ -251,17 +252,18 @@ var activationPollCmd = &cobra.Command{
                 if IsDebug() {
                     fmt.Printf("activationPollCmd: Warning! client.Activations.List() error: %s\n", err)
                     fmt.Println("activationPollCmd: Ignoring client.Activations.List failure; polling for activations since 'now'")
+                    pollSince = time.Now().Unix() * 1000    // Convert to milliseconds
                 }
             } else {
                 if len(activationList) > 0 {
-                    lastActivation := activationList[0]
-                    pollSince = time.Unix(lastActivation.Start+1, 0).Add(Delay)
+                    lastActivation := activationList[0]     // Activation.Start is in milliseconds since Jan 1 1970
+                    pollSince = lastActivation.Start + 1    // Use it's start time as the basis of the polling
                 }
             }
         } else {
-            t0 := time.Now()
+            pollSince = time.Now().Unix() * 1000    // Convert to milliseconds
 
-            // ParseDuration takes a string like "2h45m15s"; create one from the arguments
+            // ParseDuration takes a string like "2h45m15s"; create this duration string from the command arguments
             durationStr := fmt.Sprintf("%dh%dm%ds",
                 flags.activation.sinceHours + flags.activation.sinceDays*24,
                 flags.activation.sinceMinutes,
@@ -269,17 +271,16 @@ var activationPollCmd = &cobra.Command{
             )
             duration, err := time.ParseDuration(durationStr)
             if err == nil {
-                pollSince = t0.Add(-duration)
+                pollSince = pollSince - duration.Nanoseconds()/1000/1000    // Convert to milliseconds
             } else {
                 if IsDebug() {
                     fmt.Printf("activationPollCmd: time.ParseDuration(%s) failure: %s\n", durationStr, err)
                 }
             }
         }
-        if IsVerbose() {
-            fmt.Printf("Polling for activations since %s\n", pollSince)
-        }
-        fmt.Println("Polling for logs")
+
+        fmt.Printf("Polling for activation logs\n")
+        if IsVerbose() { fmt.Printf("Polling starts from %s\n", time.Unix(pollSince/1000, 0)) }
         localStartTime := time.Now()
 
         // Polling loop
@@ -293,11 +294,15 @@ var activationPollCmd = &cobra.Command{
                     return nil
                 }
             }
-
+            if IsVerbose() {
+                fmt.Printf("Polling for activations since %s\n", time.Unix(pollSince/1000, 0))
+            }
             options := &whisk.ActivationListOptions{
                 Name:  name,
-                Since: pollSince.Unix()*1000,   // Whisk server expects Since time formt in ms (since Unix epoch)
+                Since: pollSince,
                 Docs:  true,
+                Limit: 0,
+                Skip: 0,
             }
 
             activations, _, err := client.Activations.List(options)
@@ -310,20 +315,13 @@ var activationPollCmd = &cobra.Command{
             }
 
             for _, activation := range activations {
-                for _, id := range reported {
-                    if id == activation.ActivationID {
-                        continue
-                    }
-                }
-                fmt.Printf("\nActivation: %s (%s)\n", activation.Name, activation.ActivationID)
-                //MWD printJSON(activation.Logs)
-                printJsonNoColor(activation.Logs)
-
-                reported = append(reported, activation.ActivationID)
-
-                //
-                if activationTime := time.Unix(activation.Start, 0); activationTime.After(pollSince) {
-                    pollSince = activationTime
+                if reported[activation.ActivationID] == true {
+                    continue
+                } else {
+                    fmt.Printf("\nActivation: %s (%s)\n", activation.Name, activation.ActivationID)
+                    //MWD printJSON(activation.Logs)
+                    printJsonNoColor(activation.Logs)
+                    reported[activation.ActivationID] = true
                 }
             }
             time.Sleep(time.Second * 2)
