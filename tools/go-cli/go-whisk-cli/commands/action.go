@@ -493,7 +493,7 @@ name [artifact]
 func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error) {
     var err error
     var shared, sharedSet bool
-    var actionName, artifact string
+    var artifact string
 
     if (IsDebug()) {
         fmt.Printf("Parsing action arguments: %s\n", args)
@@ -507,10 +507,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
         return nil, sharedSet, whiskErr
     }
 
-    actionName = args[0]
-
     qName := qualifiedName{}
-
     qName, err = parseQualifiedName(args[0])
 
     if err != nil {
@@ -582,7 +579,25 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
         action.Exec = new(whisk.Exec)
         action.Exec.Image = artifact
     } else if flags.action.copy {
-        existingAction, _, err := client.Actions.Get(actionName)
+
+        qNameCopy := qualifiedName{}
+        qNameCopy, err = parseQualifiedName(args[1])
+
+        if err != nil {
+            if IsDebug() {
+                fmt.Println("parseAction: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+
+            return nil, sharedSet, whiskErr
+        }
+
+        client.Namespace = qNameCopy.namespace
+
+        existingAction, _, err := client.Actions.Get(qNameCopy.entityName)
         if err != nil {
 
             if IsDebug() {
@@ -596,6 +611,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
             return nil, sharedSet, whiskErr
         }
 
+        client.Namespace = qName.namespace
         action.Exec = existingAction.Exec
     } else if flags.action.sequence {
         currentNamespace := client.Config.Namespace
