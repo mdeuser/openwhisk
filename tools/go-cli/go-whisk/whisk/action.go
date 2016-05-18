@@ -21,6 +21,7 @@ import (
     "net/http"
     "net/url"
     "errors"
+    "strings"
 )
 
 type ActionService struct {
@@ -31,7 +32,7 @@ type Action struct {
     Namespace string `json:"namespace,omitempty"`
     Name      string `json:"name,omitempty"`
     Version   string `json:"version,omitempty"`
-    Publish   bool   `json:"publish,omitempty"`
+    Publish   bool   `json:"publish"`
 
     Exec *Exec       `json:"exec,omitempty"`
     Annotations      `json:"annotations,omitempty"`
@@ -90,7 +91,8 @@ func (s *ActionService) List(packageName string, options *ActionListOptions) ([]
     var actions []Action
 
     if (len(packageName) > 0) {
-        route = fmt.Sprintf("actions/%s/", url.QueryEscape(packageName))
+        packageName = strings.Replace(url.QueryEscape(packageName), "+", " ", -1)
+        route = fmt.Sprintf("actions/%s/", packageName)
     } else {
         route = fmt.Sprintf("actions")
     }
@@ -150,7 +152,8 @@ func (s *ActionService) List(packageName string, options *ActionListOptions) ([]
 func (s *ActionService) Insert(action *Action, sharedSet bool, overwrite bool) (*Action, *http.Response, error) {
     var sentAction interface{}
 
-    route := fmt.Sprintf("actions/%s?overwrite=%t", url.QueryEscape(action.Name), overwrite)
+    action.Name = strings.Replace(url.QueryEscape(action.Name), "+", " ", -1)
+    route := fmt.Sprintf("actions/%s?overwrite=%t", action.Name, overwrite)
 
     if sharedSet {
         sentAction = SentActionPublish{
@@ -205,43 +208,46 @@ func (s *ActionService) Insert(action *Action, sharedSet bool, overwrite bool) (
 }
 
 func (s *ActionService) Get(actionName string) (*Action, *http.Response, error) {
-        route := fmt.Sprintf("actions/%s", url.QueryEscape(actionName))
 
-        req, err := s.client.NewRequest("GET", route, nil)
-        if err != nil {
+    actionName = strings.Replace(url.QueryEscape(actionName), "+", " ", -1)
+    route := fmt.Sprintf("actions/%s", actionName)
 
-            if IsDebug() {
-                fmt.Printf("ActionService.Get: s.client.NewRequest(\"GET\", %s, nil) error: %s\n", route, err)
-            }
+    req, err := s.client.NewRequest("GET", route, nil)
+    if err != nil {
 
-            errMsg := fmt.Sprintf("New request failure: %s\n", err)
-            whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
-                NO_DISPLAY_USAGE)
-
-            return nil, nil, whiskErr
+        if IsDebug() {
+            fmt.Printf("ActionService.Get: s.client.NewRequest(\"GET\", %s, nil) error: %s\n", route, err)
         }
 
-        a := new(Action)
-        resp, err := s.client.Do(req, &a)
-        if err != nil {
+        errMsg := fmt.Sprintf("New request failure: %s\n", err)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
 
-            if IsDebug() {
-                fmt.Printf("ActionService.Get: s.client.Do(%#v) error: %s\n", req, err)
-            }
+        return nil, nil, whiskErr
+    }
 
-            errMsg := fmt.Sprintf("Request failure: %s\n", err)
-            whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
-                NO_DISPLAY_USAGE)
+    a := new(Action)
+    resp, err := s.client.Do(req, &a)
+    if err != nil {
 
-            return nil, resp, whiskErr
+        if IsDebug() {
+            fmt.Printf("ActionService.Get: s.client.Do(%#v) error: %s\n", req, err)
         }
 
-        return a, resp, nil
+        errMsg := fmt.Sprintf("Request failure: %s\n", err)
+        whiskErr := MakeWskErrorFromWskError(errors.New(errMsg), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG,
+            NO_DISPLAY_USAGE)
 
+        return nil, resp, whiskErr
+    }
+
+    return a, resp, nil
 }
 
 func (s *ActionService) Delete(actionName string) (*http.Response, error) {
-    route := fmt.Sprintf("actions/%s", url.QueryEscape(actionName))
+
+    actionName = strings.Replace(url.QueryEscape(actionName), "+", " ", -1)
+    route := fmt.Sprintf("actions/%s", actionName)
 
     if s.client.IsDebug() {
         fmt.Printf("HTTP route: %s\n", route)
@@ -281,7 +287,9 @@ func (s *ActionService) Delete(actionName string) (*http.Response, error) {
 }
 
 func (s *ActionService) Invoke(actionName string, payload map[string]interface{}, blocking bool) (*Activation, *http.Response, error) {
-    route := fmt.Sprintf("actions/%s?blocking=%t", url.QueryEscape(actionName), blocking)
+
+    actionName = strings.Replace(url.QueryEscape(actionName), "+", " ", -1)
+    route := fmt.Sprintf("actions/%s?blocking=%t", actionName, blocking)
 
     if s.client.IsDebug() {
         fmt.Printf("HTTP route: %s\n", route)
