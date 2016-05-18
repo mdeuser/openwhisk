@@ -164,7 +164,7 @@ func (s *TriggerService) Delete(triggerName string) (*http.Response, error) {
 }
 
 func (s *TriggerService) Fire(triggerName string, payload map[string]interface{}) (*Trigger, *http.Response, error) {
-    route := fmt.Sprintf("triggers/", triggerName)
+    route := fmt.Sprintf("triggers/%s", triggerName)
 
     req, err := s.client.NewRequest("POST", route, payload)
     if err != nil {
