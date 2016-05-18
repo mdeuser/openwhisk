@@ -32,7 +32,7 @@ type Trigger struct {
     Version   string `json:"version,omitempty"`
     Publish   bool   `json:"publish,omitempty"`
 
-    ID          string `json:"id,omitempty"`
+    ActivationId string `json:"activationId,omitempty"`
     Annotations `json:"annotations,omitempty"`
     Parameters  `json:"parameters,omitempty"`
     //Limits      `json:"limits,omitempty"`
