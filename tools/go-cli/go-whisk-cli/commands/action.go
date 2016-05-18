@@ -205,9 +205,8 @@ var actionInvokeCmd = &cobra.Command{
         var payloadArg string
 
         if len(args) < 1 || len(args) > 2 {
-
             if IsDebug() {
-                fmt.Printf("actionInvokeCmd: Invalid argument list: %s\n", cmd, args)
+                fmt.Printf("actionInvokeCmd: Invalid argument list: %s\n", args)
             }
 
             errMsg := "Invalid argument list.\n"
@@ -321,8 +320,8 @@ var actionGetCmd = &cobra.Command{
                 fmt.Printf("actionGetCmd: invalid number of arguments: %s\n", args)
             }
 
-            errMsg := "Invalid argument list.\n"
-            whiskErr := whisk.MakeWskError(errors.New(errMsg), whisk.EXITCODE_ERR_GENERAL,
+            errMsg := fmt.Sprintf("Unable to invoke action: Invalid number of arguments (%d)\n", len(args))
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
 
             return whiskErr
