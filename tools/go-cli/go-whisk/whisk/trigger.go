@@ -82,7 +82,7 @@ func (s *TriggerService) List(options *TriggerListOptions) ([]Trigger, *http.Res
 }
 
 func (s *TriggerService) Insert(trigger *Trigger, overwrite bool) (*Trigger, *http.Response, error) {
-    route := fmt.Sprintf("triggers/%s", trigger.Name)
+    route := fmt.Sprintf("triggers/%s?overwrite=%t", trigger.Name, overwrite)
 
     req, err := s.client.NewRequest("PUT", route, trigger)
     if err != nil {
