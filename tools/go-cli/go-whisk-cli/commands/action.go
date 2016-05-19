@@ -20,7 +20,6 @@ import (
     "archive/tar"
     "compress/gzip"
     "encoding/base64"
-    "encoding/json"
     "errors"
     "fmt"
     "io"
@@ -28,7 +27,6 @@ import (
     "os"
     "path/filepath"
     "regexp"
-    "strings"
 
     "../../go-whisk/whisk"
 
@@ -202,9 +200,9 @@ var actionInvokeCmd = &cobra.Command{
     SilenceErrors:  true,
     RunE: func(cmd *cobra.Command, args []string) error {
         var err error
-        var payloadArg string
+        //var payloadArg string
 
-        if len(args) < 1 || len(args) > 2 {
+        if len(args) < 1 || len(args) > 1 {
             if IsDebug() {
                 fmt.Printf("actionInvokeCmd: Invalid argument list: %s\n", args)
             }
@@ -235,6 +233,7 @@ var actionInvokeCmd = &cobra.Command{
 
         payload := map[string]interface{}{}
 
+        fmt.Printf("PARAMAS %d", len(flags.common.param))
         if len(flags.common.param) > 0 {
             parameters, err := parseParameters(flags.common.param)
 
@@ -256,7 +255,7 @@ var actionInvokeCmd = &cobra.Command{
             }
         }
 
-        if len(args) == 2 {
+        /*if len(args) == 2 {
             payloadArg = args[1]
             reader := strings.NewReader(payloadArg)
             err = json.NewDecoder(reader).Decode(&payload)
@@ -268,7 +267,7 @@ var actionInvokeCmd = &cobra.Command{
                     fmt.Printf("actionInvokeCmd: Defaulting payload to %#v\n", payload)
                 }
             }
-        }
+        }*/
 
         activation, _, err := client.Actions.Invoke(qName.entityName, payload, flags.common.blocking)
         if err != nil {
@@ -660,7 +659,6 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
 
         action.Exec.Code = string(file)
 
-        fmt.Println("FILE NAME!!!!:::::: " + stat.Name())
         if matched, _ := regexp.MatchString(".swift$", stat.Name()); matched {
             action.Exec.Kind = "swift"
         } else if matched, _ := regexp.MatchString(".js", stat.Name()); matched {
