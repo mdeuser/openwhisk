@@ -80,7 +80,7 @@ var activationListCmd = &cobra.Command{
         }
 
         options := &whisk.ActivationListOptions{
-            Name:  flags.activation.action,
+            Name:  qName.entityName,
             Limit: flags.common.limit,
             Skip:  flags.common.skip,
             Upto:  flags.activation.upto,
@@ -332,7 +332,6 @@ var activationPollCmd = &cobra.Command{
 
 func init() {
 
-    activationListCmd.Flags().StringVarP(&flags.activation.action, "action", "a", "", "retrieve activations for action")
     activationListCmd.Flags().IntVarP(&flags.common.skip, "skip", "s", 0, "skip this many entitites from the head of the collection")
     activationListCmd.Flags().IntVarP(&flags.common.limit, "limit", "l", 30, "only return this many entities from the collection")
     activationListCmd.Flags().BoolVarP(&flags.common.full, "full", "f", false, "include full entity description")

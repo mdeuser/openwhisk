@@ -263,16 +263,10 @@ var actionInvokeCmd = &cobra.Command{
 
             if err != nil {
                 payload["payload"] = payloadArg
-
                 if IsDebug() {
-                    fmt.Printf("actionInvokeCmd: json.NewDecoder(%s).Decode(%s)\nerror: %s\n", reader, &payload, err)
+                    fmt.Printf("actionInvokeCmd: json.NewDecoder().Decode() failure decoding '%s': : %s\n", payloadArg, err)
+                    fmt.Printf("actionInvokeCmd: Defaulting payload to %#v\n", payload)
                 }
-
-                errMsg := fmt.Sprintf("Unable to invoke action: %s\n", err)
-                whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
-                    whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
-                return whiskErr
             }
         }
 
@@ -378,7 +372,7 @@ var actionDeleteCmd = &cobra.Command{
         if err != nil {
 
             if IsDebug() {
-                fmt.Println("actionDleteCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+                fmt.Println("actionDeleteCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
             }
 
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
@@ -398,7 +392,7 @@ var actionDeleteCmd = &cobra.Command{
                 fmt.Printf("actionDeleteCmd: client.Actions.Delete(%s)\nerror: %s\n", qName.entityName, err)
             }
 
-            errMsg := fmt.Sprintf("Unable to invoke action: %s\n", err)
+            errMsg := fmt.Sprintf("Unable to delete action: %s\n", err)
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
 
@@ -470,7 +464,7 @@ var actionListCmd = &cobra.Command{
                 fmt.Println("actionListCmd: client.Actions.List(%s, %#v)\nerror: %s\n", qName.entityName, options, err)
             }
 
-            errMsg := fmt.Sprintf("Unable to list action: %s\n", err)
+            errMsg := fmt.Sprintf("Unable to list action(s): %s\n", err)
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_NETWORK,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
 

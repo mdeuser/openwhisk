@@ -97,11 +97,11 @@ var triggerFireCmd = &cobra.Command{
             err = json.NewDecoder(reader).Decode(&payload)
             if err != nil {
                 payload["payload"] = payloadArg
-            } else {
-                fmt.Printf("triggerFireCmd: json Decode of '%s' failed: %s\n", payloadArg, err)
-                errStr := fmt.Sprintf("Invalid payload argument '%s': %s", payloadArg, err)
-                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
-                return werr
+
+                if IsDebug() {
+                    fmt.Printf("triggerFireCmd: json.NewDecoder().Decode() failure decoding '%s': : %s\n", payloadArg, err)
+                    fmt.Printf("triggerFireCmd: Defaulting payload to %#v\n", payload)
+                }
             }
         }
 
