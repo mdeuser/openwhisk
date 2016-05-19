@@ -660,10 +660,19 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
 
         action.Exec.Code = string(file)
 
+        fmt.Println("FILE NAME!!!!:::::: " + stat.Name())
         if matched, _ := regexp.MatchString(".swift$", stat.Name()); matched {
             action.Exec.Kind = "swift"
-        } else {
+        } else if matched, _ := regexp.MatchString(".js", stat.Name()); matched {
             action.Exec.Kind = "nodejs"
+        } else if matched, _ := regexp.MatchString(".py", stat.Name()); matched {
+            action.Exec.Kind = "python"
+        } else {
+            errMsg := "An unsupported file type was provided."
+            whiskErr := whisk.MakeWskError(errors.New(errMsg), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG,
+                whisk.DISPLAY_USAGE)
+
+            return nil, sharedSet, whiskErr
         }
     }
 
