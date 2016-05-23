@@ -507,6 +507,10 @@ var triggerListCmd = &cobra.Command{
     },
 }
 
+func createFeed () {
+
+}
+
 func init() {
 
     triggerCreateCmd.Flags().StringSliceVarP(&flags.common.annotation, "annotation", "a", []string{}, "annotations")

@@ -36,7 +36,7 @@ type Activation struct {
     ActivationID string `json:"activationId,omitempty"`
     Cause        string `json:"cause,omitempty"`
     Start        int64  `json:"start,omitempty"`        // When action started (in milliseconds since January 1, 1970 UTC)
-    End          int64  `json:"end,omitempty"`
+    End          int64  `json:"end"`                    // Since a 0 is a valid value from server, don't omit
     Response     `json:"response,omitempty"`
     Logs         []string `json:"logs,omitempty"`
 }

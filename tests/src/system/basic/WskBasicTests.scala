@@ -326,8 +326,8 @@ class WskBasicTests
             val run = wsk.trigger.fire(name, dynamicParams)
             withActivation(wsk.activation, run) {
                 activation =>
-                    activation.fields("response").asJsObject.fields("result") should be(dynamicParams)
-                    activation.fields("end") should be(Instant.EPOCH.toEpochMilli)
+                    activation.fields("response").asJsObject.fields("result") should be(dynamicParams.toJson)
+                    activation.fields("end") should be(Instant.EPOCH.toEpochMilli.toJson)
             }
 
             wsk.trigger.list().stdout should include(name)
