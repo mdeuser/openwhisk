@@ -192,7 +192,7 @@ func printList(collection interface{}) {
     switch collection := collection.(type) {
     case []whisk.Action:
         printActionList(collection)
-    case []whisk.Trigger:
+    case []whisk.TriggerFromServer:
         printTriggerList(collection)
     case []whisk.Package:
         printPackageList(collection)
@@ -233,7 +233,7 @@ func printActionList(actions []whisk.Action) {
     }
 }
 
-func printTriggerList(triggers []whisk.Trigger) {
+func printTriggerList(triggers []whisk.TriggerFromServer) {
     boldPrintf("triggers\n")
     for _, trigger := range triggers {
         publishState := "private"
