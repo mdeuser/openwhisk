@@ -17,31 +17,33 @@
 package system.basic
 
 import java.io.File
-import scala.collection.mutable.ListBuffer
+import java.time.Instant
+
 import org.apache.commons.io.FileUtils
 import org.junit.runner.RunWith
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.BeforeAndAfterEachTestData
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
-import org.scalatest.ParallelTestExecution
-import org.scalatest.TestData
 import org.scalatest.junit.JUnitRunner
-import common.DeleteFromCollection
-import common.RunWskAdminCmd
-import common.RunWskCmd
+
+import common.TestHelpers
 import common.TestUtils
-import common.TestUtils._
+import common.TestUtils.ANY_ERROR_EXIT
+import common.TestUtils.BAD_REQUEST
+import common.TestUtils.CONFLICT
+import common.TestUtils.FORBIDDEN
+import common.TestUtils.MISUSE_EXIT
+import common.TestUtils.NOTALLOWED
+import common.TestUtils.NOT_FOUND
+import common.TestUtils.SUCCESS_EXIT
+import common.TestUtils.TIMEOUT
+import common.TestUtils.UNAUTHORIZED
+import common.TestUtils.ERROR_EXIT
 import common.Wsk
-import common.WskAction
 import common.WskProps
-import spray.json._
-import spray.json.DefaultJsonProtocol.StringJsonFormat
-import spray.json.PimpedAny
-import common.TestHelpers
 import common.WskTestHelpers
-import common.TestHelpers
-import common.WskProps
+import spray.json.DefaultJsonProtocol.JsValueFormat
+import spray.json.DefaultJsonProtocol.LongJsonFormat
+import spray.json.DefaultJsonProtocol.StringJsonFormat
+import spray.json.DefaultJsonProtocol.mapFormat
+import spray.json.pimpAny
 import whisk.core.entity.WhiskPackage
 
 @RunWith(classOf[JUnitRunner])
@@ -284,13 +286,13 @@ class WskBasicTests
                 (action, _) => action.create(name, Some(TestUtils.getTestActionFilename("malformed.js")))
             }
 
-            val activation = wsk.action.invoke(name, Map("payload" -> "whatever"))
-            val activationId = wsk.action.extractActivationId(activation)
-            activationId shouldBe a[Some[_]]
-
-            val expected = "ReferenceError" // representing nodejs giving an error when given malformed.js
-            val (found, logs) = wsk.activation.contains(activationId.get, expected)
-            assert(found, s"Did not find '$expected' in activation($activationId) ${logs getOrElse "empty"}")
+            val run = wsk.action.invoke(name, Map("payload" -> "whatever"))
+            withActivation(wsk.activation, run) {
+                activation =>
+                    activation.fields("response").asJsObject.fields("status") should be("action developer error")
+                    // representing nodejs giving an error when given malformed.js
+                    activation.fields("response").asJsObject.toString should include("ReferenceError")
+            }
     }
 
     it should "invoke a blocking action and get only the result" in withAssetCleaner(wskprops) {
@@ -305,7 +307,7 @@ class WskBasicTests
 
     behavior of "Wsk Trigger CLI"
 
-    it should "create trigger, get trigger, update trigger and list trigger" in withAssetCleaner(wskprops) {
+    it should "create, update, get, fire and list trigger" in withAssetCleaner(wskprops) {
         (wp, assetHelper) =>
             val name = "listTriggers"
             val params = Map("a" -> "A")
@@ -319,6 +321,15 @@ class WskBasicTests
             stdout should include regex (""""value": "A"""")
             stdout should include regex (""""publish": true""")
             stdout should include regex (""""version": "0.0.2"""")
+
+            val dynamicParams = Map("t" -> "T")
+            val run = wsk.trigger.fire(name, dynamicParams)
+            withActivation(wsk.activation, run) {
+                activation =>
+                    activation.fields("response").asJsObject.fields("result") should be(dynamicParams)
+                    activation.fields("end") should be(Instant.EPOCH.toEpochMilli)
+            }
+
             wsk.trigger.list().stdout should include(name)
     }
 

@@ -16,29 +16,21 @@
 
 package system.basic
 
-import java.io.File
-import scala.collection.mutable.ListBuffer
-import org.apache.commons.io.FileUtils
+import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
+
 import org.junit.runner.RunWith
-import org.scalatest.FlatSpec
+import org.scalatest.Finders
 import org.scalatest.Matchers
-import org.scalatest.ParallelTestExecution
-import org.scalatest.TestData
 import org.scalatest.junit.JUnitRunner
-import common.DeleteFromCollection
-import common.RunWskAdminCmd
-import common.RunWskCmd
-import common.TestUtils
-import common.TestUtils._
-import common.Wsk
-import common.WskAction
-import common.WskProps
-import spray.json._
-import spray.json.DefaultJsonProtocol.StringJsonFormat
-import spray.json.PimpedAny
+
 import common.TestHelpers
-import common.WskTestHelpers
+import common.TestUtils
+import common.Wsk
 import common.WskProps
+import common.WskTestHelpers
+import spray.json.DefaultJsonProtocol.StringJsonFormat
+import spray.json.pimpAny
 
 @RunWith(classOf[JUnitRunner])
 class CLISwiftTests
@@ -48,7 +40,8 @@ class CLISwiftTests
 
     implicit val wskprops = WskProps()
     val wsk = new Wsk()
-    val expectedDuration = 30 * 1000
+    val expectedDuration = 30 seconds
+    val activationPollDuration = 60 seconds
 
     behavior of "Swift Actions"
 
@@ -63,15 +56,17 @@ class CLISwiftTests
             }
 
             val start = System.currentTimeMillis()
-            wsk.action.invoke(name, blocking = true, result = true)
-                .stdout should include("Hello stranger!")
+            withActivation(wsk.activation, wsk.action.invoke(name), totalWait = activationPollDuration) {
+                _.fields("response").toString should include("Hello stranger!")
+            }
 
-            wsk.action.invoke(name, Map("name" -> "Sir"), blocking = true, result = true)
-                .stdout should include("Hello Sir!")
+            withActivation(wsk.activation, wsk.action.invoke(name, Map("name" -> "Sir")), totalWait = activationPollDuration) {
+                _.fields("response").toString should include("Hello Sir!")
+            }
 
             withClue("Test duration exceeds expectation (ms)") {
                 val duration = System.currentTimeMillis() - start
-                duration should be <= expectedDuration.toLong
+                duration should be <= expectedDuration.toMillis
             }
     }
 
@@ -82,11 +77,17 @@ class CLISwiftTests
         (wp, assetHelper) =>
             val name = "helloSwift3"
             assetHelper.withCleaner(wsk.action, name) {
-                (action, _) => action.create(name, Some(TestUtils.getCatalogFilename("samples/httpGet.swift")), kind = Some("swift:3"))
+                (action, _) =>
+                    action.create(
+                        name,
+                        Some(TestUtils.getCatalogFilename("samples/httpGet.swift")),
+                        kind = Some("swift:3"))
             }
 
-            val stdout = wsk.action.invoke(name, blocking = true, result = true).stdout
-            stdout should include(""""url": "https://httpbin.org/get"""")
-            stdout should not include("Error")
+            withActivation(wsk.activation, wsk.action.invoke(name), totalWait = activationPollDuration) {
+                activation =>
+                    activation.fields("response").toString should include(""""url":"https://httpbin.org/get"""")
+                    activation.fields("response").toString should not include ("Error")
+            }
     }
 }
