@@ -188,10 +188,28 @@ var triggerCreateCmd = &cobra.Command{
             return werr
         }
 
+        if IsDebug() {
+            fmt.Printf("triggerCreateCmd: trigger shared: %s\n", flags.common.shared)
+        }
+        shared := strings.ToLower(flags.common.shared)
+        if shared != "yes" && shared != "no" && shared != "" {  // "" means argument was not specified
+            if IsDebug() {
+                fmt.Printf("triggerCreateCmd: shared argument value '%s' is invalid\n", flags.common.shared)
+            }
+            errStr := fmt.Sprintf("Invalid --shared argument value '%s'; valid values are 'yes' or 'no'", flags.common.shared)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), nil, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
+        }
+        publish := false
+        if shared == "yes" {
+            publish = true
+        }
+
         trigger := &whisk.Trigger{
             Name:        qName.entityName,
             Parameters:  parameters,
             Annotations: annotations,
+            Publish:     publish,
         }
 
         retTrigger, _, err := client.Triggers.Insert(trigger, false)
@@ -205,7 +223,8 @@ var triggerCreateCmd = &cobra.Command{
         }
 
         fmt.Println("ok: created trigger")
-        printJSON(retTrigger)
+        //MWD printJSON(retTrigger) // color does appear correctly on vagrant VM
+        printJsonNoColor(retTrigger)
         return nil
     },
 }
@@ -278,10 +297,35 @@ var triggerUpdateCmd = &cobra.Command{
             return werr
         }
 
+        if IsDebug() {
+            fmt.Printf("triggerCreateCmd: trigger shared: %s\n", flags.common.shared)
+        }
+        shared := strings.ToLower(flags.common.shared)
+        if shared != "yes" && shared != "no" && shared != "" {  // "" means argument was not specified
+            if IsDebug() {
+                fmt.Printf("triggerCreateCmd: shared argument value '%s' is invalid\n", flags.common.shared)
+            }
+            errStr := fmt.Sprintf("Invalid --shared argument value '%s'; valid values are 'yes' or 'no'", flags.common.shared)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), nil, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
+        }
+        publishSet := false
+        publish := false
+        if shared == "yes" {
+            publishSet = true
+            publish = true
+        } else if shared == "no" {
+            publishSet = true
+            publish = false
+        }
+
         trigger := &whisk.Trigger{
             Name:        qName.entityName,
             Parameters:  parameters,
             Annotations: annotations,
+        }
+        if publishSet {
+            trigger.Publish = publish
         }
 
         retTrigger, _, err := client.Triggers.Insert(trigger, true)
@@ -295,7 +339,8 @@ var triggerUpdateCmd = &cobra.Command{
         }
 
         fmt.Println("ok: updated trigger")
-        printJSON(retTrigger)
+        //MWD printJSON(retTrigger) // color does appear correctly on vagrant VM
+        printJsonNoColor(retTrigger)
         return nil
     },
 }
@@ -347,8 +392,9 @@ var triggerGetCmd = &cobra.Command{
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
-        fmt.Println("ok: got trigger ", qName.entityName)
-        printJSON(retTrigger)
+        fmt.Printf("ok: got trigger %s\n", qName.entityName)
+        //MWD printJSON(retTrigger) // color does appear correctly on vagrant VM
+        printJsonNoColor(retTrigger)
         return nil
     },
 }
@@ -400,7 +446,7 @@ var triggerDeleteCmd = &cobra.Command{
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
-        fmt.Println("ok: deleted trigger ", qName.entityName)
+        fmt.Printf("ok: deleted trigger %s\n", qName.entityName)
         return nil
     },
 }
@@ -456,8 +502,7 @@ var triggerListCmd = &cobra.Command{
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
-        fmt.Println(triggers)
-        printJSON(triggers)
+        printList(triggers)
         return nil
     },
 }

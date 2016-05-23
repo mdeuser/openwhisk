@@ -31,11 +31,21 @@ type Trigger struct {
     Name      string `json:"-"`
     Version   string `json:"version,omitempty"`
     Publish   bool   `json:"publish,omitempty"`
-
     ActivationId string `json:"activationId,omitempty"`
     Annotations `json:"annotations,omitempty"`
     Parameters  `json:"parameters,omitempty"`
     //Limits      `json:"limits,omitempty"`
+}
+
+type TriggerFromServer struct {
+    Namespace string `json:"namespace"`
+    Name      string `json:"name"`
+    Version   string `json:"version"`
+    Publish   bool   `json:"publish"`
+    ActivationId string `json:"activationId,omitempty"`
+    Annotations `json:"annotations"`
+    Parameters  `json:"parameters"`
+    Limits      `json:"limits"`
 }
 
 type TriggerListOptions struct {
@@ -44,7 +54,7 @@ type TriggerListOptions struct {
     Docs  bool `url:"docs,omitempty"`
 }
 
-func (s *TriggerService) List(options *TriggerListOptions) ([]Trigger, *http.Response, error) {
+func (s *TriggerService) List(options *TriggerListOptions) ([]TriggerFromServer, *http.Response, error) {
     route := "triggers"
     route, err := addRouteOptions(route, options)
     if err != nil {
@@ -66,7 +76,7 @@ func (s *TriggerService) List(options *TriggerListOptions) ([]Trigger, *http.Res
         return nil, nil, werr
     }
 
-    var triggers []Trigger
+    var triggers []TriggerFromServer
     resp, err := s.client.Do(req, &triggers)
     if err != nil {
         if IsDebug() {
@@ -81,7 +91,7 @@ func (s *TriggerService) List(options *TriggerListOptions) ([]Trigger, *http.Res
 
 }
 
-func (s *TriggerService) Insert(trigger *Trigger, overwrite bool) (*Trigger, *http.Response, error) {
+func (s *TriggerService) Insert(trigger *Trigger, overwrite bool) (*TriggerFromServer, *http.Response, error) {
     route := fmt.Sprintf("triggers/%s?overwrite=%t", trigger.Name, overwrite)
 
     req, err := s.client.NewRequest("PUT", route, trigger)
@@ -94,7 +104,7 @@ func (s *TriggerService) Insert(trigger *Trigger, overwrite bool) (*Trigger, *ht
         return nil, nil, werr
     }
 
-    t := new(Trigger)
+    t := new(TriggerFromServer)
     resp, err := s.client.Do(req, &t)
     if err != nil {
         if IsDebug() {
@@ -109,7 +119,7 @@ func (s *TriggerService) Insert(trigger *Trigger, overwrite bool) (*Trigger, *ht
 
 }
 
-func (s *TriggerService) Get(triggerName string) (*Trigger, *http.Response, error) {
+func (s *TriggerService) Get(triggerName string) (*TriggerFromServer, *http.Response, error) {
     route := fmt.Sprintf("triggers/%s", triggerName)
 
     req, err := s.client.NewRequest("GET", route, nil)
@@ -122,7 +132,7 @@ func (s *TriggerService) Get(triggerName string) (*Trigger, *http.Response, erro
         return nil, nil, werr
     }
 
-    t := new(Trigger)
+    t := new(TriggerFromServer)
     resp, err := s.client.Do(req, &t)
     if err != nil {
         if IsDebug() {
@@ -163,7 +173,7 @@ func (s *TriggerService) Delete(triggerName string) (*http.Response, error) {
     return resp, nil
 }
 
-func (s *TriggerService) Fire(triggerName string, payload map[string]interface{}) (*Trigger, *http.Response, error) {
+func (s *TriggerService) Fire(triggerName string, payload map[string]interface{}) (*TriggerFromServer, *http.Response, error) {
     route := fmt.Sprintf("triggers/%s", triggerName)
 
     req, err := s.client.NewRequest("POST", route, payload)
@@ -176,7 +186,7 @@ func (s *TriggerService) Fire(triggerName string, payload map[string]interface{}
         return nil, nil, werr
     }
 
-    t := new(Trigger)
+    t := new(TriggerFromServer)
     resp, err := s.client.Do(req, &t)
     if err != nil {
         if IsDebug() {

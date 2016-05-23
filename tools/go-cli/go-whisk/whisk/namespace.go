@@ -26,10 +26,10 @@ import (
 type Namespace struct {
     Name     string `json:"name"`
     Contents struct {
-                 Actions  []Action  `json:"actions"`
-                 Packages []Package `json:"packages"`
-                 Triggers []Trigger `json:"triggers"`
-                 Rules    []Rule    `json:"rules"`
+                 Actions  []Action              `json:"actions"`
+                 Packages []Package             `json:"packages"`
+                 Triggers []TriggerFromServer   `json:"triggers"`
+                 Rules    []Rule                `json:"rules"`
              } `json:"contents,omitempty"`
 }
 
