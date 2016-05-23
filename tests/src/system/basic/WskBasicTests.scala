@@ -289,7 +289,7 @@ class WskBasicTests
             val run = wsk.action.invoke(name, Map("payload" -> "whatever"))
             withActivation(wsk.activation, run) {
                 activation =>
-                    activation.fields("response").asJsObject.fields("status") should be("action developer error")
+                    activation.fields("response").asJsObject.fields("status") should be("action developer error".toJson)
                     // representing nodejs giving an error when given malformed.js
                     activation.fields("response").asJsObject.toString should include("ReferenceError")
             }
