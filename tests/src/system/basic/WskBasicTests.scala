@@ -35,6 +35,7 @@ import common.TestUtils.NOT_FOUND
 import common.TestUtils.SUCCESS_EXIT
 import common.TestUtils.TIMEOUT
 import common.TestUtils.UNAUTHORIZED
+import common.TestUtils.ERROR_EXIT
 import common.Wsk
 import common.WskProps
 import common.WskTestHelpers
@@ -288,7 +289,7 @@ class WskBasicTests
             val run = wsk.action.invoke(name, Map("payload" -> "whatever"))
             withActivation(wsk.activation, run) {
                 activation =>
-                    activation.fields("response").asJsObject.fields("status") should be("action developer error".toJson)
+                    activation.fields("response").asJsObject.fields("status") should be("action developer error")
                     // representing nodejs giving an error when given malformed.js
                     activation.fields("response").asJsObject.toString should include("ReferenceError")
             }
@@ -321,12 +322,12 @@ class WskBasicTests
             stdout should include regex (""""publish": true""")
             stdout should include regex (""""version": "0.0.2"""")
 
-            val dynamicParams = Map("t" -> "T".toJson)
+            val dynamicParams = Map("t" -> "T")
             val run = wsk.trigger.fire(name, dynamicParams)
             withActivation(wsk.activation, run) {
                 activation =>
-                    activation.fields("response").asJsObject.fields("result") should be(dynamicParams.toJson)
-                    activation.fields("end") should be(Instant.EPOCH.toEpochMilli.toJson)
+                    activation.fields("response").asJsObject.fields("result") should be(dynamicParams)
+                    activation.fields("end") should be(Instant.EPOCH.toEpochMilli)
             }
 
             wsk.trigger.list().stdout should include(name)

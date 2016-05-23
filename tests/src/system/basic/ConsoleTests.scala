@@ -52,7 +52,7 @@ class ConsoleTests
     it should "show an activation log message for hello world" in {
         val duration = Some(30 seconds)
         val payload = new String("from the console!".getBytes, "UTF-8")
-        val run = wsk.action.invoke("/whisk.system/samples/helloWorld", Map("payload" -> payload.toJson))
+        val run = wsk.action.invoke("/whisk.system/samples/helloWorld", Map("payload" -> payload))
         withActivation(wsk.activation, run, totalWait = duration.get) {
             activation =>
                 val console = wsk.activation.console(10 seconds, since = duration)
@@ -69,7 +69,7 @@ class ConsoleTests
             }
 
             val start = Instant.now(Clock.systemUTC())
-            val run = wsk.action.invoke(name, Map("n" -> 3.toJson))
+            val run = wsk.action.invoke(name, Map("n" -> "3"))
             withActivation(wsk.activation, run) {
                 activation =>
                     val activations = wsk.activation.pollFor(N = 4, Some(name), since = Some(start), retries = 80).length

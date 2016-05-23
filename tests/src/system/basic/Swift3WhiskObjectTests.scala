@@ -50,7 +50,7 @@ class Swift3WhiskObjectTests
             }
 
             // invoke the action
-            val run = wsk.action.invoke(actionName, Map("key0" -> "value0".toJson))
+            val run = wsk.action.invoke(actionName, Map("key0" -> "value0"))
             withActivation(wsk.activation, run, initialWait = 5 seconds, totalWait = 60 seconds) {
                 activation =>
                     val logs = activation.fields("logs").toString
@@ -77,7 +77,7 @@ class Swift3WhiskObjectTests
             }
 
             // invoke the action
-            val run = wsk.action.invoke(actionName, Map("triggerName" -> triggerName.toJson))
+            val run = wsk.action.invoke(actionName, Map("triggerName" -> triggerName))
             withActivation(wsk.activation, run, initialWait = 5 seconds, totalWait = 60 seconds) {
                 activation =>
                     activation.fields("logs").toString should include(s"Tigger Name: $triggerName")
