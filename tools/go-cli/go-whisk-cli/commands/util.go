@@ -287,6 +287,12 @@ func printFullActivationList(activations []whisk.Activation) {
     }
 }
 
+func printActivationLogs(logs []string) {
+    for _, log := range logs {
+        fmt.Printf("%s\n", log)
+    }
+}
+
 //
 //
 //

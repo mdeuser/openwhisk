@@ -172,10 +172,7 @@ var activationLogsCmd = &cobra.Command{
             return werr
         }
 
-        //fmt.Printf("%s got activation %s logs\n", color.GreenString("ok:"), boldString(id)) - MWD Does not work on Windows
-        fmt.Printf("ok: got activation %s logs\n", id)
-
-        printJsonNoColor(activation.Logs)
+        printActivationLogs(activation.Logs)
         return nil
     },
 }
