@@ -22,13 +22,10 @@ import java.nio.file.Paths
 import java.time.Instant
 import java.util.Timer
 import java.util.TimerTask
-
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.annotation.tailrec
-
 import akka.actor.ActorSystem
-
 import whisk.common.Counter
 import whisk.common.LoggingMarkers._
 import whisk.common.TransactionId
@@ -45,6 +42,8 @@ import whisk.core.entity.WhiskAction
 import whisk.core.entity.WhiskAuth
 import whisk.core.entity.WhiskAuthStore
 import whisk.core.entity.WhiskEntityStore
+import whisk.common.LoggingMarkers
+import whisk.common.LogMarkerToken
 
 /*
  * A thread-safe container pool that internalizes container creation/teardown and allows users
@@ -157,7 +156,7 @@ class ContainerPool(
     final def getImpl(key: String, conMaker: () => ContainerResult)(implicit transid: TransactionId): Option[(Container, Option[RunResult])] = {
         getOrMake(key, conMaker) match {
             case Success(con, initResult) =>
-                info(this, s"""Obtained container ${con.containerId.getOrElse("unknown")}""")
+                info(this, s"Obtained container ${con.containerId.getOrElse("unknown")}")
                 return Some(con, initResult)
             case Error(str) =>
                 error(this, s"Error starting container: $str")
@@ -406,6 +405,12 @@ class ContainerPool(
         val key = makeKey(action, auth)
         val warmedContainer = if (limits.memory == defaultMemoryLimit && imageName == nodeImageName) getWarmNodejsContainer(key) else None
         val containerName = makeContainerName(action)
+        warmedContainer match {
+            case Some(_) => {
+                info(this, "", LogMarkerToken("invoker", s"${action.exec.kind}.warmContainer", "start"))
+            }
+            case None => info(this, "", LogMarkerToken("invoker", s"${action.exec.kind}.coldContainer", "start"))
+        }
         val con = warmedContainer getOrElse makeGeneralContainer(key, containerName, imageName, limits)
         initWhiskContainer(action, con)
     }
@@ -434,8 +439,10 @@ class ContainerPool(
     }
 
     private def makeContainer(imageName: String, args: Array[String])(implicit transid: TransactionId): ContainerResult = {
-        val con = runDockerOp { new Container(transid, this, makeKey(imageName, args), None, imageName,
-                                              config.invokerContainerNetwork, false, ActionLimits(), Map(), args) }
+        val con = runDockerOp {
+            new Container(transid, this, makeKey(imageName, args), None, imageName,
+                config.invokerContainerNetwork, false, ActionLimits(), Map(), args)
+        }
         con.setVerbosity(getVerbosity())
         Success(con, None)
     }
@@ -467,8 +474,7 @@ class ContainerPool(
     }
 
     private def getContainerEnvironment(): Map[String, String] = {
-        Map(WhiskConfig.asEnvVar(WhiskConfig.edgeHostName) -> config.edgeHost,
-            WhiskConfig.asEnvVar(WhiskConfig.whiskVersionName) -> config.whiskVersion)
+        Map(WhiskConfig.asEnvVar(WhiskConfig.edgeHostName) -> config.edgeHost)
     }
 
     private val defaultMaxIdle = 10
@@ -568,15 +574,21 @@ class ContainerPool(
      * Remove all containers with the actionContainerPrefix to kill leftover action containers.
      * Useful for a hotswap.
      */
-    def killStragglers()(implicit transid: TransactionId) =
-        listAll.foreach({
+    def killStragglers()(implicit transid: TransactionId) = {
+        listAll foreach {
             case ContainerState(id, image, name) => {
                 if (name.startsWith(actionContainerPrefix)) {
                     unpauseContainer(name)
                     killContainer(name)
                 }
             }
-        })
+        }
+    }
+
+    def warmupContainers() = {
+        if (useWarmContainers)
+            warmupThread.start
+    }
 
     /*
      * Get the size of the mounted file associated with this whisk container.
@@ -584,9 +596,6 @@ class ContainerPool(
     def getLogSize(con: WhiskContainer, mounted: Boolean)(implicit transid: TransactionId): Long = {
         con.containerId map { id => getDockerLogSize(id, mounted) } getOrElse 0
     }
-
-    if (useWarmContainers)
-        warmupThread.start
 }
 
 object ContainerPool {

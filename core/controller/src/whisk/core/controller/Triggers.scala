@@ -61,7 +61,12 @@ import whisk.core.connector.{ ActivationMessage => Message }
 import whisk.core.connector.ActivationMessage.{ publish, ACTIVATOR }
 import whisk.http.ErrorResponse.{ terminate }
 import whisk.core.entity.ActivationResponse
+import whisk.common.LoggingMarkers
 
+/**
+ * A singleton object which defines the properties that must be present in a configuration
+ * in order to implement the triggers API.
+ */
 object WhiskTriggersApi {
     def requiredProperties = WhiskServices.requiredProperties ++
         WhiskEntityStore.requiredProperties
@@ -121,13 +126,13 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
                     trigger: WhiskTrigger =>
                         val args = trigger.parameters.merge(payload)
                         val message = Message(transid, s"/triggers/fire/${trigger.docid}", user, ActivationId(), args)
-                        info(this, s"[POST] trigger activation id: ${message.activationId}")
+                        info(this, s"[POST] trigger activation id: ${message.activationId}", LoggingMarkers.CONTROLLER_FIRE_TRIGGER_START)
                         val start = Instant.now(Clock.systemUTC())
                         val postToLoadbalancer = performLoadBalancerRequest(ACTIVATOR, message, transid) flatMap {
                             response =>
                                 response.id match {
                                     case Some(activationId) =>
-                                        val end = Instant.now(Clock.systemUTC())
+                                        val end = Instant.EPOCH  // by convention end == 0 for triggers
                                         val activation = WhiskActivation(
                                             namespace = user.namespace, // all activations should end up in the one space regardless trigger.namespace,
                                             name,
@@ -153,13 +158,14 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
 
                         onComplete(postToLoadbalancer) {
                             case Success(activationId) =>
+                                info(this, "", LoggingMarkers.CONTROLLER_FIRE_TRIGGER_DONE)
                                 complete(OK, activationId.toJsObject)
                             case Failure(t) => t match {
                                 case _: TooManyActivationException =>
-                                    info(this, s"[POST] max activation limit has exceeded")
+                                    info(this, s"[POST] max activation limit has exceeded", LoggingMarkers.CONTROLLER_FIRE_TRIGGER_DONE)
                                     terminate(TooManyRequests)
                                 case _: Throwable =>
-                                    error(this, s"[POST] trigger activation failed: ${t.getMessage}")
+                                    error(this, s"[POST] trigger activation failed: ${t.getMessage}", LoggingMarkers.CONTROLLER_FIRE_TRIGGER_ERROR)
                                     terminate(InternalServerError, t.getMessage)
                             }
                         }

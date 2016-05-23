@@ -180,15 +180,16 @@ class Invoker(
                 authFuture flatMap { theAuth =>
                     // assume this future is done here
                     info(this, "", INVOKER_FETCH_AUTH_DONE)
+                    info(this, "", INVOKER_ACTIVATION_START)
                     invokeAction(theAction, theAuth, payload, tran)
                 }
             }
         activationDocFuture onComplete {
             case Success(activationDoc) =>
-                info(this, s"recorded activation '$activationDoc'", INVOKER_ACTIVATION_END)
+                info(this, s"recorded activation '$activationDoc'", INVOKER_ACTIVATION_DONE)
                 activationDoc
             case Failure(t) =>
-                info(this, s"failed to invoke action ${action.id} due to ${t.getMessage}", INVOKER_FAILED_ACTIVATION)
+                info(this, s"failed to invoke action ${action.id} due to ${t.getMessage}", INVOKER_ACTIVATION_ERROR)
                 completeTransactionWithError(action, tran, s"failed to invoke action ${action.id}: ${t.getMessage}")
         }
 
@@ -421,7 +422,22 @@ class Invoker(
         count
     }
 
-    def getUserActivationCounts(): Map[String, JsObject] = {
+    /**
+     * Destroys all activte containers and starts new warm containers.
+     * This method should be called only once and only at startup.
+     */
+    private var started = false
+    def start() = if (!started) {
+        started = true
+
+        // This will remove leftover action containers
+        pool.killStragglers()(TransactionId.invoker)
+
+        // Start warm containers after removing stragglers
+        pool.warmupContainers()
+    }
+
+    private def getUserActivationCounts(): Map[String, JsObject] = {
         val subjects = userActivationCounter.keySet toList
         val groups = subjects.groupBy { user => user.substring(0, 1) } // Any sort of partitioning will be ok wrt load balancer
         groups.keySet map { prefix =>
@@ -484,9 +500,6 @@ class Invoker(
                 Map(InvokerKeys.activationCount(instance) -> activationCounter.cur.toJson)
         })
 
-    // This will remove leftover action containers
-    pool.killStragglers()(TransactionId.invoker)
-
     // This is used for the getContainer endpoint used in perfContainer testing it is not real state
     private val activationIdMap = new TrieMap[ActivationId, String]
     def putContainerName(activationId: ActivationId, containerName: String) = activationIdMap += (activationId -> containerName)
@@ -540,6 +553,8 @@ object InvokerService {
 
             SimpleExec.setVerbosity(Verbosity.Loud)
             invoker.setVerbosity(Verbosity.Loud)
+            invoker.start()
+
             dispatcher.setVerbosity(Verbosity.Loud)
             dispatcher.addHandler(invoker, true)
             dispatcher.start()
