@@ -659,7 +659,9 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
 
         action.Exec.Code = string(file)
 
-        if matched, _ := regexp.MatchString(".swift$", stat.Name()); matched {
+        if flags.action.kind == "swift:3" || flags.action.kind == "swift:3.0" || flags.action.kind == "swift:3.0.0" {
+            action.Exec.Kind = "swift:3"
+        } else if matched, _ := regexp.MatchString(".swift$", stat.Name()); matched {
             action.Exec.Kind = "swift"
         } else if matched, _ := regexp.MatchString(".js", stat.Name()); matched {
             action.Exec.Kind = "nodejs"
@@ -756,6 +758,7 @@ func init() {
     actionCreateCmd.Flags().BoolVar(&flags.action.docker, "docker", false, "treat artifact as docker image path on dockerhub")
     actionCreateCmd.Flags().BoolVar(&flags.action.copy, "copy", false, "treat artifact as the name of an existing action")
     actionCreateCmd.Flags().BoolVar(&flags.action.sequence, "sequence", false, "treat artifact as comma separated sequence of actions to invoke")
+    actionCreateCmd.Flags().StringVar(&flags.action.kind, "kind", "", "the kind of the action runtime (example: swift:3)")
     actionCreateCmd.Flags().StringVar(&flags.action.shared, "shared", "", "shared action (default: private)")
     actionCreateCmd.Flags().StringVar(&flags.action.lib, "lib", "", "add library to artifact (must be a gzipped tar file)")
     actionCreateCmd.Flags().StringVar(&flags.action.xPackage, "package", "", "package")
