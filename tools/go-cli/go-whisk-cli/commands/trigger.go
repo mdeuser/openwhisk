@@ -128,6 +128,9 @@ var triggerCreateCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
 
         var err error
+        var feedArgPassed bool = (flags.common.feed != "")
+        var feedParams []string
+
         if len(args) != 1 {
             if IsDebug() {
                 fmt.Printf("triggerCreateCmd: Invalid number of arguments %d; args: %#v\n", len(args), args)
@@ -175,6 +178,52 @@ var triggerCreateCmd = &cobra.Command{
             return werr
         }
 
+        var fullTriggerName string
+        var fullFeedName string
+        if feedArgPassed {
+            if IsDebug() {
+                fmt.Printf("triggerCreateCmd: trigger has a feed\n")
+            }
+            feedqName, err := parseQualifiedName(flags.common.feed)
+            if err != nil {
+                if IsDebug() {
+                    fmt.Println("triggerCreateCmd: parseQualifiedName(%s)\nerror: %s\n", flags.common.feed, err)
+                }
+                errMsg := fmt.Sprintf("Failed to parse qualified feed name: %s\n", flags.common.feed)
+                whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                    whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+                return whiskErr
+            }
+            if len(feedqName.namespace) == 0 {
+                if IsDebug() {
+                    fmt.Printf("triggerCreateCmd: Namespace is missing from '%s'\n", flags.common.feed)
+                }
+                errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
+                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+                return werr
+            }
+
+            feedParams = flags.common.param
+            fullFeedName = fmt.Sprintf("/%s/%s", feedqName.namespace, feedqName.entityName)
+
+            feedParams = append(feedParams, "lifecycleEvent")
+            feedParams = append(feedParams, "CREATE")
+
+            fullTriggerName = fmt.Sprintf("/%s/%s", qName.namespace, qName.entityName)
+            feedParams = append(feedParams, "triggerName")
+            feedParams = append(feedParams, fullTriggerName)
+
+
+            feedParams = append(feedParams, "authKey")
+            feedParams = append(feedParams, flags.global.auth)  // MWD ?? only from CLI arg
+
+            parameters = whisk.Parameters{}
+            if IsDebug() {
+                fmt.Printf("triggerCreateCmd: trigger feed action parameters: %#v\n", feedParams)
+            }
+
+        }
+
         if IsDebug() {
             fmt.Printf("triggerCreateCmd: parsing annotations: %#v\n", flags.common.annotation)
         }
@@ -186,6 +235,16 @@ var triggerCreateCmd = &cobra.Command{
             errStr := fmt.Sprintf("Invalid annotations argument value '%#v': %s", flags.common.annotation, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
+        }
+        if feedArgPassed {
+            feedAnnotation := make(map[string]interface{}, 0)
+            feedAnnotation["key"] = "feed"
+            feedAnnotation["value"] = flags.common.feed
+            annotations = append(annotations, feedAnnotation)
+
+            if IsDebug() {
+                fmt.Printf("triggerCreateCmd: trigger feed annotations: %#v\n", annotations)
+            }
         }
 
         if IsDebug() {
@@ -221,6 +280,28 @@ var triggerCreateCmd = &cobra.Command{
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
+
+        // Invoke the specified feed action to configure the trigger feed
+        if feedArgPassed {
+            err := createFeed(trigger.Name, fullFeedName, feedParams)
+            if err != nil {
+                if IsDebug() {
+                    fmt.Printf("triggerCreateCmd: createFeed(%s, %s, %+v) failed: %s\n", trigger.Name, flags.common.feed, feedParams, err)
+                }
+                errStr := fmt.Sprintf("Unable to create trigger '%s': %s", trigger.Name, err)
+                werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+
+                // Delete trigger that was created for this feed
+                delerr := deleteTrigger(args[0])
+                if delerr != nil {
+                    if IsDebug() {
+                        fmt.Printf("triggerCreateCmd: warning - ignoring deleteTrigger(%s) failure: %s\n", args[0], delerr)
+                    }
+                }
+                return werr
+            }
+        }
+
 
         fmt.Println("ok: created trigger")
         //MWD printJSON(retTrigger) // color does appear correctly on vagrant VM
@@ -507,15 +588,50 @@ var triggerListCmd = &cobra.Command{
     },
 }
 
-func createFeed () {
+func createFeed (triggerName string, FullFeedName string, parameters []string) error {
+    var originalParams = flags.common.param
 
+    // Invoke the feed action to configure the feed
+    feedArgs := []string {FullFeedName}
+    flags.common.param = parameters
+    flags.common.blocking = true
+    err := actionInvokeCmd.RunE(nil, feedArgs)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("createFeed: Invoke of action '%s' failed: %s\n", FullFeedName, err)
+        }
+        errStr := fmt.Sprintf("Unable to invoke trigger '%s' feed action '%s'; feed is not configured: %s", triggerName, FullFeedName, err)
+        err = whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+    } else {
+        if IsDebug() {
+            fmt.Printf("createFeed: Successfully configured trigger feed via feed action '%s'\n", FullFeedName)
+        }
+    }
+
+    flags.common.param = originalParams
+    return err
+}
+
+func deleteTrigger (triggerName string) error {
+    args := []string {triggerName}
+    err := triggerDeleteCmd.RunE(nil, args)
+    if err != nil {
+        if IsDebug() {
+            fmt.Printf("deleteTrigger: trigger '%s' delete failed: %s\n", triggerName, err)
+        }
+        errStr := fmt.Sprintf("Unable to delete trigger '%s': %s", triggerName, err)
+        err = whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+    }
+
+    return err
 }
 
 func init() {
 
     triggerCreateCmd.Flags().StringSliceVarP(&flags.common.annotation, "annotation", "a", []string{}, "annotations")
     triggerCreateCmd.Flags().StringSliceVarP(&flags.common.param, "param", "p", []string{}, "default parameters")
-    triggerCreateCmd.Flags().StringVar(&flags.common.shared, "shared", "", "shared action (yes = shared, no[default] = private)")
+    triggerCreateCmd.Flags().StringVar(&flags.common.shared, "shared", "no", "shared action [yes|no]")
+    triggerCreateCmd.Flags().StringVarP(&flags.common.feed, "feed", "f", "", "trigger feed")
 
     triggerUpdateCmd.Flags().StringSliceVarP(&flags.common.annotation, "annotation", "a", []string{}, "annotations")
     triggerUpdateCmd.Flags().StringSliceVarP(&flags.common.param, "param", "p", []string{}, "default parameters")
