@@ -44,6 +44,7 @@ var flags struct {
         limit       int  // return max N records
         full        bool // return full records (docs=true for client request)
         summary     bool
+        feed        string  // name of feed
    }
 
     property struct {
