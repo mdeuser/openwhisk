@@ -145,6 +145,15 @@ func parseKeyValueArray(args []string) ([]whisk.KeyValue, error) {
     }
 
     for i := 0; i < len(args); i += 2 {
+        if args[i] == "" {
+            if IsDebug() {
+                fmt.Printf("parseKeyValueArray: key[%d] cannot be an empty string - args: %#v\n", i, args)
+            }
+            err := whisk.MakeWskError(
+                errors.New("key argument values cannot be empty strings"),
+                whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE )
+            return parsed, err
+        }
         keyValue := whisk.KeyValue{
             Key:   args[i],
             Value: args[i+1],
@@ -160,7 +169,7 @@ func parseParameters(args []string) (whisk.Parameters, error) {
     parsedArgs, err := parseKeyValueArray(args)
     if err != nil {
         if IsDebug() {
-            fmt.Printf("util.parseParameters: parseKeyValueArray(%#v) error: %s", args, err)
+            fmt.Printf("util.parseParameters: parseKeyValueArray(%#v) error: %s\n", args, err)
         }
         return parameters, err
     }
