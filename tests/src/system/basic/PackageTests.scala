@@ -155,7 +155,7 @@ class PackageTests
         val flatDescription = itemDescription.replace("\n", "").replace("\r", "")
         merged.foreach {
             case (key: String, value: String) =>
-                val toFind = s""""key": "${key}",            "value": ${value}"""
+                val toFind = s""""key":\\s+"${key}",\\s+"value":\\s+"${value}""""
                 flatDescription should include regex toFind
         }
     }

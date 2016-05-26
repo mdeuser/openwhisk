@@ -18,7 +18,7 @@ package whisk
 
 type KeyValue struct {
     Key   string `json:"key,omitempty"`
-    Value string `json:"value,omitempty"`
+    Value string `json:"value"`     // Whisk permits empty values, do don't omitemtpy
 }
 
 type KeyValues struct {

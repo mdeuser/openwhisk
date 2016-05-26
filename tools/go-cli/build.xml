@@ -23,7 +23,7 @@
         <!-- Build docker image -->
         <exec executable="/bin/bash" failonerror="true">
             <arg line="${openwhisk.home}/tools/docker/dockerWithRetry.sh ${docker.timeout.long}" />
-            <arg line="build -t whisk/go-cli ${go-cli.build.dir}" />
+            <arg line="build --build-arg BUILDTIME=${whisk.version.date} -t whisk/go-cli ${go-cli.build.dir}" />
         </exec>
         <exec executable="docker" failonerror="false" output="/dev/null" error="/dev/null">
             <arg line="${docker.tls.cmd}" />
