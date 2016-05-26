@@ -91,9 +91,12 @@ type Binding struct {
 }
 
 type BindingUpdates struct {
-    Added   []Binding `json:"added,omitempty"`
-    Updated []Binding `json:"added,omitempty"`
-    Deleted []Binding `json:"added,omitempty"`
+    //Added   []Binding `json:"added,omitempty"`
+    //Updated []Binding `json:"updated,omitempty"`
+    //Deleted []Binding `json:"deleted,omitempty"`
+    Added   []string `json:"added,omitempty"`
+    Updated []string `json:"updated,omitempty"`
+    Deleted []string `json:"deleted,omitempty"`
 }
 
 type PackageListOptions struct {
@@ -113,13 +116,23 @@ func (s *PackageService) List(options *PackageListOptions) ([]Package, *http.Res
 
     req, err := s.client.NewRequest("GET", route, nil)
     if err != nil {
-        return nil, nil, err
+        if IsDebug() {
+            fmt.Printf("PackageService.List: http.NewRequest(GET, %s); error '%s'\n", route, err)
+        }
+        errStr := fmt.Sprintf("Unable to create GET HTTP request for '%s'; error: %s", route, err)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
     }
 
     var packages []Package
     resp, err := s.client.Do(req, &packages)
     if err != nil {
-        return nil, resp, err
+        if IsDebug() {
+            fmt.Printf("PackageService.List: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
+        }
+        errStr := fmt.Sprintf("Request failure: %s", err)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, resp, werr
     }
 
     return packages, resp, err
@@ -131,13 +144,23 @@ func (s *PackageService) Get(packageName string) (*Package, *http.Response, erro
 
     req, err := s.client.NewRequest("GET", route, nil)
     if err != nil {
-        return nil, nil, err
+        if IsDebug() {
+            fmt.Printf("PackageService.Get: http.NewRequest(GET, %s); error '%s'\n", route, err)
+        }
+        errStr := fmt.Sprintf("Unable to create GET HTTP request for '%s'; error: %s", route, err)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
     }
 
     p := new(Package)
     resp, err := s.client.Do(req, &p)
     if err != nil {
-        return nil, resp, err
+        if IsDebug() {
+            fmt.Printf("PackageService.Get: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
+        }
+        errStr := fmt.Sprintf("Request failure: %s", err)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, resp, werr
     }
 
     return p, resp, nil
@@ -176,12 +199,22 @@ func (s *PackageService) Delete(packageName string) (*http.Response, error) {
 
     req, err := s.client.NewRequest("DELETE", route, nil)
     if err != nil {
-        return nil, err
+        if IsDebug() {
+            fmt.Printf("PackageService.Delete: http.NewRequest(DELETE, %s); error '%s'\n", route, err)
+        }
+        errStr := fmt.Sprintf("Unable to create DELETE HTTP request for '%s'; error: %s", route, err)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, werr
     }
 
     resp, err := s.client.Do(req, nil)
     if err != nil {
-        return resp, err
+        if IsDebug() {
+            fmt.Printf("PackageService.Delete: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
+        }
+        errStr := fmt.Sprintf("Request failure: %s", err)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return resp, werr
     }
 
     return resp, nil
@@ -192,13 +225,23 @@ func (s *PackageService) Refresh() (*BindingUpdates, *http.Response, error) {
 
     req, err := s.client.NewRequest("POST", route, nil)
     if err != nil {
-        return nil, nil, err
+        if IsDebug() {
+            fmt.Printf("PackageService.Refresh: http.NewRequest(POST, %s); error '%s'\n", route, err)
+        }
+        errStr := fmt.Sprintf("Unable to create POST HTTP request for '%s'; error: %s", route, err)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
     }
 
     updates := &BindingUpdates{}
     resp, err := s.client.Do(req, updates)
     if err != nil {
-        return nil, resp, err
+        if IsDebug() {
+            fmt.Printf("PackageService.Refresh: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
+        }
+        errStr := fmt.Sprintf("Request failure: %s", err)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, resp, werr
     }
 
     return updates, resp, nil

@@ -302,6 +302,12 @@ func printActivationLogs(logs []string) {
     }
 }
 
+func printArrayContents(arrStr []string) {
+    for _, str := range arrStr {
+        fmt.Printf("%s\n", str)
+    }
+}
+
 //
 //
 //

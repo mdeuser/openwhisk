@@ -90,11 +90,9 @@ var packageBindCmd = &cobra.Command{
             if IsDebug() {
                 fmt.Println("packageBindCmd: parseQualifiedName(%s)\nerror: %s\n", packageName, err)
             }
-
-            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n",packageName)
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", packageName)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
             return werr
         }
 
@@ -144,22 +142,6 @@ var packageBindCmd = &cobra.Command{
             return werr
         }
 
-
-        //
-        // parsedBindingArg := strings.Split(bindingArg, ":")
-        // bindingName := parsedBindingArg[0]
-        // var bindingNamespace string
-        // if len(parsedBindingArg) == 1 {
-        // 	bindingNamespace = client.Config.Namespace
-        // } else if len(parsedBindingArg) == 2 {
-        // 	bindingNamespace = parsedBindingArg[1]
-        // } else {
-        // 	err = fmt.Errorf("Invalid binding argument %s", bindingArg)
-        // 	fmt.Println(err)
-        // 	return
-        // }
-        //
-
         binding := whisk.Binding{
             Name:      pkgQName.entityName,
             Namespace: pkgQName.namespace,
@@ -175,7 +157,7 @@ var packageBindCmd = &cobra.Command{
         _,  _, err = client.Packages.Insert(p, false)
         if err != nil {
             if IsDebug() {
-                fmt.Printf("packageBindCmd: client.Packages.Insert(%#v, false, false) failed: %s\n", p, err)
+                fmt.Printf("packageBindCmd: client.Packages.Insert(%#v, false) failed: %s\n", p, err)
             }
             errStr := fmt.Sprintf("Binding creation failed: %s", err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
@@ -190,21 +172,30 @@ var packageBindCmd = &cobra.Command{
 var packageCreateCmd = &cobra.Command{
     Use:   "create <name string>",
     Short: "create a new package",
-
-    Run: func(cmd *cobra.Command, args []string) {
+    SilenceUsage:   true,
+    SilenceErrors:  true,
+    RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         var shared, sharedSet bool
 
         if len(args) != 1 {
-            err = errors.New("Invalid argument")
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageCreateCmd: Invalid number of arguments %d (expected 1 argument); args: %#v\n", len(args), args)
+            }
+            errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; the package name is the only expected argument", len(args))
+            werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            fmt.Printf("error: %s", err)
-            return
+            if IsDebug() {
+                fmt.Println("packageCreateCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
         client.Namespace = qName.namespace
@@ -224,14 +215,22 @@ var packageCreateCmd = &cobra.Command{
         }
         parameters, err := parseParameters(flags.common.param)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageCreateCmd: parseParameters(%#v) failed: %s\n", flags.common.param, err)
+            }
+            errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
 
         annotations, err := parseAnnotations(flags.common.annotation)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageCreateCmd: parseParameters(%#v) failed: %s\n", flags.common.annotation, err)
+            }
+            errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.annotation, err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
 
         var p whisk.PackageInterface
@@ -255,12 +254,17 @@ var packageCreateCmd = &cobra.Command{
 
         p, _, err = client.Packages.Insert(p, false)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageCreateCmd: client.Packages.Insert(%#v, false) failed: %s\n", p, err)
+            }
+            errStr := fmt.Sprintf("Package creation failed: %s", err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
         //fmt.Printf("%s created package %s\n", color.GreenString("ok:"), boldString(qName.entityName))
         fmt.Printf("ok: created package %s\n", qName.entityName)
+        return nil
     },
 }
 
@@ -299,23 +303,31 @@ payload:
 var packageUpdateCmd = &cobra.Command{
     Use:   "update <name string>",
     Short: "update an existing package",
-
-    Run: func(cmd *cobra.Command, args []string) {
+    SilenceUsage:   true,
+    SilenceErrors:  true,
+    RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         var shared, sharedSet bool
 
         if len(args) < 1 {
-            err = errors.New("Invalid argument")
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageUpdateCmd: Invalid number of arguments %d (expected 1 argument); args: %#v\n", len(args), args)
+            }
+            errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; the package name is the only expected argument", len(args))
+            werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            fmt.Printf("error: %s", err)
-            return
+            if IsDebug() {
+                fmt.Println("packageUpdateCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
-
         client.Namespace = qName.namespace
 
         if (flags.common.shared == "yes") {
@@ -330,14 +342,22 @@ var packageUpdateCmd = &cobra.Command{
 
         parameters, err := parseParameters(flags.common.param)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageUpdateCmd: parseParameters(%#v) failed: %s\n", flags.common.param, err)
+            }
+            errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
 
         annotations, err := parseAnnotations(flags.common.annotation)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageUpdateCmd: parseParameters(%#v) failed: %s\n", flags.common.annotation, err)
+            }
+            errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.annotation, err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
 
         var p whisk.PackageInterface
@@ -361,88 +381,123 @@ var packageUpdateCmd = &cobra.Command{
 
         p, _, err = client.Packages.Insert(p, true)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageUpdateCmd: client.Packages.Insert(%#v, true) failed: %s\n", p, err)
+            }
+            errStr := fmt.Sprintf("Package update failed: %s", err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
         //fmt.Printf("%s updated package %s\n", color.GreenString("ok:"), boldString(qName.entityName))
         fmt.Printf("ok: updated package %s\n",qName.entityName)
+        return nil
     },
 }
 
 var packageGetCmd = &cobra.Command{
     Use:   "get <name string>",
     Short: "get package",
-
-    Run: func(cmd *cobra.Command, args []string) {
+    SilenceUsage:   true,
+    SilenceErrors:  true,
+    RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         if len(args) != 1 {
-            err = errors.New("Invalid argument")
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageGetCmd: Invalid number of arguments %d (expected 1 argument); args: %#v\n", len(args), args)
+            }
+            errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; the package name is the only expected argument", len(args))
+            werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            fmt.Printf("error: %s", err)
-            return
+            if IsDebug() {
+                fmt.Println("packageGetCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
-
         client.Namespace = qName.namespace
 
         xPackage, _, err := client.Packages.Get(qName.entityName)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageGetCmd: client.Packages.Get(%s) failed: %s\n", qName.entityName, err)
+            }
+            errStr := fmt.Sprintf("Package update failed: %s", err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
         if flags.common.summary {
-            fmt.Printf("%s /%s/%s\n", boldString("package"), xPackage.Namespace, xPackage.Name)
+            //fmt.Printf("%s /%s/%s\n", boldString("package"), xPackage.Namespace, xPackage.Name)  //MWD
+            fmt.Printf("package /%s/%s\n", xPackage.Namespace, xPackage.Name)
         } else {
             //fmt.Printf("%s got package %s\n", color.GreenString("ok:"), boldString(qName.entityName))
-            fmt.Printf("ok: got package %s\n", qName.entityName)
             //printJSON(xPackage)
+            fmt.Printf("ok: got package %s\n", qName.entityName)
             printJsonNoColor(xPackage)
         }
+
+        return nil
     },
 }
 
 var packageDeleteCmd = &cobra.Command{
     Use:   "delete <name string>",
     Short: "delete package",
-
-    Run: func(cmd *cobra.Command, args []string) {
+    SilenceUsage:   true,
+    SilenceErrors:  true,
+    RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         if len(args) != 1 {
-            err = errors.New("Invalid argument")
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageDeleteCmd: Invalid number of arguments %d (expected 1 argument); args: %#v\n", len(args), args)
+            }
+            errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; the package name is the only expected argument", len(args))
+            werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return werr
         }
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            fmt.Printf("error: %s", err)
-            return
+            if IsDebug() {
+                fmt.Println("packageDeleteCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+            }
+            errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
         client.Namespace = qName.namespace
 
         _, err = client.Packages.Delete(qName.entityName)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageDeleteCmd: client.Packages.Delete(%s) failed: %s\n", qName.entityName, err)
+            }
+            errStr := fmt.Sprintf("Package delete failed: %s", err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
         //fmt.Printf("%s deleted package %s\n", color.GreenString("ok:"), boldString(qName.entityName))
         fmt.Printf("ok: deleted package %s\n", qName.entityName)
+        return nil
     },
 }
 
 var packageListCmd = &cobra.Command{
     Use:   "list <namespace string>",
     Short: "list all packages",
-
-    Run: func(cmd *cobra.Command, args []string) {
+    SilenceUsage:   true,
+    SilenceErrors:  true,
+    RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         var shared bool
 
@@ -450,14 +505,22 @@ var packageListCmd = &cobra.Command{
         if len(args) == 1 {
             qName, err = parseQualifiedName(args[0])
             if err != nil {
-                fmt.Printf("error: %s", err)
-                return
+                if IsDebug() {
+                    fmt.Println("packageListCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
+                }
+                errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
+                werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                    whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+                return werr
             }
             ns := qName.namespace
             if len(ns) == 0 {
-                err = errors.New("No valid namespace detected.  Make sure that namespace argument is preceded by a \"/\"")
-                fmt.Printf("error: %s\n", err)
-                return
+                if IsDebug() {
+                    fmt.Printf("packageListCmd: An empty namespace in the package name '%s' is invalid \n", args[0])
+                }
+                errStr := fmt.Sprintf("No valid namespace detected.  Make sure that namespace argument is preceded by a \"/\"")
+                werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+                return werr
             }
 
             client.Namespace = ns
@@ -478,19 +541,25 @@ var packageListCmd = &cobra.Command{
 
         packages, _, err := client.Packages.List(options)
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageListCmd: client.Packages.List(%+v) failed: %s\n", options, err)
+            }
+            errStr := fmt.Sprintf("Unable to obtain package list: %s", err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
         printList(packages)
+        return nil
     },
 }
 
 var packageRefreshCmd = &cobra.Command{
     Use:   "refresh <namespace string>",
     Short: "refresh package bindings",
-
-    Run: func(cmd *cobra.Command, args []string) {
+    SilenceUsage:   true,
+    SilenceErrors:  true,
+    RunE: func(cmd *cobra.Command, args []string) error {
         var err error
 
         if len(args) == 1 {
@@ -504,43 +573,63 @@ var packageRefreshCmd = &cobra.Command{
 
         updates, resp, err := client.Packages.Refresh()
         if err != nil {
-            fmt.Println(err)
-            return
+            if IsDebug() {
+                fmt.Printf("packageRefreshCmd: client.Packages.List() of namespace '%s' failed: %s\n", client.Config.Namespace, err)
+            }
+            errStr := fmt.Sprintf("Package refresh for namespace '%s' failed: %s", client.Config.Namespace, err)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
+        }
+
+        if IsDebug() {
+            fmt.Printf("packageRefreshCmd: Refresh updates received: %#v\n", updates)
         }
 
         switch resp.StatusCode {
         case http.StatusOK:
-            fmt.Printf("\n%s refreshed successfully\n", client.Config.Namespace)
+            fmt.Printf("%s refreshed successfully\n", client.Config.Namespace)
 
             if len(updates.Added) > 0 {
                 fmt.Println("created bindings:")
-                printJSON(updates.Added)
+                //printJSON(updates.Added)
+                printArrayContents(updates.Added)
             } else {
                 fmt.Println("no bindings created")
             }
 
             if len(updates.Updated) > 0 {
                 fmt.Println("updated bindings:")
-                printJSON(updates.Updated)
+                //printJSON(updates.Updated)
+                printArrayContents(updates.Updated)
             } else {
                 fmt.Println("no bindings updated")
             }
 
             if len(updates.Deleted) > 0 {
                 fmt.Println("deleted bindings:")
-                printJSON(updates.Deleted)
+                //printJSON(updates.Deleted)
+                printArrayContents(updates.Deleted)
             } else {
                 fmt.Println("no bindings deleted")
             }
 
         case http.StatusNotImplemented:
-            fmt.Println("error: This feature is not implemented in the targeted deployment")
-            return
+            if IsDebug() {
+                fmt.Printf("packageRefreshCmd: client.Packages.List() returned 'Not Implemented' HTTP status code: %d\n", resp.StatusCode)
+            }
+            errStr := fmt.Sprintf("The package refresh feature is not implement in the target deployment")
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         default:
-            fmt.Println("error: ", resp.Status)
-            return
+            if IsDebug() {
+                fmt.Printf("packageRefreshCmd: client.Packages.List() for namespace '%s' returned an unexpected HTTP status code: %d\n",  client.Config.Namespace, resp.StatusCode)
+            }
+            errStr := fmt.Sprintf("Package refresh for namespace '%s' failed due to unexpected HTTP status code: %d",  client.Config.Namespace, resp.StatusCode)
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
+            return werr
         }
 
+        return nil
     },
 }
 
