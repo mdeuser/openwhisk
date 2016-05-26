@@ -234,7 +234,7 @@ var actionInvokeCmd = &cobra.Command{
 
         payload := map[string]interface{}{}
 
-        fmt.Printf("PARAMAS %d", len(flags.common.param))
+        //MWD fmt.Printf("PARAMAS %d", len(flags.common.param))
         if len(flags.common.param) > 0 {
             parameters, err := parseParameters(flags.common.param)
 
@@ -273,11 +273,11 @@ var actionInvokeCmd = &cobra.Command{
         activation, _, err := client.Actions.Invoke(qName.entityName, payload, flags.common.blocking)
         if err != nil {
             if IsDebug() {
-                fmt.Printf("actionInvokeCmd: client.Actions.Invoke(%s, %s, %s)\nerror: %s\n", qName.entityName, payload,
+                fmt.Printf("actionInvokeCmd: client.Actions.Invoke(%s, %s, %t)\nerror: %s\n", qName.entityName, payload,
                     flags.common.blocking, err)
             }
 
-            errMsg := fmt.Sprintf("Unable to invoke action: %s\n", err)
+            errMsg := fmt.Sprintf("Unable to invoke action '%s': %s\n", qName.entityName, err)
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
 
