@@ -385,11 +385,12 @@ public class CLIActionTests {
             String[] lines = {"comment t'appelle tu", nowString, "come ti chiami"};
 
             Pair<String, String> pair = wsk.invokeBlocking(action, TestUtils.makeParameter("payload", String.join("\n", lines)));
+
             String activationId = pair.fst;
-            JsonObject response = new JsonParser().parse(pair.snd).getAsJsonObject();
-            String resultStr = response.get("result").toString();
-            boolean present = resultStr.contains(nowString);
-            assertTrue("Expected '" + nowString + "' which is missing in result for activation " + activationId, present);
+            String result = pair.snd;
+
+            assertTrue("Expected '" + nowString + "' which is missing in result for activation " + activationId,
+                    result.contains(nowString));
         } finally {
             wsk.delete(Action, action);
             wsk.delete(Package, myPackage);

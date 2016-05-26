@@ -37,18 +37,34 @@ type Action struct {
     Exec *Exec       `json:"exec,omitempty"`
     Annotations      `json:"annotations,omitempty"`
     Parameters       `json:"parameters,omitempty"`
+    BindParameters   `json:"-"`
     Limits           `json:"limits,omitempty"`
 }
 
 type SentActionPublish struct {
-    Namespace string `json:"-"`
-    Version   string `json:"-"`
-    Publish   bool   `json:"publish"`
+    Namespace string    `json:"-"`
+    Version   string    `json:"-"`
+    Publish   bool      `json:"publish"`
 
-    Parameters  `json:"parameters,omitempty"`
-    Exec    *Exec        `json:"exec,omitempty"`
-    Annotations `json:"annotations,omitempty"`
-    Limits      `json:"-"`
+    Parameters          `json:"parameters,omitempty"`
+    BindParameters          `json:"bindarameters,omitempty"`
+    Exec    *Exec       `json:"exec,omitempty"`
+    Annotations         `json:"annotations,omitempty"`
+    Limits              `json:"-"`
+
+    Error   string `json:"error,omitempty"`
+    Code    int `json:"code,omitempty"`
+}
+
+type BindSentActionPublish struct {
+    Namespace string    `json:"-"`
+    Version   string    `json:"-"`
+    Publish   bool      `json:"publish"`
+
+    BindParameters      `json:"parameters,omitempty"`
+    Exec    *Exec       `json:"exec,omitempty"`
+    Annotations         `json:"annotations,omitempty"`
+    Limits              `json:"-"`
 
     Error   string `json:"error,omitempty"`
     Code    int `json:"code,omitempty"`
@@ -60,6 +76,21 @@ type SentActionNoPublish struct {
     Publish   bool   `json:"publish,omitempty"`
 
     Parameters      `json:"parameters,omitempty"`
+    BindParameters      `json:"bindparameters,omitempty"`
+    Exec    *Exec   `json:"exec,omitempty"`
+    Annotations     `json:"annotations,omitempty"`
+    Limits          `json:"-"`
+
+    Error   string `json:"error,omitempty"`
+    Code    int `json:"code,omitempty"`
+}
+
+type BindSentActionNoPublish struct {
+    Namespace string `json:"-"`
+    Version   string `json:"-"`
+    Publish   bool   `json:"publish,omitempty"`
+
+    BindParameters      `json:"parameters,omitempty"`
     Exec    *Exec   `json:"exec,omitempty"`
     Annotations     `json:"annotations,omitempty"`
     Limits          `json:"-"`
@@ -74,6 +105,8 @@ type Exec struct {
     Code  string `json:"code,omitempty"`
     Image string `json:"image,omitempty"`
     Init  string `json:"init,omitempty"`
+    Jar  string `json:"init,omitempty"`
+    Main  string `json:"init,omitempty"`
 }
 
 type ActionListOptions struct {
@@ -156,18 +189,34 @@ func (s *ActionService) Insert(action *Action, sharedSet bool, overwrite bool) (
     route := fmt.Sprintf("actions/%s?overwrite=%t", action.Name, overwrite)
 
     if sharedSet {
-        sentAction = SentActionPublish{
-            Parameters: action.Parameters,
-            Exec: action.Exec,
-            Publish: action.Publish,
+
+        if len(action.BindParameters) > 0 {
+            sentAction = BindSentActionPublish{
+                BindParameters: action.BindParameters,
+                Exec: action.Exec,
+                Publish: action.Publish,
+            }
+        } else {
+            sentAction = SentActionPublish{
+                Parameters: action.Parameters,
+                Exec: action.Exec,
+                Publish: action.Publish,
+            }
         }
     } else {
-        sentAction = SentActionNoPublish{
-            Parameters: action.Parameters,
-            Exec: action.Exec,
+
+        if len(action.BindParameters) > 0 {
+            sentAction = BindSentActionNoPublish{
+                BindParameters: action.BindParameters,
+                Exec: action.Exec,
+            }
+        } else {
+            sentAction = SentActionNoPublish{
+                Parameters: action.Parameters,
+                Exec: action.Exec,
+            }
         }
     }
-
 
     if s.client.IsDebug() {
         fmt.Printf("Action insert route: %s\n", route)

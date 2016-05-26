@@ -16,26 +16,23 @@ limitations under the License.
 
 package whisk
 
-// NOTE :: deprecated
-/*type KeyValue struct {
-        Key   string `json:"key,omitempty"`
-        Value string `json:"value,omitempty"`
-}*/
-
 type KeyValue struct {
-        Key   string `json:"key,omitempty"`
-        Value string `json:"value,omitempty"`
+    Key   string `json:"key,omitempty"`
+    Value string `json:"value,omitempty"`
 }
 
-//type Annotations []KeyValue
+type KeyValues struct {
+    Key     string `json:"key,omitempty"`
+    Values  []string `json:"value,omitempty"`
+}
 
 type Annotations []map[string]interface{}
 
+type BindParameters []KeyValues
+
 type Parameters []KeyValue
 
-// type Parameters map[string]interface{}
-
 type Limits struct {
-        Timeout int `json:"timeout,omitempty"`
-        Memory  int `json:"memory,omitempty"`
+    Timeout int `json:"timeout,omitempty"`
+    Memory  int `json:"memory,omitempty"`
 }

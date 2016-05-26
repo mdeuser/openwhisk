@@ -82,8 +82,6 @@ public class WskCli {
     }
 
     protected WskCli(String subject, String authKey) {
-        System.out.println("GO PATH: " + goCLIPath);
-
         this.binaryPath = new File(goCLIPath);
         this.subject = subject;
         this.authKey = authKey;
@@ -423,7 +421,7 @@ public class WskCli {
         RunResult result = cli(expectedCode, cmd);
         String stdout = result.stdout;
         if (expectedCode == SUCCESS_EXIT) {
-            assertTrue(stdout, stdout.contains("ok: created binding " + name));
+            assertTrue(stdout, stdout.contains("created binding " + name));
         }
         return expectedCode == SUCCESS_EXIT ? stdout : stdout.concat(result.stderr);
     }
@@ -555,6 +553,7 @@ public class WskCli {
         String activationId = extractActivationIdFromCliResult(response);
         String result = extractActivationResultFromCliResult(response);
         JsonObject json = new JsonParser().parse(result).getAsJsonObject();
+
         if (json == null || json.get("response") == null) {
             return Pair.make(activationId, "invalid Json response: " + result);
         } else {

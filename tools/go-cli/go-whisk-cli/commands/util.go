@@ -131,7 +131,6 @@ func parseGenericArray(args []string) (whisk.Annotations, error) {
     return parsed, nil
 }
 
-
 func parseKeyValueArray(args []string) ([]whisk.KeyValue, error) {
     parsed := []whisk.KeyValue{}
     if len(args)%2 != 0 {
@@ -170,7 +169,6 @@ func parseParameters(args []string) (whisk.Parameters, error) {
 
 func parseAnnotations(args []string) (whisk.Annotations, error) {
     annotations := whisk.Annotations{}
-    //parsedArgs, err := parseKeyValueArray(args)
 
     parsedArgs, err := parseGenericArray(args)
     if err != nil {

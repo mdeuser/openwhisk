@@ -32,6 +32,7 @@ import (
 
     "github.com/fatih/color"
     "github.com/spf13/cobra"
+    "strings"
 )
 
 //////////////
@@ -476,6 +477,53 @@ var actionListCmd = &cobra.Command{
     },
 }
 
+/*type predicate func(int) bool
+
+func filter(arr []string, method predicate) []string {
+    res := []int{}
+
+    for _, item, := range arr {
+        if method(item) {
+           res = append(res, item)
+        }
+    }
+
+    return res
+}
+
+func findMainJarClass(cmd *cobra.Command, jarFile string) (string, error) {
+    signature := "\"public static com.google.gson.JsonObject main(com.google.gson.JsonObject);\"
+
+    cmd := exec.Command("jar", "-tf", jarFile)
+    stdOut, err := cmd.StdoutPipe()
+
+    if err != nil {
+        return "", err
+    }
+
+    stdOut = strings.Split(stdOut, "/")
+    classes := filter(stdOut, func (item){
+            return item.contains("")
+        }
+    )
+
+    for i := 0; i < len(classes); i++ {
+        cmd := exec.Command("javap", "-cp", jarFile, class)
+        stdOut, err := cmd.StdoutPipe()
+
+        if err != nil {
+            return "", err
+        }
+
+        if strings.Contains(signature, stdOut) {
+
+            return classes[i], nil
+        }
+    }
+
+    return "", nil
+}*/
+
 /*
 usage: wsk action update [-h] [-u AUTH] [--docker] [--copy] [--sequence]
 [--lib LIB] [--shared [{yes,no}]]
@@ -572,7 +620,6 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
         action.Exec = new(whisk.Exec)
         action.Exec.Image = artifact
     } else if flags.action.copy {
-
         qNameCopy := qualifiedName{}
         qNameCopy, err = parseQualifiedName(args[1])
 
@@ -610,6 +657,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
         currentNamespace := client.Config.Namespace
         client.Config.Namespace = "whisk.system"
         pipeAction, _, err := client.Actions.Get("system/pipe")
+
         if err != nil {
 
             if IsDebug() {
@@ -622,8 +670,50 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
 
             return nil, sharedSet, whiskErr
         }
+
+        if len(artifact) > 0 {
+            bindParams := whisk.BindParameters{}
+            keyValues := whisk.KeyValues{
+                Key: "_actions",
+            }
+
+            actions := strings.Split(artifact, ",")
+
+            for i := 0; i < len(actions); i++ {
+                actionQName := qualifiedName{}
+                actionQName, err = parseQualifiedName(actions[i])
+
+                if err != nil {
+                    if IsDebug() {
+                        fmt.Println("parseAction: parseQualifiedName(%s)\nerror: %s\n", actions[i], err)
+                    }
+
+                    errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", actions[i])
+                    whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                        whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+
+                    return nil, sharedSet, whiskErr
+                }
+
+                keyValues.Values = append(keyValues.Values, "/" + actionQName.namespace + "/" + actionQName.entityName)
+
+                bindParams = append(bindParams, keyValues)
+
+                fmt.Print("wefwefwef %+v", bindParams)
+
+            }
+
+            fmt.Print("asdfasfasdfsadf %+v", bindParams)
+
+            action.BindParameters = bindParams
+
+            fmt.Print("SDFDFSFD %+v", action.BindParameters)
+        }
+
         action.Exec = pipeAction.Exec
         client.Config.Namespace = currentNamespace
+
+
     } else if artifact != "" {
         stat, err := os.Stat(artifact)
         if err != nil {
@@ -667,6 +757,10 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
             action.Exec.Kind = "nodejs"
         } else if matched, _ := regexp.MatchString(".py", stat.Name()); matched {
             action.Exec.Kind = "python"
+        } else if matched, _ := regexp.MatchString(".jar", stat.Name()); matched {
+            action.Exec.Kind = "java"
+            action.Exec.Jar = base64.StdEncoding.EncodeToString([]byte(action.Exec.Code))
+            action.Exec.Main = ""
         } else {
             errMsg := "An unsupported file type was provided."
             whiskErr := whisk.MakeWskError(errors.New(errMsg), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG,
@@ -749,6 +843,8 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
 
     return action, sharedSet, nil
 }
+
+
 
 ///////////
 // Flags //
