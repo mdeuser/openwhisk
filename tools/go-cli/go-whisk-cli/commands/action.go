@@ -33,6 +33,7 @@ import (
     "github.com/fatih/color"
     "github.com/spf13/cobra"
     "strings"
+    "os/exec"
 )
 
 //////////////
@@ -234,7 +235,6 @@ var actionInvokeCmd = &cobra.Command{
 
         payload := map[string]interface{}{}
 
-        //MWD fmt.Printf("PARAMAS %d", len(flags.common.param))
         if len(flags.common.param) > 0 {
             parameters, err := parseParameters(flags.common.param)
 
@@ -477,52 +477,58 @@ var actionListCmd = &cobra.Command{
     },
 }
 
-/*type predicate func(int) bool
+func getJavaClasses(classes []string) ([]string){
+    var res []string
 
-func filter(arr []string, method predicate) []string {
-    res := []int{}
+    for i := 0; i < len(classes); i++ {
 
-    for _, item, := range arr {
-        if method(item) {
-           res = append(res, item)
+        if strings.HasSuffix(classes[i], ".class") {
+            classes[i] = classes[i][0: len(classes[i]) - 6]
+            classes[i] = strings.Replace(classes[i], "/", ".", -1)
+            res = append(res, classes[i])
         }
     }
 
     return res
 }
 
-func findMainJarClass(cmd *cobra.Command, jarFile string) (string, error) {
-    signature := "\"public static com.google.gson.JsonObject main(com.google.gson.JsonObject);\"
+func findMainJarClass(jarFile string) (string, error) {
+    signature := "public static com.google.gson.JsonObject main(com.google.gson.JsonObject);"
 
-    cmd := exec.Command("jar", "-tf", jarFile)
-    stdOut, err := cmd.StdoutPipe()
+    stdOut, err := exec.Command("jar", "-tf", jarFile).Output()
 
     if err != nil {
         return "", err
     }
 
-    stdOut = strings.Split(stdOut, "/")
-    classes := filter(stdOut, func (item){
-            return item.contains("")
-        }
-    )
+    output := string(stdOut[:])
+    outputArr := strings.Split(output, "\n")
+    classes := getJavaClasses(outputArr)
 
     for i := 0; i < len(classes); i++ {
-        cmd := exec.Command("javap", "-cp", jarFile, class)
-        stdOut, err := cmd.StdoutPipe()
+        stdOut, err = exec.Command("javap", "-cp", jarFile, classes[i]).Output()
 
         if err != nil {
             return "", err
         }
 
-        if strings.Contains(signature, stdOut) {
+        output := string(stdOut[:])
 
+        if err != nil {
+            return "", err
+        }
+
+        if strings.Contains(output, signature) {
             return classes[i], nil
         }
     }
 
-    return "", nil
-}*/
+    errMsg := fmt.Sprintf("Could not find 'main' method in %s.\n", jarFile)
+    whiskErr := whisk.MakeWskError(errors.New(errMsg), whisk.EXITCODE_ERR_GENERAL,
+        whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+
+    return "", whiskErr
+}
 
 /*
 usage: wsk action update [-h] [-u AUTH] [--docker] [--copy] [--sequence]
@@ -698,16 +704,9 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
                 keyValues.Values = append(keyValues.Values, "/" + actionQName.namespace + "/" + actionQName.entityName)
 
                 bindParams = append(bindParams, keyValues)
-
-                fmt.Print("wefwefwef %+v", bindParams)
-
             }
 
-            fmt.Print("asdfasfasdfsadf %+v", bindParams)
-
             action.BindParameters = bindParams
-
-            fmt.Print("SDFDFSFD %+v", action.BindParameters)
         }
 
         action.Exec = pipeAction.Exec
@@ -758,9 +757,14 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
         } else if matched, _ := regexp.MatchString(".py", stat.Name()); matched {
             action.Exec.Kind = "python"
         } else if matched, _ := regexp.MatchString(".jar", stat.Name()); matched {
+            action.Exec.Code = ""
             action.Exec.Kind = "java"
-            action.Exec.Jar = base64.StdEncoding.EncodeToString([]byte(action.Exec.Code))
-            action.Exec.Main = ""
+            action.Exec.Jar = base64.StdEncoding.EncodeToString([]byte(string(file)))
+            action.Exec.Main, err = findMainJarClass(artifact)
+
+            if err != nil {
+                return nil, sharedSet, err
+            }
         } else {
             errMsg := "An unsupported file type was provided."
             whiskErr := whisk.MakeWskError(errors.New(errMsg), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG,

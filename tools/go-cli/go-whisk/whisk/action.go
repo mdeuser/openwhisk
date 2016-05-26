@@ -105,8 +105,8 @@ type Exec struct {
     Code  string `json:"code,omitempty"`
     Image string `json:"image,omitempty"`
     Init  string `json:"init,omitempty"`
-    Jar  string `json:"init,omitempty"`
-    Main  string `json:"init,omitempty"`
+    Jar   string `json:"jar,omitempty"`
+    Main  string `json:"main,omitempty"`
 }
 
 type ActionListOptions struct {
