@@ -23,12 +23,15 @@ import (
     "os"
     "strings"
     "net/url"
+    "time"
 
     "github.com/mitchellh/go-homedir"
     "github.com/spf13/cobra"
 
     "../../go-whisk/whisk"
 )
+
+var CLI_BUILD_TIME string = time.Now().Format("2006-01-02T15:04:05-07:00")
 
 var Properties struct {
     Auth       string
@@ -46,7 +49,6 @@ const DefaultAPIHost    string = "openwhisk.ng.bluemix.net"
 const DefaultAPIVersion string = "v1"
 const DefaultAPIBuild   string = ""
 const DefaultAPIBuildNo string = ""
-const DefaultCLIVersion string = ""
 const DefaultNamespace  string = "_"
 const DefaultPropsFile  string = "~/.wskprops"
 
@@ -291,7 +293,7 @@ func setDefaultProperties() {
     Properties.APIBuild = DefaultAPIBuild
     Properties.APIBuildNo = DefaultAPIBuildNo
     Properties.APIVersion = DefaultAPIVersion
-    Properties.CLIVersion = DefaultCLIVersion
+    Properties.CLIVersion = CLI_BUILD_TIME
     Properties.PropsFile = DefaultPropsFile
 }
 
