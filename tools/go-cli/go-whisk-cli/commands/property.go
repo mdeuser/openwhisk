@@ -418,6 +418,10 @@ func parseConfigFlags(cmd *cobra.Command, args []string) error {
     whisk.Flags.Debug = flags.global.debug
     whisk.Flags.Verbose = flags.global.verbose
 
+    if flags.global.debug {
+        whisk.SetDebug(true)
+    }
+
     return nil
 }
 

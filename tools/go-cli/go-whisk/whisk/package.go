@@ -111,7 +111,12 @@ func (s *PackageService) List(options *PackageListOptions) ([]Package, *http.Res
     route := fmt.Sprintf("packages")
     route, err := addRouteOptions(route, options)
     if err != nil {
-        return nil, nil, err
+        if IsDebug() {
+            fmt.Printf("PackageService.List: addRouteOptions(%s, %#v); error '%s'\n", route, options, err)
+        }
+        errStr := fmt.Sprintf("Unable to build request URL: error: %s", err)
+        werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
+        return nil, nil, werr
     }
 
     req, err := s.client.NewRequest("GET", route, nil)

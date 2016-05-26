@@ -19,11 +19,18 @@ package main
 import (
     "fmt"
     "os"
+    "reflect"
 
     "../go-whisk/whisk"
     "../go-whisk-cli/commands"
-    "reflect"
 )
+
+var cliDebug = os.Getenv("WSK_CLI_DEBUG")  // Useful for tracing init() code
+func init() {
+    if len(cliDebug) > 0 {
+        whisk.SetDebug(true)
+    }
+}
 
 func main() {
     var exitCode int = 0
