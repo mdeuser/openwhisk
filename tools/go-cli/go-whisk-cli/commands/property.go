@@ -68,6 +68,7 @@ var propertySetCmd = &cobra.Command{
         // get current props
         props, err := readProps(Properties.PropsFile)
         if err != nil {
+            whisk.Debug(whisk.DbgError, "readProps(%s) failed: %s\n", Properties.PropsFile, err)
             errStr := fmt.Sprintf("Unable to set the property value: %s\n", err)
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -91,28 +92,25 @@ var propertySetCmd = &cobra.Command{
         }
 
         if namespace := flags.property.namespaceSet; len(namespace) > 0 {
-
             namespaces, _, err := client.Namespaces.List()
             if err != nil {
-                errStr := fmt.Sprintf("Authenticated user does not have namespace '%s'; set command failed: %s", err)
+                whisk.Debug(whisk.DbgError, "client.Namespaces.List() failed: %s\n", err)
+                errStr := fmt.Sprintf("Authenticated user does not have namespace '%s'; set command failed: %s", namespace, err)
                 werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
             }
 
-            if IsDebug() {
-                fmt.Printf("propertySetCmd: Validating namespace '%s' is in user namespace list %#v\n", namespace, namespaces)
-            }
+            whisk.Debug(whisk.DbgInfo, "Validating namespace '%s' is in user namespace list %#v\n", namespace, namespaces)
             var validNamespace bool
             for _, ns := range namespaces {
                 if ns.Name == namespace {
-                    if IsDebug() {
-                        fmt.Printf("propertySetCmd: namespace '%s' is valid\n", namespace)
-                    }
+                    whisk.Debug(whisk.DbgInfo, "Namespace '%s' is valid\n", namespace)
                     validNamespace = true
                 }
             }
 
             if !validNamespace {
+                whisk.Debug(whisk.DbgError, "Namespace '%s' is invalid\n", namespace)
                 errStr := fmt.Sprintf("Invalid namespace %s", namespace)
                 werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
@@ -124,6 +122,7 @@ var propertySetCmd = &cobra.Command{
 
         err = writeProps(Properties.PropsFile, props)
         if err != nil {
+            whisk.Debug(whisk.DbgError, "writeProps(%s, %#v) failed: %s\n", Properties.PropsFile, props, err)
             errStr := fmt.Sprintf("Unable to set the property value: %s", err)
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -143,6 +142,7 @@ var propertyUnsetCmd = &cobra.Command{
         var okMsg string
         props, err := readProps(Properties.PropsFile)
         if err != nil {
+            whisk.Debug(whisk.DbgError, "readProps(%s) failed: %s\n", Properties.PropsFile, err)
             errStr := fmt.Sprintf("Unable to unset the property value: %s", err)
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -192,13 +192,16 @@ var propertyUnsetCmd = &cobra.Command{
 
         err = writeProps(Properties.PropsFile, props)
         if err != nil {
+            whisk.Debug(whisk.DbgError, "writeProps(%s, %#v) failed: %s\n", Properties.PropsFile, props, err)
             errStr := fmt.Sprintf("Unable to unset the property value: %s", err)
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
 
         fmt.Println(okMsg)
-        loadProperties()
+        if err = loadProperties(); err != nil {
+            whisk.Debug(whisk.DbgError, "loadProperties() failed: %s\n", err)
+        }
         return nil
     },
 }
@@ -233,9 +236,7 @@ var propertyGetCmd = &cobra.Command{
         if flags.property.all || flags.property.apibuild || flags.property.apibuildno {
             info, _, err := client.Info.Get()
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("propertyGetCmd: Unable to obtain Whisk server information: %s\n", err)
-                }
+                whisk.Debug(whisk.DbgError, "client.Info.Get() failed: %s\n", err)
                 info = &whisk.Info{}
                 info.Build = "Unknown"
                 info.BuildNo = "Unknown"
@@ -300,25 +301,19 @@ func setDefaultProperties() {
 func getPropertiesFilePath() (propsFilePath string, werr error) {
     // Environment variable overrides the default properties file path
     if propsFilePath = os.Getenv("WSK_CONFIG_FILE"); len(propsFilePath) > 0 {
-        if IsDebug() {
-            fmt.Println("getPropertiesFilePath: Using properties file from WSK_CONFIG_FILE environment variable: ", propsFilePath)
-        }
+        whisk.Debug(whisk.DbgInfo, "Using properties file '%s' from WSK_CONFIG_FILE environment variable\n", propsFilePath)
         return propsFilePath, nil
     } else {
         var err error
         propsFilePath, err = homedir.Expand(Properties.PropsFile)
         if err != nil {
+            whisk.Debug(whisk.DbgError, "homedir.Expand(%s) failed: %s\n", Properties.PropsFile, err)
             errStr := fmt.Sprintf("Unable to locate properties file '%s'; error %s", Properties.PropsFile, err)
             werr = whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-            if IsDebug() {
-                fmt.Printf("getPropertiesFilePath: Home directory '%s' expansion failure: %s\n", Properties.PropsFile, err)
-            }
             return propsFilePath, werr
         }
 
-        if IsDebug() {
-            fmt.Println("getPropertiesFilePath: Using properties file home dir: ", propsFilePath)
-        }
+        whisk.Debug(whisk.DbgInfo, "Using properties file home dir '%s'\n", propsFilePath)
     }
 
     return propsFilePath, nil
@@ -330,8 +325,8 @@ func loadProperties() error {
     setDefaultProperties()
 
     Properties.PropsFile, err = getPropertiesFilePath()
-
     if err != nil {
+        whisk.Debug(whisk.DbgError, "getPropertiesFilePath() failed: %s\n", err)
         errStr := fmt.Sprintf("Unable to load the properties file: %s", err)
         werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
@@ -339,6 +334,7 @@ func loadProperties() error {
 
     props, err := readProps(Properties.PropsFile)
     if err != nil {
+        whisk.Debug(whisk.DbgError, "readProps(%s) failed: %s\n", Properties.PropsFile, err)
         errStr := fmt.Sprintf("Unable to read the properties file '%s': %s", Properties.PropsFile, err)
         werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
@@ -406,6 +402,7 @@ func parseConfigFlags(cmd *cobra.Command, args []string) error {
         var apiHostBaseUrl = fmt.Sprintf("https://%s/api/", Properties.APIHost)
         baseURL, err := url.Parse(apiHostBaseUrl)
         if err != nil {
+            whisk.Debug(whisk.DbgError, "url.Parse(%s) failed: %s\n", apiHostBaseUrl, err)
             errStr := fmt.Sprintf("Invalid host address: %s", err)
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -432,9 +429,7 @@ func readProps(path string) (map[string]string, error) {
     file, err := os.Open(path)
     if err != nil {
         // If file does not exist, just return props
-        if IsDebug() {
-            fmt.Printf("Unable to read whisk properties file '%s' (file open error: %s); falling back to default properties\n" ,path, err)
-        }
+        whisk.Debug(whisk.DbgWarn, "Unable to read whisk properties file '%s' (file open error: %s); falling back to default properties\n" ,path, err)
         return props, nil
     }
     defer file.Close()
@@ -463,6 +458,7 @@ func writeProps(path string, props map[string]string) error {
 
     file, err := os.Create(path)
     if err != nil {
+        whisk.Debug(whisk.DbgError, "os.Create(%s) failed: %s\n", path, err)
         errStr := fmt.Sprintf("Whisk properties file write failue: %s", err)
         werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
@@ -475,6 +471,7 @@ func writeProps(path string, props map[string]string) error {
         line := fmt.Sprintf("%s=%s", strings.ToUpper(key), value)
         _, err = fmt.Fprintln(writer, line)
         if err != nil {
+            whisk.Debug(whisk.DbgError, "fmt.Fprintln() write to '%s' failed: %s\n", path, err)
             errStr := fmt.Sprintf("Whisk properties file write failue: %s", err)
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
