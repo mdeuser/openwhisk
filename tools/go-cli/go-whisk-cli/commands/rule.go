@@ -41,9 +41,7 @@ var ruleEnableCmd = &cobra.Command{
 
         var err error
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("ruleEnableCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -51,19 +49,14 @@ var ruleEnableCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("ruleEnableCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
-            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
-            return whiskErr
+            return werr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("ruleEnableCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -73,13 +66,12 @@ var ruleEnableCmd = &cobra.Command{
 
         _, _, err = client.Rules.SetState(ruleName, "active")
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("ruleEnableCmd: client.Rules.SetState(%s, active) failed: %s\n", ruleName, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Rules.SetState(%s, active) failed: %s\n", ruleName, err)
             errStr := fmt.Sprintf("Unable to enable rule '%s': %s", ruleName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
+
         fmt.Printf("%s enabled rule %s\n", color.GreenString("ok:"), boldString(ruleName))
         return nil
     },
@@ -94,9 +86,7 @@ var ruleDisableCmd = &cobra.Command{
 
         var err error
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("ruleDisableCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -104,36 +94,29 @@ var ruleDisableCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("ruleEnableCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
-            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
-            return whiskErr
+            return werr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("ruleEnableCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
         }
         client.Namespace = qName.namespace
         ruleName := qName.entityName
-        //MWD ruleName := args[0]
 
         _, _, err = client.Rules.SetState(ruleName, "inactive")
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("ruleDisableCmd: client.Rules.SetState(%s, inactive) failed: %s\n", ruleName, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Rules.SetState(%s, inactive) failed: %s\n", ruleName, err)
             errStr := fmt.Sprintf("Unable to disable rule '%s': %s", ruleName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
+
         fmt.Printf("%s disabled rule %s\n", color.GreenString("ok:"), boldString(ruleName))
         return nil
     },
@@ -147,9 +130,7 @@ var ruleStatusCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("ruleStatusCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -157,36 +138,29 @@ var ruleStatusCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("ruleEnableCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
-            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
-            return whiskErr
+            return werr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("ruleEnableCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
         }
         client.Namespace = qName.namespace
         ruleName := qName.entityName
-        //MWD ruleName := args[0]
 
         rule, _, err := client.Rules.Get(ruleName)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("ruleStatusCmd: client.Rules.Get(%s) failed: %s\n", ruleName, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Rules.Get(%s) failed: %s\n", ruleName, err)
             errStr := fmt.Sprintf("Unable to retrieve rule '%s': %s", ruleName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
         }
+
         fmt.Printf("%s rule %s is %s\n", color.GreenString("ok:"), boldString(ruleName), boldString(rule.Status))
         return nil
     },
@@ -202,9 +176,7 @@ var ruleCreateCmd = &cobra.Command{
         var shared bool
 
         if len(args) != 3 {
-            if IsDebug() {
-                fmt.Printf("ruleCreateCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly three arguments are expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -218,28 +190,22 @@ var ruleCreateCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("ruleEnableCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
-            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
-            return whiskErr
+            return werr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("ruleEnableCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
         }
         client.Namespace = qName.namespace
         ruleName := qName.entityName
-        //MWD ruleName := args[0]
-        triggerName := args[1]
-        actionName := args[2]
+        triggerName := args[1]  // MWD qualified name here?
+        actionName := args[2]   // MWD qualified name here?
 
         rule := &whisk.Rule{
             Name:    ruleName,
@@ -248,39 +214,28 @@ var ruleCreateCmd = &cobra.Command{
             Publish: shared,
         }
 
-        if IsDebug() {
-            fmt.Printf("ruleCreateCmd: Inserting rule:\n%+v\n", rule)
-        }
-
+        whisk.Debug(whisk.DbgInfo, "Inserting rule:\n%+v\n", rule)
         var retRule *whisk.Rule
         retRule, _, err = client.Rules.Insert(rule, false)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("ruleCreateCmd: client.Rules.Insert(%#v) failed: %s\n", rule, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Rules.Insert(%#v) failed: %s\n", rule, err)
             errStr := fmt.Sprintf("Unable to create rule '%s': %s", rule.Name, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
-        if IsDebug() {
-            fmt.Printf("ruleCreateCmd: Inserted rule:\n%+v\n", retRule)
-        }
+        whisk.Debug(whisk.DbgInfo, "Inserted rule:\n%+v\n", retRule)
 
         if flags.rule.enable {
             retRule, _, err = client.Rules.SetState(ruleName, "active")
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("ruleCreateCmd: client.Rules.SetState(%s, active) failed: %s\n", ruleName, err)
-                }
+                whisk.Debug(whisk.DbgError, "client.Rules.SetState(%s, active) failed: %s\n", ruleName, err)
                 // MWD - Is this a hard error since the rule was actually created
                 errStr := fmt.Sprintf("Unable to enable created rule '%s': %s", rule.Name, err)
                 werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
             }
         }
-        if IsDebug() {
-            fmt.Printf("ruleCreateCmd: Enabled rule:\n%+v\n", retRule)
-        }
+        whisk.Debug(whisk.DbgInfo, "Enabled rule:\n%+v\n", retRule)
 
         fmt.Printf("%s created rule %s\n", color.GreenString("ok:"), boldString(ruleName))
         return nil
@@ -297,9 +252,7 @@ var ruleUpdateCmd = &cobra.Command{
         var shared bool
 
         if len(args) != 3 {
-            if IsDebug() {
-                fmt.Printf("ruleGetCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly three arguments are expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -307,28 +260,22 @@ var ruleUpdateCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("ruleEnableCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
-            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
-            return whiskErr
+            return werr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("ruleEnableCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
         }
         client.Namespace = qName.namespace
         ruleName := qName.entityName
-        //MWD ruleName := args[0]
-        triggerName := args[1]
-        actionName := args[2]
+        triggerName := args[1]  //MWD qualified name?
+        actionName := args[2]   //MWD qualified name?
 
         if (flags.common.shared == "yes") {
             shared = true
@@ -345,13 +292,12 @@ var ruleUpdateCmd = &cobra.Command{
 
         rule, _, err = client.Rules.Insert(rule, true)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("ruleCreateCmd: client.Rules.Insert(%#v) failed: %s\n", rule, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Rules.Insert(%#v) failed: %s\n", rule, err)
             errStr := fmt.Sprintf("Unable to update rule '%s': %s", rule.Name, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
+
         fmt.Printf("%s updated rule %s\n", color.GreenString("ok:"), boldString(ruleName))
         return nil
     },
@@ -365,9 +311,7 @@ var ruleGetCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("ruleGetCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -375,36 +319,29 @@ var ruleGetCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("ruleEnableCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
-            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
-            return whiskErr
+            return werr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("ruleEnableCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
         }
         client.Namespace = qName.namespace
         ruleName := qName.entityName
-        //MWD ruleName := args[0]
 
         rule, _, err := client.Rules.Get(ruleName)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("ruleGetCmd: client.Rules.Get(%s) failed: %s\n", ruleName, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Rules.Get(%s) failed: %s\n", ruleName, err)
             errStr := fmt.Sprintf("Unable to retrieve rule '%s': %s", ruleName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
         }
+
         fmt.Printf("%s got rule %s\n", color.GreenString("ok:"), boldString(ruleName))
         printJSON(rule)
         return nil
@@ -419,9 +356,7 @@ var ruleDeleteCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("ruleDeleteCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -429,33 +364,25 @@ var ruleDeleteCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("ruleEnableCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
-            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+            werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
-            return whiskErr
+            return werr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("ruleEnableCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
         }
         client.Namespace = qName.namespace
         ruleName := qName.entityName
-        //MWD ruleName := args[0]
 
         if flags.rule.disable {
             _, _, err := client.Rules.SetState(ruleName, "inactive")
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("ruleDeleteCmd: client.Rules.SetState(%s, inactive) failed: %s\n", ruleName, err)
-                }
+                whisk.Debug(whisk.DbgError, "client.Rules.SetState(%s, inactive) failed: %s\n", ruleName, err)
                 errStr := fmt.Sprintf("Unable to disable rule '%s': %s", ruleName, err)
                 werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
@@ -464,13 +391,12 @@ var ruleDeleteCmd = &cobra.Command{
 
         _, err = client.Rules.Delete(ruleName)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("ruleDeleteCmd: client.Rules.Delete(%s) error: %s\n", ruleName, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Rules.Delete(%s) error: %s\n", ruleName, err)
             errStr := fmt.Sprintf("Unable to delete rule '%s': %s", ruleName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }
+
         fmt.Printf("%s deleted rule %s\n", color.GreenString("ok:"), boldString(ruleName))
         return nil
     },
@@ -487,23 +413,18 @@ var ruleListCmd = &cobra.Command{
         if len(args) == 1 {
             qName, err = parseQualifiedName(args[0])
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("ruleListCmd: parseQualifiedName(%#v) error: %s\n", args[0], err)
-                }
+                whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
                 errStr := fmt.Sprintf("'%s' is not a valid qualified name: %s", args[0], err)
                 werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
             }
             ns := qName.namespace
             if len(ns) == 0 {
-                if IsDebug() {
-                    fmt.Printf("ruleListCmd: Namespace is missing from '%s'\n", args[0])
-                }
+                whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
                 errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
                 werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
                 return werr
             }
-
             client.Namespace = ns
 
             if pkg := qName.packageName; len(pkg) > 0 {
@@ -518,9 +439,7 @@ var ruleListCmd = &cobra.Command{
 
         rules, _, err := client.Rules.List(ruleListOptions)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("ruleListCmd: client.Rules.List(%#v) error: %s\n", ruleListOptions, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Rules.List(%#v) error: %s\n", ruleListOptions, err)
             errStr := fmt.Sprintf("Unable to obtain list of rules: %s", err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr

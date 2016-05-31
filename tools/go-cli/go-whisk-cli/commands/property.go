@@ -69,7 +69,7 @@ var propertySetCmd = &cobra.Command{
         props, err := readProps(Properties.PropsFile)
         if err != nil {
             whisk.Debug(whisk.DbgError, "readProps(%s) failed: %s\n", Properties.PropsFile, err)
-            errStr := fmt.Sprintf("Unable to set the property value: %s\n", err)
+            errStr := fmt.Sprintf("Unable to set the property value: %s", err)
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
         }

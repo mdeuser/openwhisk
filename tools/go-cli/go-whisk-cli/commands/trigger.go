@@ -43,9 +43,7 @@ var triggerFireCmd = &cobra.Command{
         var err error
         var payloadArg string
         if len(args) < 1 || len(args) > 2 {
-            if IsDebug() {
-                fmt.Printf("triggerFireCmd: Invalid number of arguments %d (expected 1 or 2); args: %#v\n", len(args), args)
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments %d (expected 1 or 2); args: %#v\n", len(args), args)
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; 1 or 2 arguments are expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -53,10 +51,7 @@ var triggerFireCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("triggerFireCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
-
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
@@ -64,9 +59,7 @@ var triggerFireCmd = &cobra.Command{
             return whiskErr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("triggerFireCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -78,9 +71,7 @@ var triggerFireCmd = &cobra.Command{
         if len(flags.common.param) > 0 {
             parameters, err := parseParameters(flags.common.param)
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("triggerFireCmd: parseParameters(%#v) failed: %s\n", flags.common.param, err)
-                }
+                whisk.Debug(whisk.DbgError, "parseParameters(%#v) failed: %s\n", flags.common.param, err)
                 errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)
                 werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
                 return werr
@@ -97,19 +88,14 @@ var triggerFireCmd = &cobra.Command{
             err = json.NewDecoder(reader).Decode(&payload)
             if err != nil {
                 payload["payload"] = payloadArg
-
-                if IsDebug() {
-                    fmt.Printf("triggerFireCmd: json.NewDecoder().Decode() failure decoding '%s': : %s\n", payloadArg, err)
-                    fmt.Printf("triggerFireCmd: Defaulting payload to %#v\n", payload)
-                }
+                whisk.Debug(whisk.DbgError, "json.NewDecoder().Decode() failure decoding '%s': : %s\n", payloadArg, err)
+                whisk.Debug(whisk.DbgWarn, "Defaulting payload to %#v\n", payload)
             }
         }
 
         trigResp, _, err := client.Triggers.Fire(qName.entityName, payload)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("triggerFireCmd: client.Triggers.Fire(%s, %#v) failed: %s\n", qName.entityName, payload, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Triggers.Fire(%s, %#v) failed: %s\n", qName.entityName, payload, err)
             errStr := fmt.Sprintf("Unable to fire trigger '%s': %s", qName.entityName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -132,9 +118,7 @@ var triggerCreateCmd = &cobra.Command{
         var feedParams []string
 
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("triggerCreateCmd: Invalid number of arguments %d; args: %#v\n", len(args), args)
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments %d; args: %#v\n", len(args), args)
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -142,20 +126,14 @@ var triggerCreateCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("triggerCreateCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
-
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
             return whiskErr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("triggerCreateCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -165,14 +143,10 @@ var triggerCreateCmd = &cobra.Command{
         // Convert the trigger's list of default parameters from a string into []KeyValue
         // The 1 or more --param arguments have all been combined into a single []string
         // e.g.   --p arg1,arg2 --p arg3,arg4   ->  [arg1, arg2, arg3, arg4]
-        if IsDebug() {
-            fmt.Printf("triggerCreateCmd: parsing parameters: %#v\n", flags.common.param)
-        }
+        whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("triggerCreateCmd: parseParameters(%#v) failed: %s\n", flags.common.param, err)
-            }
+            whisk.Debug(whisk.DbgError, "parseParameters(%#v) failed: %s\n", flags.common.param, err)
             errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -181,23 +155,17 @@ var triggerCreateCmd = &cobra.Command{
         var fullTriggerName string
         var fullFeedName string
         if feedArgPassed {
-            if IsDebug() {
-                fmt.Printf("triggerCreateCmd: trigger has a feed\n")
-            }
+            whisk.Debug(whisk.DbgInfo, "Trigger has a feed\n")
             feedqName, err := parseQualifiedName(flags.common.feed)
             if err != nil {
-                if IsDebug() {
-                    fmt.Println("triggerCreateCmd: parseQualifiedName(%s)\nerror: %s\n", flags.common.feed, err)
-                }
+                whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", flags.common.feed, err)
                 errMsg := fmt.Sprintf("Failed to parse qualified feed name: %s\n", flags.common.feed)
                 whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                     whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
                 return whiskErr
             }
             if len(feedqName.namespace) == 0 {
-                if IsDebug() {
-                    fmt.Printf("triggerCreateCmd: Namespace is missing from '%s'\n", flags.common.feed)
-                }
+                whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", flags.common.feed)
                 errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
                 werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
                 return werr
@@ -218,20 +186,13 @@ var triggerCreateCmd = &cobra.Command{
             feedParams = append(feedParams, flags.global.auth)  // MWD ?? only from CLI arg
 
             parameters = whisk.Parameters{}
-            if IsDebug() {
-                fmt.Printf("triggerCreateCmd: trigger feed action parameters: %#v\n", feedParams)
-            }
-
+            whisk.Debug(whisk.DbgInfo, "Trigger feed action parameters: %#v\n", feedParams)
         }
 
-        if IsDebug() {
-            fmt.Printf("triggerCreateCmd: parsing annotations: %#v\n", flags.common.annotation)
-        }
+        whisk.Debug(whisk.DbgInfo, "Parsing annotations: %#v\n", flags.common.annotation)
         annotations, err := parseAnnotations(flags.common.annotation)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("triggerCreateCmd: parseAnnotations(%#v) failed: %s\n", flags.common.annotation, err)
-            }
+            whisk.Debug(whisk.DbgError, "parseAnnotations(%#v) failed: %s\n", flags.common.annotation, err)
             errStr := fmt.Sprintf("Invalid annotations argument value '%#v': %s", flags.common.annotation, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -241,20 +202,13 @@ var triggerCreateCmd = &cobra.Command{
             feedAnnotation["key"] = "feed"
             feedAnnotation["value"] = flags.common.feed
             annotations = append(annotations, feedAnnotation)
-
-            if IsDebug() {
-                fmt.Printf("triggerCreateCmd: trigger feed annotations: %#v\n", annotations)
-            }
+            whisk.Debug(whisk.DbgInfo, "Trigger feed annotations: %#v\n", annotations)
         }
 
-        if IsDebug() {
-            fmt.Printf("triggerCreateCmd: trigger shared: %s\n", flags.common.shared)
-        }
+        whisk.Debug(whisk.DbgInfo, "Trigger shared: %s\n", flags.common.shared)
         shared := strings.ToLower(flags.common.shared)
         if shared != "yes" && shared != "no" && shared != "" {  // "" means argument was not specified
-            if IsDebug() {
-                fmt.Printf("triggerCreateCmd: shared argument value '%s' is invalid\n", flags.common.shared)
-            }
+            whisk.Debug(whisk.DbgError, "Shared argument value '%s' is invalid\n", flags.common.shared)
             errStr := fmt.Sprintf("Invalid --shared argument value '%s'; valid values are 'yes' or 'no'", flags.common.shared)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), nil, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -273,9 +227,7 @@ var triggerCreateCmd = &cobra.Command{
 
         retTrigger, _, err := client.Triggers.Insert(trigger, false)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("triggerCreateCmd: client.Triggers.Insert(%+v,false) failed: %s\n", trigger, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Triggers.Insert(%+v,false) failed: %s\n", trigger, err)
             errStr := fmt.Sprintf("Unable to create trigger '%s': %s", trigger.Name, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -285,23 +237,18 @@ var triggerCreateCmd = &cobra.Command{
         if feedArgPassed {
             err := createFeed(trigger.Name, fullFeedName, feedParams)
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("triggerCreateCmd: createFeed(%s, %s, %+v) failed: %s\n", trigger.Name, flags.common.feed, feedParams, err)
-                }
+                whisk.Debug(whisk.DbgError, "createFeed(%s, %s, %+v) failed: %s\n", trigger.Name, flags.common.feed, feedParams, err)
                 errStr := fmt.Sprintf("Unable to create trigger '%s': %s", trigger.Name, err)
                 werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
 
                 // Delete trigger that was created for this feed
                 delerr := deleteTrigger(args[0])
                 if delerr != nil {
-                    if IsDebug() {
-                        fmt.Printf("triggerCreateCmd: warning - ignoring deleteTrigger(%s) failure: %s\n", args[0], delerr)
-                    }
+                    whisk.Debug(whisk.DbgWarn, "Ignoring deleteTrigger(%s) failure: %s\n", args[0], delerr)
                 }
                 return werr
             }
         }
-
 
         fmt.Println("ok: created trigger")
         //MWD printJSON(retTrigger) // color does appear correctly on vagrant VM
@@ -319,9 +266,7 @@ var triggerUpdateCmd = &cobra.Command{
 
         var err error
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("triggerUpdateCmd: Invalid number of arguments %d; args: %#v\n", len(args), args)
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments %d; args: %#v\n", len(args), args)
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -329,10 +274,7 @@ var triggerUpdateCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("triggerUpdateCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
-
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
@@ -340,9 +282,7 @@ var triggerUpdateCmd = &cobra.Command{
             return whiskErr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("triggerUpdateCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -352,40 +292,28 @@ var triggerUpdateCmd = &cobra.Command{
         // Convert the trigger's list of default parameters from a string into []KeyValue
         // The 1 or more --param arguments have all been combined into a single []string
         // e.g.   --p arg1,arg2 --p arg3,arg4   ->  [arg1, arg2, arg3, arg4]
-        if IsDebug() {
-            fmt.Printf("triggerUpdateCmd: parsing parameters: %#v\n", flags.common.param)
-        }
+        whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("triggerUpdateCmd: parseParameters(%#v) failed: %s\n", flags.common.param, err)
-            }
+            whisk.Debug(whisk.DbgError, "parseParameters(%#v) failed: %s\n", flags.common.param, err)
             errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
         }
 
-        if IsDebug() {
-            fmt.Printf("triggerUpdateCmd: parsing annotations: %#v\n", flags.common.annotation)
-        }
+        whisk.Debug(whisk.DbgInfo, "Parsing annotations: %#v\n", flags.common.annotation)
         annotations, err := parseAnnotations(flags.common.annotation)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("triggerUpdateCmd: parseAnnotations(%#v) failed: %s\n", flags.common.annotation, err)
-            }
+            whisk.Debug(whisk.DbgError, "parseAnnotations(%#v) failed: %s\n", flags.common.annotation, err)
             errStr := fmt.Sprintf("Invalid annotations argument value '%#v': %s", flags.common.annotation, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
         }
 
-        if IsDebug() {
-            fmt.Printf("triggerCreateCmd: trigger shared: %s\n", flags.common.shared)
-        }
+        whisk.Debug(whisk.DbgInfo, "Trigger shared: %s\n", flags.common.shared)
         shared := strings.ToLower(flags.common.shared)
         if shared != "yes" && shared != "no" && shared != "" {  // "" means argument was not specified
-            if IsDebug() {
-                fmt.Printf("triggerCreateCmd: shared argument value '%s' is invalid\n", flags.common.shared)
-            }
+            whisk.Debug(whisk.DbgError, "Shared argument value '%s' is invalid\n", flags.common.shared)
             errStr := fmt.Sprintf("Invalid --shared argument value '%s'; valid values are 'yes' or 'no'", flags.common.shared)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), nil, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -411,9 +339,7 @@ var triggerUpdateCmd = &cobra.Command{
 
         retTrigger, _, err := client.Triggers.Insert(trigger, true)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("triggerUpdateCmd: client.Triggers.Insert(%+v,true) failed: %s\n", trigger, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Triggers.Insert(%+v,true) failed: %s\n", trigger, err)
             errStr := fmt.Sprintf("Unable to update trigger '%s': %s", trigger.Name, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -434,9 +360,7 @@ var triggerGetCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("triggerGetCmd: Invalid number of arguments %d; args: %#v\n", len(args), args)
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments %d; args: %#v\n", len(args), args)
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -444,10 +368,7 @@ var triggerGetCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("triggerGetCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
-
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
@@ -455,9 +376,7 @@ var triggerGetCmd = &cobra.Command{
             return whiskErr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("triggerGetCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -466,9 +385,7 @@ var triggerGetCmd = &cobra.Command{
 
         retTrigger, _, err := client.Triggers.Get(qName.entityName)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("triggerGetCmd: client.Triggers.Get(%s) failed: %s\n", qName.entityName, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Triggers.Get(%s) failed: %s\n", qName.entityName, err)
             errStr := fmt.Sprintf("Unable to get trigger '%s': %s", qName.entityName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -488,9 +405,7 @@ var triggerDeleteCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("triggerDeleteCmd: Invalid number of arguments %d; args: %#v\n", len(args), args)
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments %d; args: %#v\n", len(args), args)
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -498,10 +413,7 @@ var triggerDeleteCmd = &cobra.Command{
 
         qName, err := parseQualifiedName(args[0])
         if err != nil {
-            if IsDebug() {
-                fmt.Println("triggerDeleteCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-            }
-
+            whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
             errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
@@ -509,9 +421,7 @@ var triggerDeleteCmd = &cobra.Command{
             return whiskErr
         }
         if len(qName.namespace) == 0 {
-            if IsDebug() {
-                fmt.Printf("triggerDeleteCmd: Namespace is missing from '%s'\n", args[0])
-            }
+            whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
             errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -520,9 +430,7 @@ var triggerDeleteCmd = &cobra.Command{
 
         _, err = client.Triggers.Delete(qName.entityName)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("triggerDeleteCmd: client.Triggers.Delete(%s) failed: %s\n", qName.entityName, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Triggers.Delete(%s) failed: %s\n", qName.entityName, err)
             errStr := fmt.Sprintf("Unable to delete trigger '%s': %s", qName.entityName, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -543,27 +451,20 @@ var triggerListCmd = &cobra.Command{
         if len(args) == 1 {
             qName, err = parseQualifiedName(args[0])
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("triggerListCmd: parseQualifiedName(%#v) error: %s\n", args[0], err)
-                }
+                whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
                 errStr := fmt.Sprintf("'%s' is not a valid qualified name: %s", args[0], err)
                 werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
                 return werr
             }
             ns := qName.namespace
             if len(ns) == 0 {
-                if IsDebug() {
-                    fmt.Printf("triggerListCmd: Namespace is missing from '%s'\n", args[0])
-                }
+                whisk.Debug(whisk.DbgError, "Namespace is missing from '%s'\n", args[0])
                 errStr := fmt.Sprintf("No valid namespace detected.  Run 'wsk property set --namespace' or ensure the name argument is preceded by a \"/\"")
                 werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
                 return werr
             }
-
             client.Namespace = ns
-            if IsDebug() {
-                fmt.Printf("triggerListCmd: Using namespace '%s' from argument '%s''\n", ns, args[0])
-            }
+            whisk.Debug(whisk.DbgInfo, "Using namespace '%s' from argument '%s''\n", ns, args[0])
 
             if pkg := qName.packageName; len(pkg) > 0 {
                 // todo :: scope call to package
@@ -576,9 +477,7 @@ var triggerListCmd = &cobra.Command{
         }
         triggers, _, err := client.Triggers.List(options)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("triggerListCmd: client.Triggers.List(%#v) for namespace '%s' failed: %s\n", options, client.Namespace, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Triggers.List(%#v) for namespace '%s' failed: %s\n", options, client.Namespace, err)
             errStr := fmt.Sprintf("Unable to obtain the trigger list for namespace '%s': %s", client.Namespace, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -597,15 +496,11 @@ func createFeed (triggerName string, FullFeedName string, parameters []string) e
     flags.common.blocking = true
     err := actionInvokeCmd.RunE(nil, feedArgs)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("createFeed: Invoke of action '%s' failed: %s\n", FullFeedName, err)
-        }
+        whisk.Debug(whisk.DbgError, "Invoke of action '%s' failed: %s\n", FullFeedName, err)
         errStr := fmt.Sprintf("Unable to invoke trigger '%s' feed action '%s'; feed is not configured: %s", triggerName, FullFeedName, err)
         err = whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
     } else {
-        if IsDebug() {
-            fmt.Printf("createFeed: Successfully configured trigger feed via feed action '%s'\n", FullFeedName)
-        }
+        whisk.Debug(whisk.DbgInfo, "Successfully configured trigger feed via feed action '%s'\n", FullFeedName)
     }
 
     flags.common.param = originalParams
@@ -616,9 +511,7 @@ func deleteTrigger (triggerName string) error {
     args := []string {triggerName}
     err := triggerDeleteCmd.RunE(nil, args)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("deleteTrigger: trigger '%s' delete failed: %s\n", triggerName, err)
-        }
+        whisk.Debug(whisk.DbgError, "Trigger '%s' delete failed: %s\n", triggerName, err)
         errStr := fmt.Sprintf("Unable to delete trigger '%s': %s", triggerName, err)
         err = whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
     }

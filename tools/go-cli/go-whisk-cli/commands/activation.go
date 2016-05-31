@@ -49,29 +49,24 @@ var activationListCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         qName := qualifiedName{}
+
+        // Specifying an activation item name filter is optional
         if len(args) == 1 {
-            if IsDebug() {
-                fmt.Printf("activationListCmd: namespace argument '%#v' is provided\n", args[0])
-            }
+            whisk.Debug(whisk.DbgInfo, "Activation item name filter '%s' provided\n", args[0])
             qName, err = parseQualifiedName(args[0])
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("activationListCmd: parseQualifiedName(%#v) error: %s\n", args[0], err)
-                }
+                whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
                 errStr := fmt.Sprintf("'%s' is not a valid qualified name: %s", args[0], err)
                 werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
             }
             ns := qName.namespace
             if len(ns) == 0 {
-                if IsDebug() {
-                    fmt.Printf("activationListCmd: Namespace '%s' is invalid\n", ns)
-                }
+                whisk.Debug(whisk.DbgError, "Namespace '%s' is invalid\n", ns)
                 errStr := fmt.Sprintf("Namespace '%s' is invalid", ns)
                 werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
                 return werr
             }
-
             client.Namespace = ns
 
             if pkg := qName.packageName; len(pkg) > 0 {
@@ -89,9 +84,7 @@ var activationListCmd = &cobra.Command{
         }
         activations, _, err := client.Activations.List(options)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("activationListCmd: client.Activations.List() error: %s\n", err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Activations.List() error: %s\n", err)
             errStr := fmt.Sprintf("Unable to obtain list of activations: %s", err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -115,9 +108,7 @@ var activationGetCmd = &cobra.Command{
     SilenceErrors:  true,
     RunE: func(cmd *cobra.Command, args []string) error {
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("activationGetCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -125,9 +116,7 @@ var activationGetCmd = &cobra.Command{
         id := args[0]
         activation, _, err := client.Activations.Get(id)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("activationGetCmd: client.Activations.Get(%s) failed: %s\n", id, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Activations.Get(%s) failed: %s\n", id, err)
             errStr := fmt.Sprintf("Unable to obtain activation record for '%s': %s", id, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -153,9 +142,7 @@ var activationLogsCmd = &cobra.Command{
     SilenceErrors:  true,
     RunE: func(cmd *cobra.Command, args []string) error {
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("activationLogsCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -164,9 +151,7 @@ var activationLogsCmd = &cobra.Command{
         id := args[0]
         activation, _, err := client.Activations.Logs(id)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("activationLogsCmd: client.Activations.Logs(%s) failed: %s\n", id, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Activations.Logs(%s) failed: %s\n", id, err)
             errStr := fmt.Sprintf("Unable to obtain logs for activation '%s': %s", id, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -184,9 +169,7 @@ var activationResultCmd = &cobra.Command{
     SilenceErrors:  true,
     RunE: func(cmd *cobra.Command, args []string) error {
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("activationResultCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("Invalid number of arguments (%d) provided; exactly one argument is expected", len(args))
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -195,9 +178,7 @@ var activationResultCmd = &cobra.Command{
         id := args[0]
         result, _, err := client.Activations.Result(id)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("activationResultCmd: client.Activations.result(%s) failed: %s\n", id, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Activations.result(%s) failed: %s\n", id, err)
             errStr := fmt.Sprintf("Unable to obtain result information for activation '%s': %s", id, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -218,6 +199,8 @@ var activationPollCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
         var name string
         var pollSince int64 // Represents an instant in time (in milliseconds since Jan 1 1970)
+
+        // The activation item filter is optional
         if len(args) == 1 {
             name = args[0]
         }
@@ -246,11 +229,9 @@ var activationPollCmd = &cobra.Command{
             }
             activationList, _, err := client.Activations.List(options)
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("activationPollCmd: Warning! client.Activations.List() error: %s\n", err)
-                    fmt.Println("activationPollCmd: Ignoring client.Activations.List failure; polling for activations since 'now'")
-                    pollSince = time.Now().Unix() * 1000    // Convert to milliseconds
-                }
+                whisk.Debug(whisk.DbgWarn, "client.Activations.List() error: %s\n", err)
+                whisk.Debug(whisk.DbgWarn, "Ignoring client.Activations.List failure; polling for activations since 'now'\n")
+                pollSince = time.Now().Unix() * 1000    // Convert to milliseconds
             } else {
                 if len(activationList) > 0 {
                     lastActivation := activationList[0]     // Activation.Start is in milliseconds since Jan 1 1970
@@ -270,9 +251,7 @@ var activationPollCmd = &cobra.Command{
             if err == nil {
                 pollSince = pollSince - duration.Nanoseconds()/1000/1000    // Convert to milliseconds
             } else {
-                if IsDebug() {
-                    fmt.Printf("activationPollCmd: time.ParseDuration(%s) failure: %s\n", durationStr, err)
-                }
+                whisk.Debug(whisk.DbgError, "time.ParseDuration(%s) failure: %s\n", durationStr, err)
             }
         }
 
@@ -285,9 +264,7 @@ var activationPollCmd = &cobra.Command{
             if flags.activation.exit > 0 {
                 localDuration := time.Since(localStartTime)
                 if int(localDuration.Seconds()) > flags.activation.exit {
-                    if IsDebug() {
-                        fmt.Printf("activationPollCmd: Poll time (%d seconds) expired; polling loop stopped\n", flags.activation.exit)
-                    }
+                    whisk.Debug(whisk.DbgInfo, "Poll time (%d seconds) expired; polling loop stopped\n", flags.activation.exit)
                     return nil
                 }
             }
@@ -304,10 +281,8 @@ var activationPollCmd = &cobra.Command{
 
             activations, _, err := client.Activations.List(options)
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("activationPollCmd: Warning! client.Activations.List() error: %s\n", err)
-                    fmt.Println("activationPollCmd: Ignoring client.Activations.List failure; continuing to poll for activations")
-                }
+                whisk.Debug(whisk.DbgWarn, "client.Activations.List() error: %s\n", err)
+                whisk.Debug(whisk.DbgWarn, "Ignoring client.Activations.List failure; continuing to poll for activations\n")
                 continue
             }
 

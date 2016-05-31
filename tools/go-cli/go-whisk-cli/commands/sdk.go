@@ -153,7 +153,7 @@ func sdkInstall(componentName string) error {
     sdkfile, err := os.Create(targetFile)
     if err != nil {
         whisk.Debug(whisk.DbgError, "os.Create(%s) failure: %s\n", targetFile, err)
-        errStr := fmt.Sprintf("Error creating SDK file %s: %s\n", targetFile, err)
+        errStr := fmt.Sprintf("Error creating SDK file %s: %s", targetFile, err)
         werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
     }
@@ -163,7 +163,7 @@ func sdkInstall(componentName string) error {
     _, err = io.Copy(sdkfile, resp.Body)
     if err != nil {
         whisk.Debug(whisk.DbgError, "io.Copy() of resp.Body into sdkfile failure: %s\n", err)
-        errStr := fmt.Sprintf("Error copying response body into file: %s\n", err)
+        errStr := fmt.Sprintf("Error copying response body into file: %s", err)
         werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         sdkfile.Close()
         return werr
@@ -192,7 +192,7 @@ func sdkInstall(componentName string) error {
             err := unpackGzip(targetFile, "temp.tar")
             if err != nil {
                 whisk.Debug(whisk.DbgError, "unpackGzip(%s,temp.tar) failure: %s\n", targetFile, err)
-                errStr := fmt.Sprintf("Error unGziping file %s: %s\n", targetFile, err)
+                errStr := fmt.Sprintf("Error unGziping file %s: %s", targetFile, err)
                 werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
             }
@@ -202,7 +202,7 @@ func sdkInstall(componentName string) error {
             err = unpackTar("temp.tar")
             if err != nil {
                 whisk.Debug(whisk.DbgError, "unpackTar(temp.tar) failure: %s\n", err)
-                errStr := fmt.Sprintf("Error Error untaring file %s: %s\n", "temp.tar", err)
+                errStr := fmt.Sprintf("Error untaring file %s: %s", "temp.tar", err)
                 werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
             }
