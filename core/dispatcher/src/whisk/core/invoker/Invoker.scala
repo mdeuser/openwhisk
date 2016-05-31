@@ -92,6 +92,7 @@ import whisk.http.BasicHttpService
 class Invoker(
     config: WhiskConfig,
     instance: Int,
+    verbosity: Verbosity.Level = Verbosity.Loud,
     runningInContainer: Boolean = true)(implicit actorSystem: ActorSystem)
     extends DispatchRule("invoker", "/actions/invoke", s"""(.+)/(.+)/(.+),(.+)/(.+)""") {
 
@@ -288,7 +289,7 @@ class Invoker(
 
     // The nodeJsAction runner inserts this line in the logs at the end
     // of each activation
-    private val LogRetryCount = 10
+    private val LogRetryCount = 15
     private val LogRetry = 100 // millis
     private val LOG_ACTIVATION_SENTINEL = "XXX_THE_END_OF_A_WHISK_ACTIVATION_XXX"
     private val nodejsImageName = WhiskAction.containerImageName(NodeJSExec("", None), config.dockerRegistry, config.dockerImageTag)
@@ -422,21 +423,6 @@ class Invoker(
         count
     }
 
-    /**
-     * Destroys all activte containers and starts new warm containers.
-     * This method should be called only once and only at startup.
-     */
-    private var started = false
-    def start() = if (!started) {
-        started = true
-
-        // This will remove leftover action containers
-        pool.killStragglers()(TransactionId.invoker)
-
-        // Start warm containers after removing stragglers
-        pool.warmupContainers()
-    }
-
     private def getUserActivationCounts(): Map[String, JsObject] = {
         val subjects = userActivationCounter.keySet toList
         val groups = subjects.groupBy { user => user.substring(0, 1) } // Any sort of partitioning will be ok wrt load balancer
@@ -483,7 +469,7 @@ class Invoker(
     private val entityStore = WhiskEntityStore.datastore(config)
     private val authStore = WhiskAuthStore.datastore(config)
     private val activationStore = WhiskActivationStore.datastore(config)
-    private val pool = new ContainerPool(config, instance)
+    private val pool = new ContainerPool(config, instance, verbosity)
     private val activationCounter = new Counter() // global activation counter
     private val userActivationCounter = new TrieMap[String, Counter]
 
@@ -504,6 +490,8 @@ class Invoker(
     private val activationIdMap = new TrieMap[ActivationId, String]
     def putContainerName(activationId: ActivationId, containerName: String) = activationIdMap += (activationId -> containerName)
     def getContainerName(activationId: ActivationId): Option[String] = activationIdMap get activationId
+
+    setVerbosity(verbosity)
 }
 
 object Invoker {
@@ -542,20 +530,18 @@ object InvokerService {
 
         if (config.isValid) {
             val instance = if (args.length > 0) args(1).toInt else 0
+            val verbosity = Verbosity.Loud
+
+            SimpleExec.setVerbosity(verbosity)
+
             val dispatcher = new Dispatcher(config, s"invoke${instance}", "invokers")
             implicit val ec = Dispatcher.executionContext
-
             implicit val actorSystem = ActorSystem(
                 name = "invoker-actor-system",
                 defaultExecutionContext = Some(ec))
 
-            val invoker = new Invoker(config, instance)
-
-            SimpleExec.setVerbosity(Verbosity.Loud)
-            invoker.setVerbosity(Verbosity.Loud)
-            invoker.start()
-
-            dispatcher.setVerbosity(Verbosity.Loud)
+            val invoker = new Invoker(config, instance, verbosity)
+            dispatcher.setVerbosity(verbosity)
             dispatcher.addHandler(invoker, true)
             dispatcher.start()
 

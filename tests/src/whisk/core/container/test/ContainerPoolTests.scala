@@ -72,8 +72,7 @@ class ContainerPoolTests extends FlatSpec
             ++ WhiskAuthStore.requiredProperties)
     assert(config.isValid)
 
-    val pool = new ContainerPool(config, 0, false)
-    pool.setVerbosity(Verbosity.Loud)
+    val pool = new ContainerPool(config, 0, Verbosity.Loud, true)
     pool.logDir = "/tmp"
 
     val datastore = WhiskEntityStore.datastore(config)
@@ -113,6 +112,7 @@ class ContainerPoolTests extends FlatSpec
     def ensureClean() = {
         pool.enableGC();
         pool.forceGC();
+        Thread.sleep(2 * pool.gcFreqMilli + 1500) // GC should collect this by now
         assert(pool.idleCount() == 0);
         assert(pool.activeCount() == 0);
     }
@@ -146,6 +146,7 @@ class ContainerPoolTests extends FlatSpec
         assert(pool.idleCount() == startIdleCount + 1)
         pool.enableGC();
         pool.forceGC(); // force all containers in pool to be freed
+        Thread.sleep(2 * pool.gcFreqMilli + 1500) // GC should collect this by now
         assert(!poolHasContainerIdPrefix(containerIdPrefix)) // container must be gone by now
         assert(pool.idleCount() == 0)
     }
