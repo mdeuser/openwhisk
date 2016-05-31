@@ -195,12 +195,14 @@ func (s *ActionService) Insert(action *Action, sharedSet bool, overwrite bool) (
                 BindParameters: action.BindParameters,
                 Exec: action.Exec,
                 Publish: action.Publish,
+                Annotations: action.Annotations,
             }
         } else {
             sentAction = SentActionPublish{
                 Parameters: action.Parameters,
                 Exec: action.Exec,
                 Publish: action.Publish,
+                Annotations: action.Annotations,
             }
         }
     } else {
@@ -209,11 +211,13 @@ func (s *ActionService) Insert(action *Action, sharedSet bool, overwrite bool) (
             sentAction = BindSentActionNoPublish{
                 BindParameters: action.BindParameters,
                 Exec: action.Exec,
+                Annotations: action.Annotations,
             }
         } else {
             sentAction = SentActionNoPublish{
                 Parameters: action.Parameters,
                 Exec: action.Exec,
+                Annotations: action.Annotations,
             }
         }
     }
