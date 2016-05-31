@@ -78,9 +78,7 @@ func NewClient(httpClient *http.Client, config *Config) (*Client, error) {
         if config.BaseURL == nil {
                 config.BaseURL, err = url.Parse(defaultBaseURL)
                 if err != nil {
-                    if IsDebug() {
-                        fmt.Printf("client.NewClient: url.Parse(%s) error: %s", defaultBaseURL, err)
-                    }
+                    Debug(DbgError, "url.Parse(%s) error: %s", defaultBaseURL, err)
                     errStr := fmt.Sprintf("Unable to create request URL '%s': %s", defaultBaseURL, err)
                     werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
                     return nil, werr
@@ -122,9 +120,7 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 
         rel, err := url.Parse(urlStr)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("client.NewRequest: url.Parse(%s) error: %s\n", urlStr, err)
-            }
+            Debug(DbgError, "url.Parse(%s) error: %s\n", urlStr, err)
             errStr := fmt.Sprintf("Invalid request URL '%s': %s", urlStr, err)
             werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
             return nil, werr
@@ -137,9 +133,7 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
                 buf = new(bytes.Buffer)
                 err := json.NewEncoder(buf).Encode(body)
                 if err != nil {
-                    if IsDebug() {
-                        fmt.Printf("client.NewRequest: json.Encode(%#v) error: %s\n", body, err)
-                    }
+                    Debug(DbgError, "json.Encode(%#v) error: %s\n", body, err)
                     errStr := fmt.Sprintf("Error encoding request body: %s", err)
                     werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
                     return nil, werr
@@ -147,9 +141,7 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
         }
         req, err := http.NewRequest(method, u.String(), buf)
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("client.NewRequest: http.NewRequest(%v, %s, buf) error: %s\n", method, u.String(), err)
-            }
+            Debug(DbgError, "http.NewRequest(%v, %s, buf) error: %s\n", method, u.String(), err)
             errStr := fmt.Sprintf("Error initializing request: %s", err)
             werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
             return nil, werr
@@ -176,8 +168,7 @@ func (c *Client) addAuthHeader(req *http.Request) {
 // interface, the raw response body will be written to v, without attempting to
 // first decode it.
 func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
-// TODO :: clean up verbose scheme
-    if (IsVerbose()) {
+    if IsVerbose() {
         fmt.Println("REQUEST:")
         fmt.Printf("[%s]\t%s\n", req.Method, req.URL)
         if len(req.Header) > 0 {
@@ -193,31 +184,23 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
     // Issue the request to the Whisk server endpoint
     resp, err := c.client.Do(req)
     if err != nil {
-        if c.IsDebug() {
-            fmt.Printf("whisk.client.Do: HTTP [req %s] failure: %s\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "HTTP Do() [req %s] error: %s\n", req.URL.String(), err)
         werr := MakeWskError(err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, werr
     }
     defer resp.Body.Close()
-    if c.IsVerbose() {
-        fmt.Println("RESPONSE:")
-        fmt.Printf("Got response with code %d\n", resp.StatusCode)
-    }
+    Verbose("RESPONSE:")
+    Verbose("Got response with code %d\n", resp.StatusCode)
 
     // Read the response body
     data, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        if c.IsDebug() {
-            fmt.Printf("whisk.client.Do: Unable to read response body; err %s\n", err)
-        }
+        Debug(DbgError, "ioutil.ReadAll(resp.Body) error: %s\n", err)
         werr := MakeWskError(err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return resp, werr
     }
-    if c.IsVerbose() {
-        fmt.Printf("Response body size is %d bytes\n", len(data))
-        fmt.Printf("Response body received:\n%s\n", string(data))
-    }
+    Verbose("Response body size is %d bytes\n", len(data))
+    Verbose("Response body received:\n%s\n", string(data))
 
     // With the HTTP response status code and the HTTP body contents,
     // the possible response scenarios are:
@@ -232,9 +215,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
     // Handle 4. HTTP Failure + No body
     // If this happens, just return no data and an error
     if !IsHttpRespSuccess(resp) && data == nil {
-        if c.IsDebug() {
-            fmt.Printf("whisk.client.Do: HTTP failure %d + no body\n", resp.StatusCode)
-        }
+        Debug(DbgError, "HTTP failure %d + no body\n", resp.StatusCode)
         werr := MakeWskError(errors.New("Command failed due to an HTTP failure"), resp.StatusCode-256, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return resp, werr
     }
@@ -242,25 +223,19 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
     // Handle 5. HTTP Failure + Body matching error format expectation
     // Handle 6. HTTP Failure + Body NOT matching error format expectation
     if !IsHttpRespSuccess(resp) && data != nil {
-        if c.IsDebug() {
-            fmt.Printf("whisk.client.Do: HTTP failure %d + body\n", resp.StatusCode)
-        }
+        Debug(DbgInfo, "HTTP failure %d + body\n", resp.StatusCode)
         errorResponse := &ErrorResponse{Response: resp}
         err = json.Unmarshal(data, errorResponse)
 
         // If the body matches the error response format, return an error containing
         // the response error information (#5)
         if err == nil {
-            if c.IsDebug() {
-                fmt.Printf("whisk.client.Do: HTTP failure %d; server error %s\n", resp.StatusCode, errorResponse)
-            }
+            Debug(DbgInfo, "HTTP failure %d; server error %s\n", resp.StatusCode, errorResponse)
             werr := MakeWskError(errorResponse, resp.StatusCode - 256, DISPLAY_MSG, NO_DISPLAY_USAGE)
             return resp, werr
         } else {
             // Otherwise, the body contents are unknown (#6)
-            if c.IsDebug() {
-                fmt.Printf("whisk.client.Do: HTTP failure with unexpected body contents due to parsing error: '%v'\n", err)
-            }
+            Debug(DbgError, "HTTP response with unexpected body failed due to contents parsing error: '%v'\n", err)
             var errStr = fmt.Sprintf("Request failed (status code = %d). Error details: %s", resp.StatusCode, data)
             werr := MakeWskError(errors.New(errStr), resp.StatusCode - 256, DISPLAY_MSG, NO_DISPLAY_USAGE)
             return resp, werr
@@ -269,32 +244,24 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 
     // Handle 2. HTTP Success + No body expected
     if IsHttpRespSuccess(resp) && v == nil {
-        if c.IsDebug() {
-            fmt.Println("whisk.client.Do: No interface provided; no HTTP response body expected")
-        }
+        Debug(DbgInfo, "No interface provided; no HTTP response body expected")
         return resp, nil
     }
 
     // Handle 1. HTTP Success + Valid body matching request expectations
     // Handle 3. HTTP Success + Body does NOT match request expectations
     if IsHttpRespSuccess(resp) && v != nil {
-        if c.IsDebug() {
-            fmt.Printf("whisk.client.Do: Parsing HTTP response into struct type: %s\n", reflect.TypeOf(v) )
-        }
+        Debug(DbgInfo, "Parsing HTTP response into struct type: %s\n", reflect.TypeOf(v) )
         err = json.Unmarshal(data, v)
 
         // If the decode was successful, return the response without error (#1)
         if err == nil {
-            if c.IsDebug() {
-                fmt.Printf("whisk.client.Do: Successful parse of HTTP response into struct type: %s\n", reflect.TypeOf(v))
-            }
+            Debug(DbgInfo, "Successful parse of HTTP response into struct type: %s\n", reflect.TypeOf(v))
             return resp, nil
         } else {
             // The decode did not work, so the server response was unexpected (#3)
-            if c.IsDebug() {
-                fmt.Printf("whisk.client.Do: Warning! Unsuccessful parse of HTTP response into struct type: %s; parse error '%v'\n", reflect.TypeOf(v), err)
-                fmt.Printf("whisk.client.Do: Warning! Request was successful, so ignoring the following unexpected response body that could not be parsed: %s\n", data)
-            }
+            Debug(DbgWarn, "Unsuccessful parse of HTTP response into struct type: %s; parse error '%v'\n", reflect.TypeOf(v), err)
+            Debug(DbgWarn, "Request was successful, so ignoring the following unexpected response body that could not be parsed: %s\n", data)
             return resp, nil
         }
     }
@@ -328,14 +295,6 @@ func (r ErrorResponse) Error() string {
 ////////////////////////////
 // Basic Client Functions //
 ////////////////////////////
-
-func (c *Client) IsVerbose() bool {
-    return c.Config.Verbose || IsDebug()
-}
-
-func (c *Client) IsDebug() bool {
-    return c.Config.Debug
-}
 
 func IsHttpRespSuccess(r *http.Response) bool {
     return r.StatusCode >= 200 && r.StatusCode <= 299

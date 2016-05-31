@@ -410,13 +410,11 @@ func parseConfigFlags(cmd *cobra.Command, args []string) error {
         client.Config.BaseURL = baseURL
     }
 
-    client.Config.Verbose = flags.global.verbose
-    client.Config.Debug = flags.global.debug
-    whisk.Flags.Debug = flags.global.debug
-    whisk.Flags.Verbose = flags.global.verbose
-
     if flags.global.debug {
         whisk.SetDebug(true)
+    }
+    if flags.global.verbose {
+        whisk.SetVerbose(true)
     }
 
     return nil

@@ -39,9 +39,7 @@ func (s *InfoService) Get() (*Info, *http.Response, error) {
 
     ref, err := url.Parse(s.client.Config.Version)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("InfoService.Get: url.Parse error - URL '%s'; err '%s'\n", s.client.Config.Version, err)
-        }
+        Debug(DbgError, "url.Parse(%s) error: %s\n", s.client.Config.Version, err)
         errStr := fmt.Sprintf("Unable to URL parse '%s'; error: %s", s.client.Config.Version, err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -51,25 +49,18 @@ func (s *InfoService) Get() (*Info, *http.Response, error) {
 
     req, err := http.NewRequest("GET", u.String(), nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("InfoService.Get: http.NewRequest error - URL GET '%s'; err '%s'\n", u.String(), err)
-        }
+        Debug(DbgError, "http.NewRequest(GET, %s) error: %s\n", u.String(), err)
         errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", u.String(), err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }
 
-    if IsDebug() {
-        fmt.Printf("InfoService.Get: Sending HTTP URL '%s'; req %#v\n", req.URL.String(), req)
-    }
-
+    Debug(DbgInfo, "Sending HTTP URL '%s'; req %#v\n", req.URL.String(), req)
     info := new(Info)
     resp, err := s.client.Do(req, &info)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("InfoService.Get: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
-        errStr := fmt.Sprintf("HTTP GET request failure '%s'; error %s", req.URL.String(), err)
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
+        errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }

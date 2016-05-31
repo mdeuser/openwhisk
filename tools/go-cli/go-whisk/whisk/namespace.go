@@ -44,9 +44,7 @@ func (s *NamespaceService) List() ([]Namespace, *http.Response, error) {
     urlStr := fmt.Sprintf("%s/namespaces", s.client.Config.Version)
     ref, err := url.Parse(urlStr)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("NamespaceService.List: url.Parse(%s) error: %s\n", urlStr, err)
-        }
+        Debug(DbgError, "url.Parse(%s) error: %s\n", urlStr, err)
         errStr := fmt.Sprintf("Unable to parse URL '%s': %s", urlStr, err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -56,10 +54,8 @@ func (s *NamespaceService) List() ([]Namespace, *http.Response, error) {
 
     req, err := http.NewRequest("GET", u.String(), nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("NamespaceService.List: http.NewRequest('GET', %s) error: %s\n", u.String(), err)
-        }
-        errStr := fmt.Sprintf("Unable to create HTTP request for URL '%s': %s", u.String(), err)
+        Debug(DbgError, "http.NewRequest(GET, %s) error: %s\n", u.String(), err)
+        errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", u.String(), err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }
@@ -69,9 +65,7 @@ func (s *NamespaceService) List() ([]Namespace, *http.Response, error) {
     var namespaceNames []string
     resp, err := s.client.Do(req, &namespaceNames)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("NamespaceService.List: s.client.Do(%#v) error: %s\n", req, err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
@@ -85,9 +79,7 @@ func (s *NamespaceService) List() ([]Namespace, *http.Response, error) {
         namespaces = append(namespaces, ns)
     }
 
-    if IsDebug() {
-        fmt.Printf("NamespaceService.List: returning []namespaces: %#v\n", namespaces)
-    }
+    Debug(DbgInfo, "Returning []namespaces: %#v\n", namespaces)
     return namespaces, resp, nil
 }
 
@@ -102,9 +94,7 @@ func (s *NamespaceService) Get(nsName string) (*Namespace, *http.Response, error
     urlStr := fmt.Sprintf("%s/namespaces/%s", s.client.Config.Version, nsName)
     ref, err := url.Parse(urlStr)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("NamespaceService.Get: url.Parse(%s) error: %s\n", urlStr, err)
-        }
+        Debug(DbgError, "url.Parse(%s) error: %s\n", urlStr, err)
         errStr := fmt.Sprintf("Unable to parse URL '%s': %s", urlStr, err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -114,10 +104,8 @@ func (s *NamespaceService) Get(nsName string) (*Namespace, *http.Response, error
 
     req, err := http.NewRequest("GET", u.String(), nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("NamespaceService.Get: http.NewRequest('GET', %s) error: %s\n", u.String(), err)
-        }
-        errStr := fmt.Sprintf("Unable to create HTTP request for URL '%s': %s", u.String(), err)
+        Debug(DbgError, "http.NewRequest(GET, %s) error: %s\n", u.String(), err)
+        errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", u.String(), err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }
@@ -129,16 +117,12 @@ func (s *NamespaceService) Get(nsName string) (*Namespace, *http.Response, error
     }
     resp, err := s.client.Do(req, &ns.Contents)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("NamespaceService.Get: s.client.Do(%#v) error: %s\n", req, err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
     }
 
-    if IsDebug() {
-        fmt.Printf("NamespaceService.Get: returning namespace: %#v\n", ns)
-    }
+    Debug(DbgInfo, "Returning namespace: %#v\n", ns)
     return ns, resp, nil
 }

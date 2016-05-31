@@ -32,9 +32,19 @@ const (
 
 const MaxNameLen int = 25
 
+var isVerbose bool
 var isDebug bool
+
 func SetDebug(b bool) {
     isDebug = b
+}
+
+func SetVerbose (b bool) {
+    isVerbose = b
+}
+
+func IsVerbose() bool {
+    return isVerbose || isDebug
 }
 
 /* Function for tracing debug level messages to stdout
@@ -59,5 +69,16 @@ func Debug(dl DebugLevel, msgFormat string, args ...interface{}) {
             fcnName = fcnName[len(fcnName)-MaxNameLen:]
         }
         fmt.Printf("[%-25s]:%03d:[%3s] %v", fcnName, line, dl, msg)
+    }
+}
+
+/* Function for tracing debug level messages to stdout
+   Output format:
+   [file-or-function-name]:line-#:[DebugLevel] The formated message without any appended \n
+ */
+func Verbose(msgFormat string, args ...interface{}) {
+    if IsVerbose() {
+        msg := fmt.Sprintf(msgFormat, args...)
+        fmt.Printf("%v", msg)
     }
 }

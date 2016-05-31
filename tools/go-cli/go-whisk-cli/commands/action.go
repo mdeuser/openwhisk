@@ -154,7 +154,7 @@ var actionUpdateCmd = &cobra.Command{
             return whiskErr
         }
 
-        action, _, err = client.Actions.Insert(action, sharedSet, true)
+        _, _, err = client.Actions.Insert(action, sharedSet, true)
         if err != nil {
             whisk.Debug(whisk.DbgError, "client.Actions.Insert(%#v, %s, false) error: %s\n", action, sharedSet, err)
             errMsg := fmt.Sprintf("Unable to update action: %s", err)
@@ -682,7 +682,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
     action.Parameters = parameters
     //action.Limits = limits
 
-    whisk.Debug(whisk.DbgInfo, "Parsed action struct: %+v\n", action)
+    whisk.Debug(whisk.DbgInfo, "Parsed action struct: %#v\n", action)
     return action, sharedSet, nil
 }
 
