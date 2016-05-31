@@ -42,9 +42,7 @@ var namespaceListCmd = &cobra.Command{
 
         namespaces, _, err := client.Namespaces.List()
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("namespaceListCmd: client.Namespaces.List() error: %s\n", err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Namespaces.List() error: %s\n", err)
             errStr := fmt.Sprintf("Unable to obtain list of available namspaces: %s", err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -63,29 +61,21 @@ var namespaceGetCmd = &cobra.Command{
         var qName qualifiedName
         var err error
 
+        // Namespace argument is optional; defaults to configured property namespace
         if (len(args) == 1) {
             qName, err = parseQualifiedName(args[0])
-
             if err != nil {
-
-                if IsDebug() {
-                    fmt.Println("namespaceGetCmd: parseQualifiedName(%s)\nerror: %s\n", args[0], err)
-                }
-
+                whisk.Debug(whisk.DbgError, "parseQualifiedName(%s) failed: %s\n", args[0], err)
                 errMsg := fmt.Sprintf("Failed to parse qualified name: %s\n", args[0])
-                whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                werr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                     whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
-                return whiskErr
+                return werr
             }
         }
 
         namespace, _, err := client.Namespaces.Get(qName.namespace)
-
         if err != nil {
-            if IsDebug() {
-                fmt.Printf("namespaceGetCmd: client.Namespaces.Get(%s) error: %s\n", qName.namespace, err)
-            }
+            whisk.Debug(whisk.DbgError, "client.Namespaces.Get(%s) error: %s\n", qName.namespace, err)
             errStr := fmt.Sprintf("Unable to obtain namespace entities for namespace '%s': %s", qName.namespace, err)
             werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -109,7 +99,7 @@ var namespaceGetCmd = &cobra.Command{
     },
 }
 
-// listCmd is a shortcut for "wsk namespace get _"
+// listCmd ("wsk list") is a shortcut for "wsk namespace get _"
 var listCmd = &cobra.Command{
     Use:   "list <namespace string>",
     Short: "list triggers, actions, and rules in the registry for a namespace",
