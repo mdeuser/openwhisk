@@ -46,15 +46,11 @@ func main() {
     }()
 
     if err := commands.Execute(); err != nil {
-        if commands.IsDebug() {
-            fmt.Println("Main: err type: ", reflect.TypeOf(err))
-        }
+        whisk.Debug(whisk.DbgInfo, "err object type: %s\n", reflect.TypeOf(err).String())
 
         werr, isWskError := err.(*whisk.WskError)  // Is the err a WskError?
         if isWskError {
-            if commands.IsDebug() {
-                fmt.Printf("Main: got a *whisk.WskError error: %#v\n", werr)
-            }
+            whisk.Debug(whisk.DbgError, "Got a *whisk.WskError error: %#v\n", werr)
             displayUsage = werr.DisplayUsage
             displayMsg = werr.DisplayMsg
             msgDisplayed = werr.MsgDisplayed
@@ -63,15 +59,10 @@ func main() {
             // FIXME MWD - The ErrorResponse error should be be returned; this temporary ErrorResponse handling is only needed while the error processing is being refactored
             rsperr, isRespError := err.(*whisk.ErrorResponse)
             if isRespError {
-                if commands.IsDebug() {
-                    fmt.Print("Main: got a whisk.ErrorResponse: code = ", rsperr.Response.StatusCode)
-                }
+                whisk.Debug(whisk.DbgError, "Got a whisk.ErrorResponse: code = %d\n", rsperr.Response.StatusCode)
                 exitCode = (rsperr.Response.StatusCode - 256);
-            } else {
-                if commands.IsDebug() {
-                    // Likely a cobra generated error about bad command syntax
-                    fmt.Printf("Main: got some other error - %s\n", err)
-                }
+            } else {  // Likely a cobra generated error about bad command syntax
+                whisk.Debug(whisk.DbgError, "Got some other error - %s\n", err)
                 fmt.Printf("%s\n", err)
                 displayUsage = false   // Cobra already displayed the usage message
                 exitCode = 1;

@@ -58,9 +58,7 @@ var sdkInstallCmd = &cobra.Command{
     RunE: func(cmd *cobra.Command, args []string) error {
         var err error
         if len(args) != 1 {
-            if IsDebug() {
-                fmt.Printf("sdkInstallCmd: Invalid number of arguments: %d\n", len(args))
-            }
+            whisk.Debug(whisk.DbgError, "Invalid number of arguments: %d\n", len(args))
             errStr := fmt.Sprintf("The SDK component argument is invalid.  One component (docker, swift, or ios) must be specified")
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return werr
@@ -74,9 +72,7 @@ var sdkInstallCmd = &cobra.Command{
         case "ios":
             err = iOSInstall()
         default:
-            if IsDebug() {
-                fmt.Printf("sdkInstallCmd: Invalid component argument '%s'\n", component)
-            }
+            whisk.Debug(whisk.DbgError, "Invalid component argument '%s'\n", component)
             errStr := fmt.Sprintf("The SDK component argument '%s' is invalid.  Valid components are docker, swift, and ios", component)
             err = whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
         }
@@ -93,18 +89,14 @@ func dockerInstall() error {
 
     targetFile := sdkMap[SDK_DOCKER_COMPONENT_NAME].FileName
     if _, err = os.Stat(targetFile); err == nil {
-        if IsDebug() {
-            fmt.Printf("sdk.dockerInstall: os.Stat reports file '%s' exists\n", targetFile)
-        }
+        whisk.Debug(whisk.DbgError, "os.Stat reports file '%s' exists\n", targetFile)
         errStr := fmt.Sprintf("The file %s already exists.  Delete it and retry.", targetFile)
         werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
     }
 
     if err = sdkInstall(SDK_DOCKER_COMPONENT_NAME); err != nil {
-        if IsDebug() {
-            fmt.Printf("sdk.dockerInstall: sdkInstall(%s) failed: %s", SDK_DOCKER_COMPONENT_NAME, err)
-        }
+        whisk.Debug(whisk.DbgError, "sdkInstall(%s) failed: %s\n", SDK_DOCKER_COMPONENT_NAME, err)
         errStr := fmt.Sprintf("The %s SDK installation failed: %s", SDK_DOCKER_COMPONENT_NAME, err)
         werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
@@ -123,9 +115,7 @@ func iOSInstall() error {
     var err error
 
     if err = sdkInstall(SDK_IOS_COMPONENT_NAME); err != nil {
-        if IsDebug() {
-            fmt.Printf("sdk.dockerInstall: sdkInstall(%s) failed: %s", SDK_IOS_COMPONENT_NAME, err)
-        }
+        whisk.Debug(whisk.DbgError, "sdkInstall(%s) failed: %s\n", SDK_IOS_COMPONENT_NAME, err)
         errStr := fmt.Sprintf("The %s SDK installation failed: %s", SDK_IOS_COMPONENT_NAME, err)
         werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
@@ -138,9 +128,7 @@ func iOSInstall() error {
 func sdkInstall(componentName string) error {
     targetFile := sdkMap[componentName].FileName
     if _, err := os.Stat(targetFile); err == nil {
-        if IsDebug() {
-            fmt.Printf("sdk.dockerInstall: os.Stat reports file '%s' exists\n", targetFile)
-        }
+        whisk.Debug(whisk.DbgError, "os.Stat reports file '%s' exists\n", targetFile)
         errStr := fmt.Sprintf("The file %s already exists.  Delete it and retry.", targetFile)
         werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
@@ -148,18 +136,14 @@ func sdkInstall(componentName string) error {
 
     resp, err := client.Sdks.Install(sdkMap[componentName].UrlPath)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("sdk.dockerInstall: client.Sdks.Install(%s) failed: %s\n", sdkMap[componentName].UrlPath, err)
-        }
+        whisk.Debug(whisk.DbgError, "client.Sdks.Install(%s) failed: %s\n", sdkMap[componentName].UrlPath, err)
         errStr := fmt.Sprintf("Unable to retrieve '%s' SDK: %s", sdkMap[componentName].UrlPath, err)
         werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
     }
 
     if resp.Body == nil {
-        if IsDebug() {
-            fmt.Printf("sdk.dockerInstall: HTTP response has no body\n")
-        }
+        whisk.Debug(whisk.DbgError, "SDK Install HTTP response has no body\n")
         errStr := fmt.Sprintf("Server failed to send the '%s' SDK: %s", componentName, err)
         werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_NETWORK, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
@@ -168,23 +152,17 @@ func sdkInstall(componentName string) error {
     // Create the SDK file
     sdkfile, err := os.Create(targetFile)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("sdk.dockerInstall: os.Create(%s) failure: %s\n", targetFile, err)
-        }
+        whisk.Debug(whisk.DbgError, "os.Create(%s) failure: %s\n", targetFile, err)
         errStr := fmt.Sprintf("Error creating SDK file %s: %s\n", targetFile, err)
         werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         return werr
     }
 
     // Read the HTTP response body and write it to the SDK file
-    if IsDebug() {
-        fmt.Printf("sdk.dockerInstall: Reading SDK file from HTTP response body\n")
-    }
+    whisk.Debug(whisk.DbgInfo, "Reading SDK file from HTTP response body\n")
     _, err = io.Copy(sdkfile, resp.Body)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("sdk.dockerInstall: io.Copy() of resp.Body into sdkfile failure: %s\n", err)
-        }
+        whisk.Debug(whisk.DbgError, "io.Copy() of resp.Body into sdkfile failure: %s\n", err)
         errStr := fmt.Sprintf("Error copying response body into file: %s\n", err)
         werr := whisk.MakeWskErrorFromWskError(errors.New(errStr), err, whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
         sdkfile.Close()
@@ -196,13 +174,11 @@ func sdkInstall(componentName string) error {
     // At this point, the entire file is downloaded from the server
     // Check if there is any special post-download processing (i.e. unpack)
     if sdkMap[componentName].Unpack {
-        // Make sure the target file does not already exist
+        // Make sure the target directory does not already exist
         defer os.Remove(targetFile)
         targetdir := sdkMap[componentName].UnpackDir
         if _, err = os.Stat(targetdir); err == nil {
-            if IsDebug() {
-                fmt.Printf("sdk.dockerInstall: os.Stat reports that directory '%s' exists\n", targetdir)
-            }
+            whisk.Debug(whisk.DbgError, "os.Stat reports that directory '%s' exists\n", targetdir)
             errStr := fmt.Sprintf("The directory %s already exists.  Delete it and retry.", targetdir)
             werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
             return werr
@@ -212,24 +188,20 @@ func sdkInstall(componentName string) error {
         // 1. UnGzip into temp .tar file
         // 2. Untar the contents into the current folder
         if sdkMap[componentName].isGzTar {
-            if IsDebug() { fmt.Printf("commands.dockerInstall: unGzipping downloaded file\n")}
+            whisk.Debug(whisk.DbgInfo, "unGzipping downloaded file\n")
             err := unpackGzip(targetFile, "temp.tar")
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("sdk.dockerInstall: unpackGzip(%s,temp.tar) failure: %s\n", targetFile, err)
-                }
+                whisk.Debug(whisk.DbgError, "unpackGzip(%s,temp.tar) failure: %s\n", targetFile, err)
                 errStr := fmt.Sprintf("Error unGziping file %s: %s\n", targetFile, err)
                 werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
             }
             defer os.Remove("temp.tar")
 
-            if IsDebug() { fmt.Printf("commands.dockerInstall: unTarring unGzipped file\n")}
+            whisk.Debug(whisk.DbgInfo, "unTarring unGzipped file\n")
             err = unpackTar("temp.tar")
             if err != nil {
-                if IsDebug() {
-                    fmt.Printf("sdk.dockerInstall: unpackTar(temp.tar) failure: %s\n", err)
-                }
+                whisk.Debug(whisk.DbgError, "unpackTar(temp.tar) failure: %s\n", err)
                 errStr := fmt.Sprintf("Error Error untaring file %s: %s\n", "temp.tar", err)
                 werr := whisk.MakeWskError(errors.New(errStr), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
                 return werr
