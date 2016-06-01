@@ -586,7 +586,7 @@ func init() {
 
     packageListCmd.Flags().StringVar(&flags.common.shared, "shared", "", "include publicly shared entities in the result")
     packageListCmd.Flags().IntVarP(&flags.common.skip, "skip", "s", 0, "skip this many entities from the head of the collection")
-    packageListCmd.Flags().IntVarP(&flags.common.limit, "limit", "l", 0, "only return this many entities from the collection")
+    packageListCmd.Flags().IntVarP(&flags.common.limit, "limit", "l", 30, "only return this many entities from the collection")
     packageListCmd.Flags().BoolVar(&flags.common.full, "full", false, "include full entity description")
 
     packageCmd.AddCommand(
