@@ -26,10 +26,47 @@ import (
 )
 
 var cliDebug = os.Getenv("WSK_CLI_DEBUG")  // Useful for tracing init() code
+
 func init() {
     if len(cliDebug) > 0 {
         whisk.SetDebug(true)
     }
+}
+
+func parseParams(params []string) ([]string, []string) {
+    var paramArgs []string
+
+    //fmt.Println("ARGUMENTS: ", os.Args)
+
+    i := 0
+
+    for i < len(params) {
+        //fmt.Println("Current arg: ", params[i])
+
+        if params[i] == "-p" || params[i] == "--param"{
+
+            //fmt.Println("FOUND PARAM")
+
+            if len(os.Args) > i + 2 {
+                paramArgs = append(paramArgs, params[i + 1])
+                //fmt.Println("PARAM ARGS1: ", paramArgs)
+
+                paramArgs = append(paramArgs, params[i + 2])
+                //fmt.Println("PARAM ARGS2: ", paramArgs)
+
+                params = append(params[:i], params[i + 3:]...)
+                //fmt.Println("OS ARGS: ", params)
+            } else {
+                i++
+            }
+        } else {
+            i++
+        }
+    }
+
+    //fmt.Println("PARAM ARGS: ", paramArgs)
+
+    return params, paramArgs
 }
 
 func main() {
@@ -44,6 +81,8 @@ func main() {
             fmt.Println("Application exited unexpectedly")
         }
     }()
+
+    os.Args, commands.ParamArgs = parseParams(os.Args)
 
     if err := commands.Execute(); err != nil {
         whisk.Debug(whisk.DbgInfo, "err object type: %s\n", reflect.TypeOf(err).String())

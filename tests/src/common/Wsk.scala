@@ -235,7 +235,7 @@ class WskAction()
                     else Seq("--kind", k)
                 } getOrElse Seq()
             } ++
-            { parameters flatMap { p => Seq("-p", p._1 + "," +  p._2) } } ++
+            { parameters flatMap { p => Seq("-p", p._1, p._2) } } ++
             { annotations flatMap { p => Seq("-a", p._1 + "," +  p._2) } } ++
             { timeout map { t => Seq("-t", t.toMillis.toString) } getOrElse Seq() } ++
             { memory map { m => Seq("-m", m.toString) } getOrElse Seq() } ++
@@ -258,7 +258,7 @@ class WskAction()
         expectedExitCode: Int = SUCCESS_EXIT)(
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, "invoke", "--auth", wp.authKey, fqn(name)) ++
-            { parameters flatMap { p => Seq("-p", p._1 + "," +  p._2) } } ++
+            { parameters flatMap { p => Seq("-p", p._1,  p._2) } } ++
             { if (blocking) Seq("--blocking") else Seq() } ++
             { if (result) Seq("--result") else Seq() }
         cli(wp.overrides ++ params, expectedExitCode)
@@ -291,7 +291,7 @@ class WskTrigger()
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, if (!update) "create" else "update", "--auth", wp.authKey, fqn(name)) ++
             { feed map { f => Seq("--feed", fqn(f)) } getOrElse Seq() } ++
-            { parameters flatMap { p => Seq("-p", p._1 + "," +  p._2) } } ++
+            { parameters flatMap { p => Seq("-p", p._1, p._2) } } ++
             { annotations flatMap { p => Seq("-a", p._1 + "," +  p._2) } } ++
             { shared map { s => Seq("--shared", if (s) "yes" else "no") } getOrElse Seq() }
         cli(wp.overrides ++ params, expectedExitCode)
@@ -310,7 +310,7 @@ class WskTrigger()
         expectedExitCode: Int = SUCCESS_EXIT)(
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, "fire", "--auth", wp.authKey, fqn(name)) ++
-            { parameters flatMap { p => Seq("-p", p._1 + "," +  p._2) } }
+            { parameters flatMap { p => Seq("-p", p._1, p._2) } }
         cli(wp.overrides ++ params, expectedExitCode)
     }
 }
@@ -661,7 +661,7 @@ class WskPackage()
         expectedExitCode: Int = SUCCESS_EXIT)(
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, if (!update) "create" else "update", "--auth", wp.authKey, fqn(name)) ++
-            { parameters flatMap { p => Seq("-p", p._1 + "," +  p._2) } } ++
+            { parameters flatMap { p => Seq("-p", p._1, p._2) } } ++
             { annotations flatMap { p => Seq("-a", p._1 + "," +  p._2) } } ++
             { shared map { s => Seq("--shared", if (s) "yes" else "no") } getOrElse Seq() }
         cli(wp.overrides ++ params, expectedExitCode)
@@ -682,7 +682,7 @@ class WskPackage()
         expectedExitCode: Int = SUCCESS_EXIT)(
             implicit wp: WskProps): RunResult = {
         val params = Seq(noun, "bind", "--auth", wp.authKey, fqn(provider), fqn(name)) ++
-            { parameters flatMap { p => Seq("-p", p._1 + "," +  p._2) } } ++
+            { parameters flatMap { p => Seq("-p", p._1, p._2) } } ++
             { annotations flatMap { p => Seq("-a", p._1 + "," +  p._2) } }
         cli(wp.overrides ++ params, expectedExitCode)
     }

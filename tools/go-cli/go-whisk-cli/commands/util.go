@@ -142,10 +142,20 @@ func parseKeyValueArray(args []string) ([]whisk.KeyValue, error) {
                 whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE )
             return parsed, err
         }
+
+
         keyValue := whisk.KeyValue{
             Key:   args[i],
-            Value: args[i+1],
         }
+
+        if strings.HasPrefix(args[i+1], "[") && strings.HasSuffix(args[i+1], "]") {
+            args[i+1] = args[i+1][1:]
+            args[i+1] = args[i+1][:len(args[i+1]) - 1]
+            keyValue.Value = strings.Split(args[i+1], ",")
+        } else {
+            keyValue.Value = args[i+1]
+        }
+
         parsed = append(parsed, keyValue)
 
     }

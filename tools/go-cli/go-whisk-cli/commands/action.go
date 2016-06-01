@@ -197,6 +197,8 @@ var actionInvokeCmd = &cobra.Command{
 
         payload := map[string]interface{}{}
 
+        flags.common.param = ParamArgs
+
         if len(flags.common.param) > 0 {
             whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
             parameters, err := parseParameters(flags.common.param)
@@ -237,12 +239,12 @@ var actionInvokeCmd = &cobra.Command{
         if flags.common.blocking && flags.action.result {
             printJSON(activation.Response.Result)
         } else if flags.common.blocking {
-            fmt.Printf("%s invoked %s with id %s\n", color.GreenString("ok:"), boldString(qName.entityName),
+            fmt.Printf("%s invoked /%s/%s with id %s\n", color.GreenString("ok:"), boldString(qName.namespace), boldString(qName.entityName),
                 boldString(activation.ActivationID))
             boldPrintf("response:\n")
-            printJSON(activation.Response)
+            printJSON(activation)
         } else {
-            fmt.Printf("%s invoked %s with id %s\n", color.GreenString("ok:"), boldString(qName.entityName),
+            fmt.Printf("%s invoked /%s/%s with id %s\n", color.GreenString("ok:"), boldString(qName.namespace), boldString(qName.entityName),
                 boldString(activation.ActivationID))
         }
 
@@ -479,8 +481,11 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
         sharedSet = false
     }
 
+    flags.common.param = ParamArgs
+
     whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
     parameters, err := parseParameters(flags.common.param)
+
     if err != nil {
         whisk.Debug(whisk.DbgError, "parseParameters(%#v) failed: %s\n", flags.common.param, err)
         errMsg := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)

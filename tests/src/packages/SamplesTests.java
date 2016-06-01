@@ -28,6 +28,7 @@ import com.google.code.tempusfugit.concurrency.ParallelRunner;
 import common.Pair;
 import common.TestUtils;
 import common.WskCli;
+import static java.lang.System.*;
 
 /**
  * Test actions in samples package.
@@ -51,8 +52,8 @@ public class SamplesTests {
         Pair<String, String> response = wsk.invokeBlocking(action, TestUtils.makeParameter("dummy", "dummy"));
         assertTrue("Wrong default parameters", response.snd.contains("Hello, stranger from somewhere!"));
 
-        response = wsk.invokeBlocking(action, TestUtils.makeParameter("name", "Mork"));
-        assertTrue("Wrong name", response.snd.contains("Hello, Mork from somewhere!"));
+        Pair<String, String> response2 = wsk.invokeBlocking(action, TestUtils.makeParameter("name", "Mork"));
+        assertTrue("Wrong name", response2.snd.contains("Hello, Mork from somewhere!"));
 
         response = wsk.invokeBlocking(action, TestUtils.makeParameter(make("name", "Mork"), make("place", "Ork")));
         assertTrue("Wrong name and place", response.snd.contains("Hello, Mork from Ork!"));

@@ -105,8 +105,12 @@ var packageBindCmd = &cobra.Command{
         // Convert the binding's list of default parameters from a string into []KeyValue
         // The 1 or more --param arguments have all been combined into a single []string
         // e.g.   --p arg1,arg2 --p arg3,arg4   ->  [arg1, arg2, arg3, arg4]
+
+        flags.common.param = ParamArgs
+
         whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
+
         if err != nil {
             whisk.Debug(whisk.DbgError, "parseParameters(%#v) failed: %s\n", flags.common.param, err)
             errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)
@@ -119,6 +123,7 @@ var packageBindCmd = &cobra.Command{
         // e.g.   --a arg1,arg2 --a arg3,arg4   ->  [arg1, arg2, arg3, arg4]
         whisk.Debug(whisk.DbgInfo, "Parsing annotations: %#v\n", flags.common.annotation)
         annotations, err := parseAnnotations(flags.common.annotation)
+
         if err != nil {
             whisk.Debug(whisk.DbgError, "parseAnnotations(%#v) failed: %s\n", flags.common.annotation, err)
             errStr := fmt.Sprintf("Invalid annotation argument '%#v': %s", flags.common.annotation, err)
@@ -187,8 +192,11 @@ var packageCreateCmd = &cobra.Command{
             sharedSet = false
         }
 
+        flags.common.param = ParamArgs
+
         whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
+
         if err != nil {
             whisk.Debug(whisk.DbgError, "parseParameters(%#v) failed: %s\n", flags.common.param, err)
             errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)
@@ -198,6 +206,7 @@ var packageCreateCmd = &cobra.Command{
 
         whisk.Debug(whisk.DbgInfo, "Parsing annotations: %#v\n", flags.common.annotation)
         annotations, err := parseAnnotations(flags.common.annotation)
+
         if err != nil {
             whisk.Debug(whisk.DbgError, "parseAnnotations(%#v) failed: %s\n", flags.common.annotation, err)
             errStr := fmt.Sprintf("Invalid annotation argument '%#v': %s", flags.common.annotation, err)
@@ -306,8 +315,11 @@ var packageUpdateCmd = &cobra.Command{
             sharedSet = false
         }
 
+        flags.common.param = ParamArgs
+
         whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
+
         if err != nil {
             whisk.Debug(whisk.DbgError, "parseParameters(%#v) failed: %s\n", flags.common.param, err)
             errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)

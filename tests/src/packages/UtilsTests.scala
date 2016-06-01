@@ -28,7 +28,7 @@ class UtilsTests extends TestHelpers with WskTestHelpers with Matchers {
 
     implicit val wskprops = WskProps()
     val wsk = new Wsk()
-    val lines = JsArray(JsString("seven"), JsString("eight"), JsString("nine"))
+    val lines = "[seven,eight,nine]"
 
     behavior of "Util Actions"
 
@@ -71,7 +71,7 @@ class UtilsTests extends TestHelpers with WskTestHelpers with Matchers {
         (wp, assetHelper) =>
             val wsk = new Wsk()
 
-            withActivation(wsk.activation, wsk.action.invoke("/whisk.system/util/split", Map("payload" -> "seven,eight,nine".toJson, "separator" -> ",".toJson))) {
+            withActivation(wsk.activation, wsk.action.invoke("/whisk.system/util/split", Map("payload" -> "seven,eight,nine", "separator" -> ","))) {
                 _.fields("response").toString should include ("\"lines\":[\"seven\",\"eight\",\"nine\"]")
             }
     }
@@ -90,7 +90,7 @@ class UtilsTests extends TestHelpers with WskTestHelpers with Matchers {
                 action.create(name = actionName, artifact = Some(file), kind = Some("swift:3"), expectedExitCode = 0)
             }
 
-            withActivation(wsk.activation, wsk.action.invoke(actionName, Map("payload" -> "seven,eight,nine".toJson, "separator" -> ",".toJson))) {
+            withActivation(wsk.activation, wsk.action.invoke(actionName, Map("payload" -> "seven,eight,nine", "separator" -> ","))) {
                 _.fields("response").toString should include ("\"lines\":[\"seven\",\"eight\",\"nine\"]")
             }
     }
@@ -102,7 +102,7 @@ class UtilsTests extends TestHelpers with WskTestHelpers with Matchers {
         (wp, assetHelper) =>
             val wsk = new Wsk()
 
-            withActivation(wsk.activation, wsk.action.invoke("/whisk.system/util/head", Map("lines" -> lines, "num" -> JsNumber(2)))) {
+            withActivation(wsk.activation, wsk.action.invoke("/whisk.system/util/head", Map("lines" -> lines, "num" -> "2"))) {
                 _.fields("response").toString should include("\"lines\":[\"seven\",\"eight\"]")
             }
     }
@@ -121,7 +121,7 @@ class UtilsTests extends TestHelpers with WskTestHelpers with Matchers {
                 action.create(name = actionName, artifact = Some(file), kind = Some("swift:3"), expectedExitCode = 0)
             }
 
-            withActivation(wsk.activation, wsk.action.invoke(actionName, Map("lines" -> lines, "num" -> JsNumber(2)))) {
+            withActivation(wsk.activation, wsk.action.invoke(actionName, Map("lines" -> lines, "num" -> "2"))) {
                 _.fields("response").toString should include("\"lines\":[\"seven\",\"eight\"]")
             }
     }
@@ -164,7 +164,7 @@ class UtilsTests extends TestHelpers with WskTestHelpers with Matchers {
         (wp, assetHelper) =>
             val wsk = new Wsk()
 
-            withActivation(wsk.activation, wsk.action.invoke("/whisk.system/samples/wordCount", Map("payload" -> "one two three".toJson))) {
+            withActivation(wsk.activation, wsk.action.invoke("/whisk.system/samples/wordCount", Map("payload" -> "\"one two three\""))) {
                 _.fields("response").toString should include("\"count\":3")
             }
     }
@@ -183,7 +183,7 @@ class UtilsTests extends TestHelpers with WskTestHelpers with Matchers {
                 action.create(name = actionName, artifact = Some(file), kind = Some("swift:3"), expectedExitCode = 0)
             }
 
-            withActivation(wsk.activation, wsk.action.invoke(actionName, Map("payload" -> "one two three".toJson))) {
+            withActivation(wsk.activation, wsk.action.invoke(actionName, Map("payload" -> "\"one two three\""))) {
                 _.fields("response").toString should include("\"count\":3")
             }
     }
