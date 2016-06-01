@@ -86,19 +86,18 @@ var actionCreateCmd = &cobra.Command{
         action, sharedSet, err := parseAction(cmd, args)
         if err != nil {
             whisk.Debug(whisk.DbgError, "parseAction(%s, %s) error: %s\n", cmd, args, err)
-            errMsg := fmt.Sprintf("Unable to parse action command arguments: %s %s", cmd, args)
+            errMsg := fmt.Sprintf("Unable to parse action command arguments: %s", err)
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return whiskErr
         }
 
-        action, _, err = client.Actions.Insert(action, sharedSet, false)
+        _, _, err = client.Actions.Insert(action, sharedSet, false)
         if err != nil {
-            whisk.Debug(whisk.DbgError, "client.Actions.Insert(%#v, %s, false) error: %s\n", action, sharedSet, err)
+            whisk.Debug(whisk.DbgError, "client.Actions.Insert(%#v, %t, false) error: %s\n", action, sharedSet, err)
             errMsg := fmt.Sprintf("Unable to create action: %s", err)
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_NETWORK,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
-
             return whiskErr
         }
 
@@ -148,7 +147,7 @@ var actionUpdateCmd = &cobra.Command{
         action, sharedSet, err := parseAction(cmd, args)
         if err != nil {
             whisk.Debug(whisk.DbgError, "parseAction(%s, %s) error: %s\n", cmd, args, err)
-            errMsg := fmt.Sprintf("Unable to parse action command arguments: %s %s", cmd, args)
+            errMsg := fmt.Sprintf("Unable to parse action command arguments: %s", err)
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
                 whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
             return whiskErr
@@ -156,7 +155,7 @@ var actionUpdateCmd = &cobra.Command{
 
         _, _, err = client.Actions.Insert(action, sharedSet, true)
         if err != nil {
-            whisk.Debug(whisk.DbgError, "client.Actions.Insert(%#v, %s, false) error: %s\n", action, sharedSet, err)
+            whisk.Debug(whisk.DbgError, "client.Actions.Insert(%#v, %t, false) error: %s\n", action, sharedSet, err)
             errMsg := fmt.Sprintf("Unable to update action: %s", err)
             whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_NETWORK,
                 whisk.DISPLAY_MSG, whisk.NO_DISPLAY_USAGE)
@@ -398,28 +397,30 @@ func getJavaClasses(classes []string) ([]string){
 func findMainJarClass(jarFile string) (string, error) {
     signature := "public static com.google.gson.JsonObject main(com.google.gson.JsonObject);"
 
+    whisk.Debug(whisk.DbgInfo, "unjaring '%s'\n", jarFile)
     stdOut, err := exec.Command("jar", "-tf", jarFile).Output()
     if err != nil {
         whisk.Debug(whisk.DbgError, "unjar of '%s' failed: %s\n", jarFile, err)
         return "", err
     }
 
+    whisk.Debug(whisk.DbgInfo, "jar stdout:\n%s\n", stdOut)
     output := string(stdOut[:])
+    output = strings.Replace(output, "\r", "", -1)  // Windows jar adds \r chars that needs removing
     outputArr := strings.Split(output, "\n")
     classes := getJavaClasses(outputArr)
 
+    whisk.Debug(whisk.DbgInfo, "jar '%s' has %d classes\n", jarFile, len(classes))
     for i := 0; i < len(classes); i++ {
-        stdOut, err = exec.Command("javap", "-cp", jarFile, classes[i]).Output()
+        whisk.Debug(whisk.DbgInfo, "javap -public -cp '%s'\n", classes[i])
+        stdOut, err = exec.Command("javap", "-public", "-cp", jarFile, classes[i]).Output()
         if err != nil {
             whisk.Debug(whisk.DbgError, "javap of class '%s' in jar '%s' failed: %s\n", classes[i], jarFile, err)
             return "", err
         }
 
         output := string(stdOut[:])
-        if err != nil {
-            whisk.Debug(whisk.DbgError, "Conversion of stdout '%v' to string failed: %s\n", stdOut[:], err)
-            return "", err
-        }
+        whisk.Debug(whisk.DbgInfo, "javap '%s' output:\n%s\n", classes[i], output)
 
         if strings.Contains(output, signature) {
             return classes[i], nil
