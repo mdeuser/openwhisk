@@ -58,9 +58,7 @@ func (s *TriggerService) List(options *TriggerListOptions) ([]TriggerFromServer,
     route := "triggers"
     route, err := addRouteOptions(route, options)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.List: addRouteOptions('%s',%#v) error '%s'\n", route, options, err)
-        }
+        Debug(DbgError, "addRouteOptions(%s, %#v) error: '%s'\n", route, options, err)
         errStr := fmt.Sprintf("Unable to append options %#v to URL route '%s': error %s", options, route, err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -68,9 +66,7 @@ func (s *TriggerService) List(options *TriggerListOptions) ([]TriggerFromServer,
 
     req, err := s.client.NewRequest("GET", route, nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.List: http.NewRequest(GET, %s); error '%s'\n", route, err)
-        }
+        Debug(DbgError, "http.NewRequest(GET, %s); error '%s'\n", route, err)
         errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", route, err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -79,9 +75,7 @@ func (s *TriggerService) List(options *TriggerListOptions) ([]TriggerFromServer,
     var triggers []TriggerFromServer
     resp, err := s.client.Do(req, &triggers)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.List: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
@@ -96,10 +90,8 @@ func (s *TriggerService) Insert(trigger *Trigger, overwrite bool) (*TriggerFromS
 
     req, err := s.client.NewRequest("PUT", route, trigger)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.Insert: http.NewRequest(POST, %s); error '%s'\n", route, err)
-        }
-        errStr := fmt.Sprintf("Unable to create HTTP request for POST '%s'; error: %s", route, err)
+        Debug(DbgError, "http.NewRequest(PUT, %s); error '%s'\n", route, err)
+        errStr := fmt.Sprintf("Unable to create HTTP request for PUT '%s'; error: %s", route, err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
     }
@@ -107,9 +99,7 @@ func (s *TriggerService) Insert(trigger *Trigger, overwrite bool) (*TriggerFromS
     t := new(TriggerFromServer)
     resp, err := s.client.Do(req, &t)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.Insert: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
@@ -124,9 +114,7 @@ func (s *TriggerService) Get(triggerName string) (*TriggerFromServer, *http.Resp
 
     req, err := s.client.NewRequest("GET", route, nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.Get: http.NewRequest(GET, %s); error '%s'\n", route, err)
-        }
+        Debug(DbgError, "http.NewRequest(GET, %s); error '%s'\n", route, err)
         errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", route, err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -135,9 +123,7 @@ func (s *TriggerService) Get(triggerName string) (*TriggerFromServer, *http.Resp
     t := new(TriggerFromServer)
     resp, err := s.client.Do(req, &t)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.Get: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
@@ -152,9 +138,7 @@ func (s *TriggerService) Delete(triggerName string) (*http.Response, error) {
 
     req, err := s.client.NewRequest("DELETE", route, nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.Delete: http.NewRequest(DELETE, %s); error '%s'\n", route, err)
-        }
+        Debug(DbgError, "http.NewRequest(DELETE, %s); error '%s'\n", route, err)
         errStr := fmt.Sprintf("Unable to create HTTP request for DELETE '%s'; error: %s", route, err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, werr
@@ -162,9 +146,7 @@ func (s *TriggerService) Delete(triggerName string) (*http.Response, error) {
 
     resp, err := s.client.Do(req, nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.Delete: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return resp, werr
@@ -178,9 +160,7 @@ func (s *TriggerService) Fire(triggerName string, payload map[string]interface{}
 
     req, err := s.client.NewRequest("POST", route, payload)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.Fire: http.NewRequest(POST, %s); error '%s'\n", route, err)
-        }
+        Debug(DbgError," http.NewRequest(POST, %s); error '%s'\n", route, err)
         errStr := fmt.Sprintf("Unable to create HTTP request for POST '%s'; error: %s", route, err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -189,9 +169,7 @@ func (s *TriggerService) Fire(triggerName string, payload map[string]interface{}
     t := new(TriggerFromServer)
     resp, err := s.client.Do(req, &t)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("TriggerService.Fire: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr

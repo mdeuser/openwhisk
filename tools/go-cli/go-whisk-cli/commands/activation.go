@@ -256,7 +256,7 @@ var activationPollCmd = &cobra.Command{
         }
 
         fmt.Printf("Polling for activation logs\n")
-        if IsVerbose() { fmt.Printf("Polling starts from %s\n", time.Unix(pollSince/1000, 0)) }
+        whisk.Verbose("Polling starts from %s\n", time.Unix(pollSince/1000, 0))
         localStartTime := time.Now()
 
         // Polling loop
@@ -268,9 +268,7 @@ var activationPollCmd = &cobra.Command{
                     return nil
                 }
             }
-            if IsVerbose() {
-                fmt.Printf("Polling for activations since %s\n", time.Unix(pollSince/1000, 0))
-            }
+            whisk.Verbose("Polling for activations since %s\n", time.Unix(pollSince/1000, 0))
             options := &whisk.ActivationListOptions{
                 Name:  name,
                 Since: pollSince,

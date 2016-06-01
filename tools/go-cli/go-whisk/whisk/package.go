@@ -58,6 +58,7 @@ func (p *SentPackageNoPublish) GetName() string {
 }
 
 // Use this struct to represent the package/binding sent from the Whisk server
+// Binding is a bool
 type Package struct {
     Namespace string `json:"namespace,omitempty"`
     Name      string `json:"name,omitempty"`
@@ -65,13 +66,14 @@ type Package struct {
     Publish   bool   `json:"publish"`
     Annotations 	 `json:"annotations,omitempty"`
     Parameters  	 `json:"parameters,omitempty"`
-    Binding          `json:"binding,omitempty"`
+    Binding   bool   `json:"binding,omitempty"`
 }
 func (p *Package) GetName() string {
     return p.Name
 }
 
-// Use this struct when creating a binding.  Publish is NOT optional
+// Use this struct when creating a binding
+// Publish is NOT optional; Binding is a namespace/name object, not a bool
 type BindingPackage struct {
     Namespace string `json:"-"`
     Name      string `json:"-"`
@@ -111,9 +113,7 @@ func (s *PackageService) List(options *PackageListOptions) ([]Package, *http.Res
     route := fmt.Sprintf("packages")
     route, err := addRouteOptions(route, options)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.List: addRouteOptions(%s, %#v); error '%s'\n", route, options, err)
-        }
+        Debug(DbgError, "addRouteOptions(%s, %#v) error: '%s'\n", route, options, err)
         errStr := fmt.Sprintf("Unable to build request URL: error: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -121,9 +121,7 @@ func (s *PackageService) List(options *PackageListOptions) ([]Package, *http.Res
 
     req, err := s.client.NewRequest("GET", route, nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.List: http.NewRequest(GET, %s); error '%s'\n", route, err)
-        }
+        Debug(DbgError, "http.NewRequest(GET, %s); error '%s'\n", route, err)
         errStr := fmt.Sprintf("Unable to create GET HTTP request for '%s'; error: %s", route, err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -132,9 +130,7 @@ func (s *PackageService) List(options *PackageListOptions) ([]Package, *http.Res
     var packages []Package
     resp, err := s.client.Do(req, &packages)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.List: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
@@ -149,9 +145,7 @@ func (s *PackageService) Get(packageName string) (*Package, *http.Response, erro
 
     req, err := s.client.NewRequest("GET", route, nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.Get: http.NewRequest(GET, %s); error '%s'\n", route, err)
-        }
+        Debug(DbgError, "http.NewRequest(GET, %s); error '%s'\n", route, err)
         errStr := fmt.Sprintf("Unable to create GET HTTP request for '%s'; error: %s", route, err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -160,9 +154,7 @@ func (s *PackageService) Get(packageName string) (*Package, *http.Response, erro
     p := new(Package)
     resp, err := s.client.Do(req, &p)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.Get: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
@@ -177,9 +169,7 @@ func (s *PackageService) Insert(x_package PackageInterface, overwrite bool) (*Pa
 
     req, err := s.client.NewRequest("PUT", route, x_package)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.Insert: http.NewRequest(PUT, %s); error '%s'\n", route, err)
-        }
+        Debug(DbgError, "http.NewRequest(PUT, %s); error '%s'\n", route, err)
         errStr := fmt.Sprintf("Unable to create PUT HTTP request for '%s'; error: %s", route, err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -188,9 +178,7 @@ func (s *PackageService) Insert(x_package PackageInterface, overwrite bool) (*Pa
     p := new(Package)
     resp, err := s.client.Do(req, &p)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.Insert: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr
@@ -204,9 +192,7 @@ func (s *PackageService) Delete(packageName string) (*http.Response, error) {
 
     req, err := s.client.NewRequest("DELETE", route, nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.Delete: http.NewRequest(DELETE, %s); error '%s'\n", route, err)
-        }
+        Debug(DbgError, "http.NewRequest(DELETE, %s); error '%s'\n", route, err)
         errStr := fmt.Sprintf("Unable to create DELETE HTTP request for '%s'; error: %s", route, err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, werr
@@ -214,9 +200,7 @@ func (s *PackageService) Delete(packageName string) (*http.Response, error) {
 
     resp, err := s.client.Do(req, nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.Delete: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return resp, werr
@@ -230,9 +214,7 @@ func (s *PackageService) Refresh() (*BindingUpdates, *http.Response, error) {
 
     req, err := s.client.NewRequest("POST", route, nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.Refresh: http.NewRequest(POST, %s); error '%s'\n", route, err)
-        }
+        Debug(DbgError, "http.NewRequest(POST, %s); error '%s'\n", route, err)
         errStr := fmt.Sprintf("Unable to create POST HTTP request for '%s'; error: %s", route, err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, nil, werr
@@ -241,9 +223,7 @@ func (s *PackageService) Refresh() (*BindingUpdates, *http.Response, error) {
     updates := &BindingUpdates{}
     resp, err := s.client.Do(req, updates)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("PackageService.Refresh: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, resp, werr

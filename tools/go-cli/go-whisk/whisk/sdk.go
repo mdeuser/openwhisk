@@ -42,10 +42,8 @@ func (s *SdkService) Install(relFileUrl string) (*http.Response, error) {
 
     req, err := http.NewRequest("GET", urlStr, nil)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("SdkService.Install: http.NewRequest(GET, %s, nil) error: %s\n", urlStr, err)
-        }
-        errStr := fmt.Sprintf("Error initializing request: %s", err)
+        Debug(DbgError, "http.NewRequest(GET, %s, nil) error: %s\n", urlStr, err)
+        errStr := fmt.Sprintf("Unable to create HTTP request for GET '%s'; error: %s", urlStr, err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return nil, werr
     }
@@ -55,9 +53,7 @@ func (s *SdkService) Install(relFileUrl string) (*http.Response, error) {
     // Directly use the HTTP client, not the Whisk CLI client, so that the response body is left alone
     resp, err := s.client.client.Do(req)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("SdkService.Install: s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
-        }
+        Debug(DbgError, "s.client.Do() error - HTTP req %s; error '%s'\n", req.URL.String(), err)
         errStr := fmt.Sprintf("Request failure: %s", err)
         werr := MakeWskErrorFromWskError(errors.New(errStr), err, EXITCODE_ERR_NETWORK, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return resp, werr

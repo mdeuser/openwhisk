@@ -26,12 +26,6 @@ import (
     "github.com/hokaccha/go-prettyjson"
 )
 
-// Flags struct separate from the go-whisk-cli flags to avoid a circular dependency
-var Flags struct {
-    Verbose bool
-    Debug   bool
-}
-
 // addOptions adds the parameters in opt as URL query parameters to s.  opt
 // must be a struct whose fields may contain "url" tags.
 func addRouteOptions(route string, options interface{}) (string, error) {
@@ -42,9 +36,7 @@ func addRouteOptions(route string, options interface{}) (string, error) {
 
     u, err := url.Parse(route)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("addRouteOptions: url.Parse failed to parse route '%s' error %s\n", route, err)
-        }
+        Debug(DbgError,"url.Parse(%s) error: %s\n", route, err)
         errStr := fmt.Sprintf("Unable to parse URL '%s': %s", route, err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return route, werr
@@ -52,30 +44,18 @@ func addRouteOptions(route string, options interface{}) (string, error) {
 
     qs, err := query.Values(options)
     if err != nil {
-        if IsDebug() {
-            fmt.Printf("addRouteOptions: queryValues failure, options '%#v' error %s\n", options, err)
-        }
+        Debug(DbgError,"query.Values(%#v) error: %s\n", options, err)
         errStr := fmt.Sprintf("Unable to process URL query options '%#v': %s", options, err)
         werr := MakeWskError(errors.New(errStr), EXITCODE_ERR_GENERAL, DISPLAY_MSG, NO_DISPLAY_USAGE)
         return route, werr
     }
 
     u.RawQuery = qs.Encode()
-    if IsDebug() {
-        fmt.Printf("addRouteOptions: returning route options '%s' from input struct %+v\n", u.String(), options)
-    }
+    Debug(DbgInfo,"Returning route options '%s' from input struct %+v\n", u.String(), options)
     return u.String(), nil
 }
 
 func printJSON(v interface{}) {
     output, _ := prettyjson.Marshal(v)
     fmt.Println(string(output))
-}
-
-func IsVerbose() bool {
-    return Flags.Verbose || IsDebug()
-}
-
-func IsDebug() bool {
-    return Flags.Debug
 }
