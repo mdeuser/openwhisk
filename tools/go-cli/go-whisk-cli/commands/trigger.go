@@ -68,6 +68,8 @@ var triggerFireCmd = &cobra.Command{
 
         payload := map[string]interface{}{}
 
+        flags.common.param = ParamArgs
+
         if len(flags.common.param) > 0 {
             parameters, err := parseParameters(flags.common.param)
             if err != nil {
@@ -143,8 +145,11 @@ var triggerCreateCmd = &cobra.Command{
         // Convert the trigger's list of default parameters from a string into []KeyValue
         // The 1 or more --param arguments have all been combined into a single []string
         // e.g.   --p arg1,arg2 --p arg3,arg4   ->  [arg1, arg2, arg3, arg4]
+        flags.common.param = ParamArgs
+
         whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
+
         if err != nil {
             whisk.Debug(whisk.DbgError, "parseParameters(%#v) failed: %s\n", flags.common.param, err)
             errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)
@@ -292,8 +297,11 @@ var triggerUpdateCmd = &cobra.Command{
         // Convert the trigger's list of default parameters from a string into []KeyValue
         // The 1 or more --param arguments have all been combined into a single []string
         // e.g.   --p arg1,arg2 --p arg3,arg4   ->  [arg1, arg2, arg3, arg4]
+        flags.common.param = ParamArgs
+
         whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
+
         if err != nil {
             whisk.Debug(whisk.DbgError, "parseParameters(%#v) failed: %s\n", flags.common.param, err)
             errStr := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)
@@ -303,6 +311,7 @@ var triggerUpdateCmd = &cobra.Command{
 
         whisk.Debug(whisk.DbgInfo, "Parsing annotations: %#v\n", flags.common.annotation)
         annotations, err := parseAnnotations(flags.common.annotation)
+
         if err != nil {
             whisk.Debug(whisk.DbgError, "parseAnnotations(%#v) failed: %s\n", flags.common.annotation, err)
             errStr := fmt.Sprintf("Invalid annotations argument value '%#v': %s", flags.common.annotation, err)
@@ -312,6 +321,7 @@ var triggerUpdateCmd = &cobra.Command{
 
         whisk.Debug(whisk.DbgInfo, "Trigger shared: %s\n", flags.common.shared)
         shared := strings.ToLower(flags.common.shared)
+
         if shared != "yes" && shared != "no" && shared != "" {  // "" means argument was not specified
             whisk.Debug(whisk.DbgError, "Shared argument value '%s' is invalid\n", flags.common.shared)
             errStr := fmt.Sprintf("Invalid --shared argument value '%s'; valid values are 'yes' or 'no'", flags.common.shared)
