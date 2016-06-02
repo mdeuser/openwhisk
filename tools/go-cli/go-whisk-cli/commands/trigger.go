@@ -68,8 +68,6 @@ var triggerFireCmd = &cobra.Command{
 
         payload := map[string]interface{}{}
 
-        flags.common.param = ParamArgs
-
         if len(flags.common.param) > 0 {
             parameters, err := parseParameters(flags.common.param)
             if err != nil {
@@ -145,8 +143,6 @@ var triggerCreateCmd = &cobra.Command{
         // Convert the trigger's list of default parameters from a string into []KeyValue
         // The 1 or more --param arguments have all been combined into a single []string
         // e.g.   --p arg1,arg2 --p arg3,arg4   ->  [arg1, arg2, arg3, arg4]
-        flags.common.param = ParamArgs
-
         whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
 
@@ -297,7 +293,6 @@ var triggerUpdateCmd = &cobra.Command{
         // Convert the trigger's list of default parameters from a string into []KeyValue
         // The 1 or more --param arguments have all been combined into a single []string
         // e.g.   --p arg1,arg2 --p arg3,arg4   ->  [arg1, arg2, arg3, arg4]
-        flags.common.param = ParamArgs
 
         whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)

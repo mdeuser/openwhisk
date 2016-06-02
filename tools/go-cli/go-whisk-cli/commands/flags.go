@@ -26,8 +26,6 @@ import (
 
 var cliDebug = os.Getenv("WSK_CLI_DEBUG")  // Useful for tracing init() code
 
-var ParamArgs []string
-
 var flags struct {
 
     global struct {

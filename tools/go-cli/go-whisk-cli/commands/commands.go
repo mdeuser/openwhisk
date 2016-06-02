@@ -17,12 +17,13 @@ limitations under the License.
 package commands
 
 import (
-"fmt"
-"net/http"
-"net/url"
-"os"
+    "fmt"
+    "net/http"
+    "net/url"
+    "os"
 
-"../../go-whisk/whisk"
+    "../../go-whisk/whisk"
+    "errors"
 )
 
 var client *whisk.Client
@@ -61,6 +62,55 @@ func init() {
     }
 }
 
+func parseParams(args []string) ([]string, []string, error) {
+    var paramArgs []string
+    var whiskErr error
+    var errMsg string
+
+    i := 0
+
+    for i < len(args) {
+
+        if args[i] == "-p" || args[i] == "--param"{
+
+            if len(args) > i + 2 {
+                paramArgs = append(paramArgs, args[i + 1])
+                paramArgs = append(paramArgs, args[i + 2])
+
+                args = append(args[:i], args[i + 3:]...)
+            } else {
+                whisk.Debug(whisk.DbgError, "Parameter arguments must be a key value pair; args: %s", args)
+
+                errMsg = fmt.Sprintf("Parameter arguments must be a key value pair: %s", args)
+                whiskErr = whisk.MakeWskError(errors.New(errMsg), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG,
+                    whisk.DISPLAY_USAGE)
+
+                return nil, nil, whiskErr
+            }
+        } else {
+            i++
+        }
+    }
+
+    whisk.Debug(whisk.DbgError, "Found param args %s.\n", paramArgs)
+    whisk.Debug(whisk.DbgError, "Arguments with param args removed %s.\n", args)
+
+    return args, paramArgs, nil
+}
+
 func Execute() error {
+    var err error
+
+
+    os.Args, flags.common.param, err = parseParams(os.Args)
+
+    if err != nil {
+        whisk.Debug(whisk.DbgError, "parseParams(%s) failed: %s\n", os.Args, err)
+        errMsg := fmt.Sprintf("Failed to parse arguments: %s", err)
+        whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+            whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+        return whiskErr
+    }
+
     return WskCmd.Execute()
 }

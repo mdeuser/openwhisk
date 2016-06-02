@@ -106,8 +106,6 @@ var packageBindCmd = &cobra.Command{
         // The 1 or more --param arguments have all been combined into a single []string
         // e.g.   --p arg1,arg2 --p arg3,arg4   ->  [arg1, arg2, arg3, arg4]
 
-        flags.common.param = ParamArgs
-
         whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
 
@@ -191,8 +189,6 @@ var packageCreateCmd = &cobra.Command{
         } else {
             sharedSet = false
         }
-
-        flags.common.param = ParamArgs
 
         whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
@@ -314,8 +310,6 @@ var packageUpdateCmd = &cobra.Command{
         } else {
             sharedSet = false
         }
-
-        flags.common.param = ParamArgs
 
         whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
         parameters, err := parseParameters(flags.common.param)
