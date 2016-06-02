@@ -81,7 +81,7 @@ func parseParams(args []string) ([]string, []string, error) {
             } else {
                 whisk.Debug(whisk.DbgError, "Parameter arguments must be a key value pair; args: %s", args)
 
-                errMsg = fmt.Sprintf("Parameter arguments must be a key value pair: %s\n", args)
+                errMsg = fmt.Sprintf("Parameter arguments must be a key value pair: %s", args)
                 whiskErr = whisk.MakeWskError(errors.New(errMsg), whisk.EXITCODE_ERR_GENERAL, whisk.DISPLAY_MSG,
                     whisk.DISPLAY_USAGE)
 
@@ -101,7 +101,8 @@ func parseParams(args []string) ([]string, []string, error) {
 func Execute() error {
     var err error
 
-    os.Args, ParamArgs, err = parseParams(os.Args)
+
+    os.Args, flags.common.param, err = parseParams(os.Args)
 
     if err != nil {
         whisk.Debug(whisk.DbgError, "parseParams(%s) failed: %s\n", os.Args, err)

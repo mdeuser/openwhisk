@@ -196,8 +196,6 @@ var actionInvokeCmd = &cobra.Command{
 
         payload := map[string]interface{}{}
 
-        flags.common.param = ParamArgs
-
         if len(flags.common.param) > 0 {
             whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
             parameters, err := parseParameters(flags.common.param)
@@ -481,8 +479,6 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
     } else {
         sharedSet = false
     }
-
-    flags.common.param = ParamArgs
 
     whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
     parameters, err := parseParameters(flags.common.param)
