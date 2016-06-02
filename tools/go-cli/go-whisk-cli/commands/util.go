@@ -224,6 +224,22 @@ func printFullList(collection interface{}) {
     }
 }
 
+func printSummary(collection interface{}) {
+    switch collection := collection.(type) {
+    case *whisk.Action:
+
+    case *whisk.Trigger:
+
+    case *whisk.Package:
+        printPackageSummary(collection)
+    case *whisk.Rule:
+
+    case *whisk.Namespace:
+
+    case *whisk.Activation:
+    }
+}
+
 func printActionList(actions []whisk.Action) {
     boldPrintf("actions\n")
     for _, action := range actions {
@@ -298,6 +314,22 @@ func printActivationLogs(logs []string) {
 func printArrayContents(arrStr []string) {
     for _, str := range arrStr {
         fmt.Printf("%s\n", str)
+    }
+}
+
+func printPackageSummary(p *whisk.Package) {
+    fmt.Printf("package /%s/%s\n", p.Namespace, p.Name)
+
+    if p.Actions != nil {
+        for _, a := range p.Actions {
+            fmt.Printf(" action /%s/%s/%s: %s\n", p.Namespace, p.Name, a.Name, a.GetAnnotationKeyValue("description"))
+        }
+    }
+
+    if p.Feeds != nil {
+        for _, f := range p.Feeds {
+            fmt.Printf(" feed   /%s/%s/%s: %s\n", p.Namespace, p.Name, f.Name, f.GetAnnotationKeyValue("description"))
+        }
     }
 }
 

@@ -22,6 +22,7 @@ import (
     "net/url"
     "errors"
     "strings"
+    "reflect"
 )
 
 type ActionService struct {
@@ -37,6 +38,33 @@ type Action struct {
     Annotations             `json:"annotations,omitempty"`
     Parameters  interface{} `json:"parameters,omitempty"`   // Can be either []KeyValue or []KeyValues (action seq)
     Limits      *Limits     `json:"limits,omitempty"`
+}
+
+func (p *Action) GetAnnotationKeyValue(key string) string {
+    var val string = ""
+
+    Debug(DbgInfo, "Looking for annotation with key of '%s'\n", key)
+    if p.Annotations != nil {
+        for i,_ := range p.Annotations {
+            Debug(DbgInfo, "Examining annotation %+v\n", p.Annotations[i])
+            annotation := p.Annotations[i]
+            if k, ok := annotation["key"].(string); ok {
+                if k == key {
+                    if val, ok := annotation["value"].(string); ok {
+                        Debug(DbgInfo, "annotation[%s] = '%s'\n", key, val)
+                        if val != "" {
+                            return val
+                        }
+                    } else {
+                        Debug(DbgWarn, "Annotation 'value' is not a string type: %s", reflect.TypeOf(annotation["value"]).String())
+                    }
+                }
+            } else {
+                Debug(DbgWarn, "Annotation 'key' is not a string type: %s", reflect.TypeOf(annotation["key"]).String())
+            }
+        }
+    }
+    return val
 }
 
 type SentActionPublish struct {

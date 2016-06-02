@@ -396,8 +396,7 @@ var packageGetCmd = &cobra.Command{
         }
 
         if flags.common.summary {
-            //fmt.Printf("%s /%s/%s\n", boldString("package"), xPackage.Namespace, xPackage.Name)  //MWD
-            fmt.Printf("package /%s/%s\n", xPackage.Namespace, xPackage.Name)
+            printSummary(xPackage)
         } else {
             //fmt.Printf("%s got package %s\n", color.GreenString("ok:"), boldString(qName.entityName))
             //printJSON(xPackage)

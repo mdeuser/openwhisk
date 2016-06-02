@@ -92,8 +92,8 @@ func parseParams(args []string) ([]string, []string, error) {
         }
     }
 
-    whisk.Debug(whisk.DbgError, "Found param args %s.\n", paramArgs)
-    whisk.Debug(whisk.DbgError, "Arguments with param args removed %s.\n", args)
+    whisk.Debug(whisk.DbgInfo, "Found param args %s.\n", paramArgs)
+    whisk.Debug(whisk.DbgInfo, "Arguments with param args removed %s.\n", args)
 
     return args, paramArgs, nil
 }
