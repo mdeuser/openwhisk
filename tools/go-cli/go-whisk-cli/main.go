@@ -95,17 +95,10 @@ func main() {
             msgDisplayed = werr.MsgDisplayed
             exitCode = werr.ExitCode
         } else {
-            // FIXME MWD - The ErrorResponse error should be be returned; this temporary ErrorResponse handling is only needed while the error processing is being refactored
-            rsperr, isRespError := err.(*whisk.ErrorResponse)
-            if isRespError {
-                whisk.Debug(whisk.DbgError, "Got a whisk.ErrorResponse: code = %d\n", rsperr.Response.StatusCode)
-                exitCode = (rsperr.Response.StatusCode - 256);
-            } else {  // Likely a cobra generated error about bad command syntax
-                whisk.Debug(whisk.DbgError, "Got some other error - %s\n", err)
-                fmt.Printf("%s\n", err)
-                displayUsage = false   // Cobra already displayed the usage message
-                exitCode = 1;
-            }
+            whisk.Debug(whisk.DbgError, "Got some other error - %s\n", err)
+            fmt.Printf("%s\n", err)
+            displayUsage = false   // Cobra already displayed the usage message
+            exitCode = 1;
         }
 
         // If the err msg should be displayed to the console and it has not already been

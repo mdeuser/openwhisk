@@ -28,7 +28,7 @@ type KeyValues struct {
 
 type Annotations []map[string]interface{}
 
-type BindParameters []KeyValues
+type ActionSequence []KeyValues
 
 type Parameters []KeyValue
 

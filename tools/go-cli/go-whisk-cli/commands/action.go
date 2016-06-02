@@ -25,15 +25,15 @@ import (
     "io"
     "io/ioutil"
     "os"
+    "os/exec"
     "path/filepath"
     "regexp"
+    "strings"
 
     "../../go-whisk/whisk"
 
     "github.com/fatih/color"
     "github.com/spf13/cobra"
-    "strings"
-    "os/exec"
 )
 
 //////////////
@@ -291,7 +291,8 @@ var actionGetCmd = &cobra.Command{
             fmt.Printf("%s /%s/%s\n", boldString("action"), action.Namespace, action.Name)
         } else {
             fmt.Printf("%s got action %s\n", color.GreenString("ok:"), boldString(qName.entityName))
-            printJSON(action)
+            //printJSON(action)
+            printJsonNoColor(action)
         }
 
         return nil
@@ -447,6 +448,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
     var err error
     var shared, sharedSet bool
     var artifact string
+    var limits *whisk.Limits
 
     whisk.Debug(whisk.DbgInfo, "Parsing action arguments: %s\n", args)
     if len(args) < 1 {
@@ -486,7 +488,6 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
 
     whisk.Debug(whisk.DbgInfo, "Parsing parameters: %#v\n", flags.common.param)
     parameters, err := parseParameters(flags.common.param)
-
     if err != nil {
         whisk.Debug(whisk.DbgError, "parseParameters(%#v) failed: %s\n", flags.common.param, err)
         errMsg := fmt.Sprintf("Invalid parameter argument '%#v': %s", flags.common.param, err)
@@ -505,11 +506,17 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
         return nil, sharedSet, whiskErr
     }
 
-    // TODO: exclude limits if none set
-    /*limits := whisk.Limits{
-            Timeout: flags.action.timeout,
-            Memory:  flags.action.memory,
-    }*/
+    // Only include the memory and timeout limit if set
+    if flags.action.memory > 0 || flags.action.timeout > 0 {
+        limits = new(whisk.Limits)
+        if flags.action.memory > 0 {
+            limits.Memory = flags.action.memory
+        }
+        if flags.action.timeout > 0 {
+            limits.Timeout = flags.action.timeout
+        }
+        whisk.Debug(whisk.DbgInfo, "Action limits: %+v\n", limits)
+    }
 
     action := new(whisk.Action)
 
@@ -553,7 +560,7 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
         }
 
         if len(artifact) > 0 {
-            bindParams := whisk.BindParameters{}
+            actionlist := whisk.ActionSequence{}
             keyValues := whisk.KeyValues{
                 Key: "_actions",
             }
@@ -572,11 +579,15 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
                 }
 
                 keyValues.Values = append(keyValues.Values, "/" + actionQName.namespace + "/" + actionQName.entityName)
-
-                bindParams = append(bindParams, keyValues)
             }
-
-            action.BindParameters = bindParams
+            actionlist = append(actionlist, keyValues)
+            action.Parameters = actionlist
+        } else {
+            whisk.Debug(whisk.DbgError, "--sequence specified, but no sequence of actions was provided\n")
+            errMsg := fmt.Sprintf("Comma separated action sequence is missing")
+            whiskErr := whisk.MakeWskErrorFromWskError(errors.New(errMsg), err, whisk.EXITCODE_ERR_GENERAL,
+                whisk.DISPLAY_MSG, whisk.DISPLAY_USAGE)
+            return nil, sharedSet, whiskErr
         }
 
         action.Exec = pipeAction.Exec
@@ -685,8 +696,12 @@ func parseAction(cmd *cobra.Command, args []string) (*whisk.Action, bool, error)
     action.Namespace = qName.namespace
     action.Publish = shared
     action.Annotations = annotations
-    action.Parameters = parameters
-    //action.Limits = limits
+    action.Limits = limits
+
+    // If the action sequence is not already the Parameters value, set it to the --param parameter values
+    if action.Parameters == nil {
+        action.Parameters = parameters
+    }
 
     whisk.Debug(whisk.DbgInfo, "Parsed action struct: %#v\n", action)
     return action, sharedSet, nil
