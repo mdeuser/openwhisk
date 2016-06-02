@@ -103,8 +103,8 @@ type BindingUpdates struct {
 
 type PackageListOptions struct {
     Public bool `url:"public,omitempty"`
-    Limit  int  `url:"limit,omitempty"`
-    Skip   int  `url:"skip,omitempty"`
+    Limit  int  `url:"limit"`
+    Skip   int  `url:"skip"`
     Since  int  `url:"since,omitempty"`
     Docs   bool `url:"docs,omitempty"`
 }

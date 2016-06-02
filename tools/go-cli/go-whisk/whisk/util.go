@@ -34,6 +34,7 @@ func addRouteOptions(route string, options interface{}) (string, error) {
         return route, nil
     }
 
+    Debug(DbgInfo, "Adding options %+v to route '%s'\n", options, route)
     u, err := url.Parse(route)
     if err != nil {
         Debug(DbgError,"url.Parse(%s) error: %s\n", route, err)

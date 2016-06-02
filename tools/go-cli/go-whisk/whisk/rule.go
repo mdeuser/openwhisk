@@ -39,8 +39,8 @@ type Rule struct {
 }
 
 type RuleListOptions struct {
-    Limit int  `url:"limit,omitempty"`
-    Skip  int  `url:"skip,omitempty"`
+    Limit int  `url:"limit"`
+    Skip  int  `url:"skip"`
     Docs  bool `url:"docs,omitempty"`
 }
 
