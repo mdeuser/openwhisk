@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set +x
 #
 # Copyright 2015-2016 IBM Corporation
 #
