@@ -36,6 +36,7 @@ do
 
     # drop the database
     CMD="$CURL_ADMIN -X DELETE $URL_BASE/$db"
+    echo "$CMD"
     RES=$($CMD)
     if [[ "$RES" == '{"ok":true}' ]]; then
         echo DELETED
@@ -46,6 +47,7 @@ do
 
     echo "recreating database '$db'"
     CMD="$CURL_ADMIN -X PUT $URL_BASE/$db"
+    echo "$CMD"
     RES=$($CMD)
     if [[ "$RES" == '{"ok":true}' ]]; then
         echo RECREATED
