@@ -24,6 +24,12 @@ dependencies {
     compile 'com.typesafe.akka:akka-http-core_2.11:2.4.8'
     compile 'com.typesafe.akka:akka-http-spray-json-experimental_2.11:2.4.8'
 
+    compile 'com.typesafe.akka:akka-http-experimental_2.11:2.4.9'
+    compile 'com.typesafe.akka:akka-http-core_2.11:2.4.9'
+    compile 'com.typesafe.akka:akka-stream_2.11:2.4.9'
+    compile 'com.typesafe.akka:akka-actor_2.11:2.4.9'
+    compile 'com.typesafe:ssl-config-akka_2.11:0.2.1'
+
     compile 'log4j:log4j:1.2.16'
     compile 'commons-codec:commons-codec:1.9'
     compile 'commons-io:commons-io:2.4'
