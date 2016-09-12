@@ -22,6 +22,10 @@ limits:
 controller:
   port: 10001
 
+# port means outer port
+restify:
+  port: 10002
+
 consul:
   port:
     server: 8300

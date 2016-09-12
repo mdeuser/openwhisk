@@ -32,6 +32,8 @@ router.host={{ groups["edge"]|first }}
 cli.api.host={{ cli_api_host | default(groups['edge'] | first) }}
 zookeeper.host={{ groups["kafka"]|first }}
 invoker.hosts={{ groups["invokers"] | join(",") }}
+restify.hosts={{ groups["restify"]first}}
+
 
 edge.host.uiport=443
 edge.host.apiport=443
@@ -46,6 +48,8 @@ loadbalancer.host.port={{ controller.port }}
 consul.host.port4={{ consul.port.http }}
 consul.host.port5={{ consul.port.server }}
 invoker.hosts.baseport={{ invoker.port }}
+controller.host.port={{ controller.port }}
+restify.host.port={{ restify.port }}
 
 invoker.container.network=bridge
 invoker.container.policy={{ invoker_container_policy_name | default()}}
