@@ -14,12 +14,9 @@
     hostname: restify
     env:
       "EDGE_HOST": "{{ groups['edge'] | first }}"
-      "STATSD_HOST_PORT": "{{ statsd.port }}"
       "MAIN_DOCKER_ENDPOINT": "{{ groups['controllers'] | first }}:{{ docker.port }}"
       "EDGE_DOCKER_ENDPOINT": "{{ groups['edge'] | first }}:{{ docker.port }}"
       "KAFKA_DOCKER_ENDPOINT": "{{ groups['kafka'] | first }}:{{ docker.port }}"
-      "ELK_DOCKER_ENDPOINT": "{{ groups['elk'] | first }}:{{ docker.port }}"
-      "CATALOG_DOCKER_ENDPOINT": "{{ groups['catalog'] | first }}:{{ docker.port }}"
       "INVOKER_HOSTS": "{{ groups['invokers'] | join(',') }}"
       "DOCKER_PORT": "{{ docker.port }}"
       "CONSULSERVER_HOST": "{{ groups['consul_servers'] | first }}"
