@@ -8,12 +8,6 @@
     state: absent
   ignore_errors: True
 
-- name: remove restify config directory
-  file:
-    path: "{{ restify_conf_dir }}"
-    state: absent
-  become: true
-
 - name: remove restify log directory
   file:
     path: "{{ whisk_logs_dir }}/restify"

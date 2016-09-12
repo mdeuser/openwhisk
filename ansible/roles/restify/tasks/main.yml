@@ -1,18 +1,10 @@
 ---
-# This role will install restify. 
-# In deploy mode it will deploy an restify server.
-# In clean mode it will remove the restify server as well as restify_conf_dir
-# In start mode it will start the restify server
-# In stop mode it will stop the restify server
+# This role will install restify
+# In deploy mode it will deploy an restify server
+# In clean mode it will remove the restify server
 
 - include: deploy.yml
   when: mode == "deploy"
 
 - include: clean.yml
   when: mode == "clean"
-
-- include: start.yml
-  when: mode == "start"
-
-- include: stop.yml
-  when: mode == "stop"
