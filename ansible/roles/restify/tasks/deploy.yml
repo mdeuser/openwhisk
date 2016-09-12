@@ -1,5 +1,5 @@
 ---
-# This task deploys a monitoringService component
+# This task deploys a restify component
 
 - name: "pull the {{ docker_image_tag }} image of Restify"
   shell: "docker pull {{ docker_registry }}{{ docker_image_prefix }}/restify:{{ docker_image_tag }}"
@@ -8,10 +8,10 @@
 - name: (re)start restify
   docker:
     name: restify
-    image: "{{ docker_registry }}{{ docker_image_prefix }}/monitoringservice:{{ docker_image_tag }}"
+    image: "{{ docker_registry }}{{ docker_image_prefix }}/restify:{{ docker_image_tag }}"
     state: reloaded
     restart_policy: "{{ docker.restart.policy }}"
-    hostname: monitoringservice
+    hostname: restify
     env:
       "EDGE_HOST": "{{ groups['edge'] | first }}"
       "STATSD_HOST_PORT": "{{ statsd.port }}"
@@ -27,4 +27,4 @@
       "KAFKA_HOST": "{{ groups['kafka'] | first }}"
       "KAFKA_HOST_PORT": "{{ kafka.port }}"
     volumes:
-      - "{{ whisk_logs_dir }}/monitoringService:/logs"
+      - "{{ whisk_logs_dir }}/restify:/logs"
