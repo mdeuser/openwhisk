@@ -1,42 +1,30 @@
 ---
-# This task deploys a restify component
+# This task deploys a monitoringService component
 
-- name: ensure restify config directory exists
-  file:
-    path: "{{ restify_conf_dir }}"
-    state: directory
-
-- name: copy template from local to remote in restify config directory
-  template:
-    src: restifyConf_generated.js.j2
-    dest: "{{ restify_conf_dir }}/restifyConf_generated.js"
-
-- name: "pull the {{ docker_image_tag }} image of restify"
+- name: "pull the {{ docker_image_tag }} image of Restify"
   shell: "docker pull {{ docker_registry }}{{ docker_image_prefix }}/restify:{{ docker_image_tag }}"
   when: docker_registry != ""
 
 - name: (re)start restify
   docker:
     name: restify
-    image: "{{ docker_registry }}{{ docker_image_prefix }}/restify:{{ docker_image_tag }}"
+    image: "{{ docker_registry }}{{ docker_image_prefix }}/monitoringservice:{{ docker_image_tag }}"
     state: reloaded
     restart_policy: "{{ docker.restart.policy }}"
-    hostname: restify
+    hostname: monitoringservice
     env:
-      "restify_PREFIX": "edge."
-      "COMPONENT_NAME": "restify"
+      "EDGE_HOST": "{{ groups['edge'] | first }}"
+      "STATSD_HOST_PORT": "{{ statsd.port }}"
+      "MAIN_DOCKER_ENDPOINT": "{{ groups['controllers'] | first }}:{{ docker.port }}"
+      "EDGE_DOCKER_ENDPOINT": "{{ groups['edge'] | first }}:{{ docker.port }}"
+      "KAFKA_DOCKER_ENDPOINT": "{{ groups['kafka'] | first }}:{{ docker.port }}"
+      "ELK_DOCKER_ENDPOINT": "{{ groups['elk'] | first }}:{{ docker.port }}"
+      "CATALOG_DOCKER_ENDPOINT": "{{ groups['catalog'] | first }}:{{ docker.port }}"
+      "INVOKER_HOSTS": "{{ groups['invokers'] | join(',') }}"
+      "DOCKER_PORT": "{{ docker.port }}"
       "CONSULSERVER_HOST": "{{ groups['consul_servers'] | first }}"
       "CONSUL_HOST_PORT4": "{{ consul.port.http }}"
+      "KAFKA_HOST": "{{ groups['kafka'] | first }}"
+      "KAFKA_HOST_PORT": "{{ kafka.port }}"
     volumes:
-      - "{{ whisk_logs_dir }}/restify:/logs"
-      - "{{ restify_conf_dir }}:/restify/conf"
-    ports:
-      - "{{ restify.port }}:8125/udp"
-      - "{{ restify.admin.port }}:8126"
-
-- name: wait until restify in this host is up and running
-  wait_for:
-    delay: 2
-    host: "{{ inventory_hostname }}"
-    port: "{{ restify.admin.port }}"
-    timeout: 60
+      - "{{ whisk_logs_dir }}/monitoringService:/logs"
