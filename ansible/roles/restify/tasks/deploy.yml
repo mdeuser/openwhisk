@@ -23,5 +23,7 @@
       "CONSUL_HOST_PORT4": "{{ consul.port.http }}"
       "KAFKA_HOST": "{{ groups['kafka'] | first }}"
       "KAFKA_HOST_PORT": "{{ kafka.port }}"
+    ports:
+      - "{{ restify.port }}:8080"
     volumes:
       - "{{ whisk_logs_dir }}/restify:/logs"
