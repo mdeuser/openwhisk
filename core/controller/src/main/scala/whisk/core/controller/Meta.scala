@@ -16,6 +16,9 @@
 
 package whisk.core.controller
 
+import scala.util.Success
+import scala.util.Failure
+import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
 import akka.actor.ActorSystem
@@ -33,7 +36,10 @@ import spray.routing.Directives
 import whisk.common.Logging
 import whisk.common.TransactionId
 import whisk.core.entity._
-import scala.concurrent.ExecutionContext
+import whisk.core.entity.types.EntityStore
+import whisk.http.ErrorResponse.terminate
+import whisk.core.database.NoDocumentException
+import whisk.core.database.DocumentTypeMismatchException
 
 trait WhiskMetaApi extends Directives with Logging {
     services: WhiskServices =>
@@ -48,18 +54,20 @@ trait WhiskMetaApi extends Directives with Logging {
     /** An execution context for futures. */
     protected implicit val executionContext: ExecutionContext
 
+    /** Entity store. */
+    protected val entityStore: EntityStore
+
     /** The route prefix e.g., /meta/package-name. */
     protected val routePrefix = pathPrefix("meta")
+
+    /** The name of the system namespace. */
+    protected lazy val systemId = "whisk.system"
 
     /** Allowed verbs. */
     private lazy val allowedOperations = get | delete | post
 
-    /** Allowed packages implementing meta api methods. */
-    protected val allowedMetaApis = Seq("routemgmt")
-
     private val hostPath = Uri(s"http://localhost:${whiskConfig.servicePort}")
-    private val systemNamespace = "whisk.system"
-    private val baseApiPath = Path(s"/api/$apiversion") / "namespaces" / systemNamespace / "actions"
+    private val baseApiPath = Path(s"/api/$apiversion") / "namespaces" / systemId / "actions"
 
     private def makeUrl(namespace: String, pkg: String, action: String) = {
         val actionPath = (Path.SingleSlash + pkg) / action
@@ -68,7 +76,7 @@ trait WhiskMetaApi extends Directives with Logging {
 
     private lazy val pipeline: Future[HttpRequest => Future[HttpResponse]] = {
         val authStore = WhiskAuthStore.datastore(whiskConfig)
-        val keyLookup = WhiskAuth.get(authStore, Subject(systemNamespace), true)(TransactionId.controller)
+        val keyLookup = WhiskAuth.get(authStore, Subject(systemId), true)(TransactionId.controller)
 
         keyLookup.map {
             key =>
@@ -85,7 +93,7 @@ trait WhiskMetaApi extends Directives with Logging {
      * if status is 200 or an activation id if 202.
      */
     protected def invokeAction(requestBody: JsObject, pkg: String, action: String)(implicit transid: TransactionId): Future[JsObject] = {
-        val url = makeUrl(systemNamespace, pkg, action)
+        val url = makeUrl(systemId, pkg, action)
         pipeline flatMap {
             _(Post(url, requestBody)) map {
                 response =>
@@ -103,21 +111,45 @@ trait WhiskMetaApi extends Directives with Logging {
     }
 
     def routes(user: Identity)(implicit transid: TransactionId) = {
-        (routePrefix & pathPrefix(Segment) & allowedOperations) {
-            metaPackage =>
-                if (allowedMetaApis.contains(metaPackage)) {
-                    requestMethodAndParams {
-                        case (method, params) =>
-                            val content = params + ("namespace" -> user.namespace())
-                            val action = method match {
-                                case GET    => "getApi"
-                                case POST   => "createRoute"
-                                case DELETE => "deleteApi"
-                            }
-                            complete(OK, invokeAction(content.toJson.asJsObject, metaPackage, action))
+        (routePrefix & pathPrefix(Segment) & allowedOperations) { metaPackage =>
+            requestMethodAndParams {
+                case (method, params) =>
+
+                    val pkgDocId = DocId(systemId + EntityPath.PATHSEP + metaPackage)
+                    def pkgLookup = WhiskPackage.get(entityStore, pkgDocId) recoverWith {
+                        case _: NoDocumentException | DeserializationException(_, _, _) =>
+                            Future.failed(RejectRequest(MethodNotAllowed))
+                    } flatMap { pkg =>
+                        pkg.annotations("meta") filter {
+                            // does package have annotatation: meta == true
+                            _ match { case JsBoolean(b) => b case _ => false }
+                        } flatMap {
+                            // if so, find action name for http verb
+                            _ => pkg.annotations(method.name.toLowerCase)
+                        } match {
+                            // if action name is defined as a string, accept it, else fail request
+                            case Some(JsString(actionName)) =>
+                                info(this, s"'${pkg.name}' maps '${method.name}' to action '${actionName}'")
+                                Future.successful(actionName)
+                            case _ =>
+                                error(this, s"'${pkg.name}' is missing 'meta' annotation or action name for '${method.name}'")
+                                Future.failed(RejectRequest(MethodNotAllowed))
+                        }
                     }
-                } else reject
+
+                    onComplete(pkgLookup) {
+                        case Success(actionName) =>
+                            val content = params + ("namespace" -> user.namespace())
+                            complete(OK, invokeAction(content.toJson.asJsObject, metaPackage, actionName))
+
+                        case Failure(t: RejectRequest) =>
+                            terminate(t.code, t.message)
+
+                        case Failure(t) =>
+                            error(this, s"exception while looking up package: $t")
+                            terminate(InternalServerError)
+                    }
+            }
         }
     }
-
 }

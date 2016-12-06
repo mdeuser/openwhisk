@@ -55,6 +55,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi {
 
     override val apipath = "api"
     override val apiversion = "v1"
+    override lazy val systemId = Subject().toString
 
     /** Meta API tests */
     behavior of "Meta API"
@@ -74,41 +75,98 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi {
     it should "reject access to unknown package" in {
         implicit val tid = transid()
 
-        val methods = Seq(Get, Post, Delete)
-        val paths = Seq("/meta", "/meta/xyz")
+        val notmeta = WhiskPackage(
+            EntityPath(systemId),
+            EntityName("notmeta"),
+            annotations = Parameters("meta", JsBoolean(false)))
+        put(entityStore, notmeta)
 
+        val alsonotmeta = WhiskPackage(
+            EntityPath("xyz"),
+            EntityName("notmeta"),
+            annotations = Parameters("meta", JsBoolean(false)))
+        put(entityStore, alsonotmeta)
+
+        val badmeta = WhiskPackage(
+            EntityPath(systemId),
+            EntityName("badmeta"),
+            annotations = Parameters("meta", JsBoolean(true)))
+        put(entityStore, badmeta)
+
+        val methods = Seq(Get, Post, Delete)
+
+        methods.map { m =>
+            m("/meta") ~> sealRoute(routes(creds)) ~> check {
+                status shouldBe NotFound
+            }
+        }
+
+        val paths = Seq("/meta/doesntexist", "/meta/xyz", "/meta/notmeta", "/meta/badmeta")
         paths.map { p =>
             methods.map { m =>
                 m(p) ~> sealRoute(routes(creds)) ~> check {
                     withClue(p) {
-                        status shouldBe NotFound
+                        status shouldBe MethodNotAllowed
                     }
                 }
             }
         }
-
-        Put(s"/meta/routemgmt") ~> sealRoute(routes(creds)) ~> check {
-            status shouldBe MethodNotAllowed
-        }
     }
 
-    it should "invoke routemgmt action for allowed verbs" in {
+    it should "invoke action for allowed verbs on meta handler" in {
         implicit val tid = transid()
 
-        val methods = Seq((Get, "getApi"), (Post, "createRoute"), (Delete, "deleteApi"))
+        val heavymeta = WhiskPackage(
+            EntityPath(systemId),
+            EntityName("heavymeta"),
+            annotations = Parameters("meta", JsBoolean(true)) ++
+                Parameters("get", JsString("getApi")) ++
+                Parameters("post", JsString("createRoute")) ++
+                Parameters("delete", JsString("deleteApi")))
+        put(entityStore, heavymeta)
 
+        val methods = Seq((Get, "getApi"), (Post, "createRoute"), (Delete, "deleteApi"))
         methods.map {
             case (m, name) =>
-                m("/meta/routemgmt?a=b&c=d&namespace=xyz") ~> sealRoute(routes(creds)) ~> check {
+                m("/meta/heavymeta?a=b&c=d&namespace=xyz") ~> sealRoute(routes(creds)) ~> check {
                     status should be(OK)
                     val response = responseAs[JsObject]
                     response shouldBe JsObject(
-                        "pkg" -> "routemgmt".toJson,
+                        "pkg" -> "heavymeta".toJson,
                         "action" -> name.toJson,
                         "content" -> JsObject(
                             "namespace" -> creds.namespace.toJson, //namespace overriden by API
                             "a" -> "b".toJson,
                             "c" -> "d".toJson))
+                }
+        }
+    }
+
+    it should "invoke action for allowed verbs on meta handler with partial mapping" in {
+        implicit val tid = transid()
+
+        val heavymeta = WhiskPackage(
+            EntityPath(systemId),
+            EntityName("heavymeta"),
+            annotations = Parameters("meta", JsBoolean(true)) ++
+                Parameters("get", JsString("getApi")))
+        put(entityStore, heavymeta)
+
+        val methods = Seq((Get, OK), (Post, MethodNotAllowed), (Delete, MethodNotAllowed))
+        methods.map {
+            case (m, status) =>
+                m("/meta/heavymeta?a=b&c=d&namespace=xyz") ~> sealRoute(routes(creds)) ~> check {
+                    status should be(status)
+                    if (status == OK) {
+                        val response = responseAs[JsObject]
+                        response shouldBe JsObject(
+                            "pkg" -> "heavymeta".toJson,
+                            "action" -> "getApi".toJson,
+                            "content" -> JsObject(
+                                "namespace" -> creds.namespace.toJson, //namespace overriden by API
+                                "a" -> "b".toJson,
+                                "c" -> "d".toJson))
+                    }
                 }
         }
     }

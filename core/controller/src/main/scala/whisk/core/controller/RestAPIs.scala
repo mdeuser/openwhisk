@@ -279,7 +279,8 @@ protected[controller] class RestAPIVersion_v1(
         override val apipath: String,
         override val apiversion: String,
         val verbosity: LogLevel)(
-            implicit override val iam: NamespaceProvider,
+            implicit override val entityStore: EntityStore,
+            override val iam: NamespaceProvider,
             override val entitlementProvider: EntitlementProvider,
             override val activationIdFactory: ActivationIdGenerator,
             override val loadBalancer: LoadBalancerService,
