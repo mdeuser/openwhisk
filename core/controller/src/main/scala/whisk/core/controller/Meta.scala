@@ -150,6 +150,9 @@ trait WhiskMetaApi extends Directives with Logging {
             case _: NoDocumentException | DeserializationException(_, _, _) =>
                 Future.failed(RejectRequest(MethodNotAllowed))
         } flatMap { pkg =>
+            // expecting the meta handlers to be private
+            if (pkg.publish) warn(this, s"'${pkg.fullyQualifiedName(true)}' is public")
+
             pkg.annotations("meta") filter {
                 // does package have annotatation: meta == true
                 _ match { case JsBoolean(b) => b case _ => false }

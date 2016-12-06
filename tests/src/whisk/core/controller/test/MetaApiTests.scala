@@ -16,27 +16,26 @@
 
 package whisk.core.controller.test
 
-import java.time.Instant
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 
+import scala.concurrent.Future
 import scala.language.postfixOps
 
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import akka.event.Logging.InfoLevel
 
+import akka.event.Logging.InfoLevel
 import spray.http.StatusCodes._
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.SprayJsonSupport.sprayJsonMarshaller
 import spray.httpx.SprayJsonSupport.sprayJsonUnmarshaller
+import spray.json._
 import spray.json.DefaultJsonProtocol
 import spray.json.DefaultJsonProtocol._
-import spray.json._
+import whisk.common.TransactionId
 import whisk.core.controller.WhiskMetaApi
 import whisk.core.entity._
-import whisk.http.ErrorResponse
-import whisk.http.Messages
-import whisk.common.TransactionId
-import scala.concurrent.Future
 
 /**
  * Tests Meta API.
@@ -168,6 +167,33 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi {
                                 "c" -> "d".toJson))
                     }
                 }
+        }
+    }
+
+    it should "warn if meta package is public" in {
+        implicit val tid = transid()
+        val stream = new ByteArrayOutputStream
+        val printstream = new PrintStream(stream)
+        val savedstream = this.outputStream
+        this.outputStream = printstream
+
+        val publicmeta = WhiskPackage(
+            EntityPath(systemId),
+            EntityName("publicmeta"),
+            publish = true,
+            annotations = Parameters("meta", JsBoolean(true)) ++
+                Parameters("get", JsString("getApi")))
+        put(entityStore, publicmeta)
+
+        try {
+            Get("/meta/publicmeta") ~> sealRoute(routes(creds)) ~> check {
+                status should be(OK)
+                stream.toString should include regex (s"""[WARN] *.* '${publicmeta.fullyQualifiedName(true)}' is public""")
+                stream.reset()
+            }
+        } finally {
+            stream.close()
+            printstream.close()
         }
     }
 
