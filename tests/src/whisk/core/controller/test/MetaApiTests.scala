@@ -153,12 +153,12 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
         val methods = Seq(Get, Post, Delete)
 
         methods.map { m =>
-            m("/meta") ~> sealRoute(routes(creds)) ~> check {
+            m("/experimental") ~> sealRoute(routes(creds)) ~> check {
                 status shouldBe NotFound
             }
         }
 
-        val paths = Seq("/meta/doesntexist", "/meta/notmeta", "/meta/badmeta")
+        val paths = Seq("/experimental/doesntexist", "/experimental/notmeta", "/experimental/badmeta")
         paths.map { p =>
             methods.map { m =>
                 m(p) ~> sealRoute(routes(creds)) ~> check {
@@ -170,7 +170,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
         }
 
         failActionLookup = true
-        Get("/meta/publicmeta") ~> sealRoute(routes(creds)) ~> check {
+        Get("/experimental/publicmeta") ~> sealRoute(routes(creds)) ~> check {
             status should be(InternalServerError)
         }
     }
@@ -181,7 +181,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
         val methods = Seq((Get, "getApi"), (Post, "createRoute"), (Delete, "deleteApi"))
         methods.map {
             case (m, name) =>
-                m("/meta/heavymeta?a=b&c=d&namespace=xyz") ~> sealRoute(routes(creds)) ~> check {
+                m("/experimental/heavymeta?a=b&c=d&namespace=xyz") ~> sealRoute(routes(creds)) ~> check {
                     status should be(OK)
                     val response = responseAs[JsObject]
                     response shouldBe JsObject(
@@ -201,7 +201,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
         val methods = Seq((Get, OK), (Post, MethodNotAllowed), (Delete, MethodNotAllowed))
         methods.map {
             case (m, status) =>
-                m("/meta/partialmeta?a=b&c=d&namespace=xyz") ~> sealRoute(routes(creds)) ~> check {
+                m("/experimental/partialmeta?a=b&c=d&namespace=xyz") ~> sealRoute(routes(creds)) ~> check {
                     status should be(status)
                     if (status == OK) {
                         val response = responseAs[JsObject]
@@ -225,7 +225,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
         this.outputStream = printstream
 
         try {
-            Get("/meta/publicmeta") ~> sealRoute(routes(creds)) ~> check {
+            Get("/experimental/publicmeta") ~> sealRoute(routes(creds)) ~> check {
                 status should be(OK)
                 stream.toString should include regex (s"""[WARN] *.*publicmeta@0.0.1' is public""")
                 stream.reset()

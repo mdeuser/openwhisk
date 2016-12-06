@@ -43,8 +43,8 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
     /** Store for identities. */
     protected val authStore: AuthStore
 
-    /** The route prefix e.g., /meta/package-name. */
-    protected val routePrefix = pathPrefix("meta")
+    /** The route prefix e.g., /experimental/package-name. */
+    protected val routePrefix = pathPrefix("experimental")
 
     /** The name and apikey of the system namespace. */
     protected val systemId = "whisk.system"
