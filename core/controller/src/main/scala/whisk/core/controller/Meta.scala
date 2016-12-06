@@ -114,30 +114,14 @@ trait WhiskMetaApi extends Directives with Logging {
         (routePrefix & pathPrefix(Segment) & allowedOperations) { metaPackage =>
             requestMethodAndParams {
                 case (method, params) =>
-
-                    val pkgDocId = DocId(systemId + EntityPath.PATHSEP + metaPackage)
-                    def pkgLookup = WhiskPackage.get(entityStore, pkgDocId) recoverWith {
-                        case _: NoDocumentException | DeserializationException(_, _, _) =>
-                            Future.failed(RejectRequest(MethodNotAllowed))
-                    } flatMap { pkg =>
-                        pkg.annotations("meta") filter {
-                            // does package have annotatation: meta == true
-                            _ match { case JsBoolean(b) => b case _ => false }
-                        } flatMap {
-                            // if so, find action name for http verb
-                            _ => pkg.annotations(method.name.toLowerCase)
-                        } match {
-                            // if action name is defined as a string, accept it, else fail request
-                            case Some(JsString(actionName)) =>
-                                info(this, s"'${pkg.name}' maps '${method.name}' to action '${actionName}'")
-                                Future.successful(actionName)
-                            case _ =>
-                                error(this, s"'${pkg.name}' is missing 'meta' annotation or action name for '${method.name}'")
-                                Future.failed(RejectRequest(MethodNotAllowed))
-                        }
+                    // before checking if package exists, first check that subject has right
+                    // to post an activation explicitly (i.e., there is no check on the package/action
+                    // resource since the package is expected to be private)
+                    def precheck = entitlementProvider.checkThrottles(user) flatMap {
+                        _ => pkgLookup(metaPackage, method)
                     }
 
-                    onComplete(pkgLookup) {
+                    onComplete(precheck) {
                         case Success(actionName) =>
                             val content = params + ("namespace" -> user.namespace())
                             complete(OK, invokeAction(content.toJson.asJsObject, metaPackage, actionName))
@@ -152,4 +136,36 @@ trait WhiskMetaApi extends Directives with Logging {
             }
         }
     }
+
+    /**
+     * Meta API handlers must be in packages and have a "meta -> true" annotation
+     * in addition to a mapping from http verbs to action names; fetch package to
+     * ensure it exists, if it doesn't reject the request as not allowed.
+     * if package exists, check that it satisfies invariants on annotations.
+     */
+    private def pkgLookup(pkgName: String, method: HttpMethod)(implicit transid: TransactionId): Future[String] = {
+        val pkgDocId = DocId(systemId + EntityPath.PATHSEP + pkgName)
+
+        WhiskPackage.get(entityStore, pkgDocId) recoverWith {
+            case _: NoDocumentException | DeserializationException(_, _, _) =>
+                Future.failed(RejectRequest(MethodNotAllowed))
+        } flatMap { pkg =>
+            pkg.annotations("meta") filter {
+                // does package have annotatation: meta == true
+                _ match { case JsBoolean(b) => b case _ => false }
+            } flatMap {
+                // if so, find action name for http verb
+                _ => pkg.annotations(method.name.toLowerCase)
+            } match {
+                // if action name is defined as a string, accept it, else fail request
+                case Some(JsString(actionName)) =>
+                    info(this, s"'${pkg.name}' maps '${method.name}' to action '${actionName}'")
+                    Future.successful(actionName)
+                case _ =>
+                    error(this, s"'${pkg.name}' is missing 'meta' annotation or action name for '${method.name}'")
+                    Future.failed(RejectRequest(MethodNotAllowed))
+            }
+        }
+    }
+
 }
