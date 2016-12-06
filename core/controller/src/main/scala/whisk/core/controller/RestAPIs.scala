@@ -35,7 +35,7 @@ import whisk.core.WhiskConfig.whiskVersionDate
 import whisk.core.WhiskConfig.whiskVersionBuildno
 import whisk.core.entitlement._
 import whisk.core.entity._
-import whisk.core.entity.types.{ ActivationStore, EntityStore }
+import whisk.core.entity.types._
 import whisk.core.loadBalancer.LoadBalancerService
 import akka.event.Logging.LogLevel
 import whisk.core.entity.ActivationId.ActivationIdGenerator
@@ -279,7 +279,9 @@ protected[controller] class RestAPIVersion_v1(
         override val apipath: String,
         override val apiversion: String,
         val verbosity: LogLevel)(
-            implicit override val entityStore: EntityStore,
+            implicit override val authStore: AuthStore,
+            implicit val entityStore: EntityStore,
+            override val activationStore: ActivationStore,
             override val iam: NamespaceProvider,
             override val entitlementProvider: EntitlementProvider,
             override val activationIdFactory: ActivationIdGenerator,

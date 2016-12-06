@@ -16,94 +16,42 @@
 
 package whisk.core.controller
 
-import scala.util.Success
-import scala.util.Failure
-import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import scala.util.Failure
+import scala.util.Success
 
-import akka.actor.ActorSystem
-import spray.client.pipelining._
 import spray.http._
-import spray.http.BasicHttpCredentials
-import spray.http.HttpMethods._
 import spray.http.StatusCodes._
-import spray.http.Uri
-import spray.http.Uri.Path
 import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import spray.routing.Directives
-import whisk.common.Logging
 import whisk.common.TransactionId
+import whisk.core.controller.actions.PostActionActivation
+import whisk.core.database._
 import whisk.core.entity._
-import whisk.core.entity.types.EntityStore
+import whisk.core.entity.types._
 import whisk.http.ErrorResponse.terminate
-import whisk.core.database.NoDocumentException
-import whisk.core.database.DocumentTypeMismatchException
 
-trait WhiskMetaApi extends Directives with Logging {
+trait WhiskMetaApi extends Directives with PostActionActivation {
     services: WhiskServices =>
 
     /** API path and version for posting activations directly through the host. */
     val apipath: String
     val apiversion: String
 
-    /** An actor system for HTTP requests. */
-    protected implicit val actorSystem: ActorSystem
-
-    /** An execution context for futures. */
-    protected implicit val executionContext: ExecutionContext
-
-    /** Entity store. */
-    protected val entityStore: EntityStore
+    /** Store for identities. */
+    protected val authStore: AuthStore
 
     /** The route prefix e.g., /meta/package-name. */
     protected val routePrefix = pathPrefix("meta")
 
-    /** The name of the system namespace. */
-    protected lazy val systemId = "whisk.system"
+    /** The name and apikey of the system namespace. */
+    protected val systemId = "whisk.system"
+    protected lazy val systemKey = WhiskAuth.get(authStore, Subject(systemId), false)(TransactionId.controller)
 
     /** Allowed verbs. */
     private lazy val allowedOperations = get | delete | post
-
-    private val hostPath = Uri(s"http://localhost:${whiskConfig.servicePort}")
-    private val baseApiPath = Path(s"/api/$apiversion") / "namespaces" / systemId / "actions"
-
-    private def makeUrl(namespace: String, pkg: String, action: String) = {
-        val actionPath = (Path.SingleSlash + pkg) / action
-        hostPath.withPath(baseApiPath + actionPath.toString).toString.concat("?blocking=true")
-    }
-
-    private lazy val pipeline: Future[HttpRequest => Future[HttpResponse]] = {
-        val authStore = WhiskAuthStore.datastore(whiskConfig)
-        val keyLookup = WhiskAuth.get(authStore, Subject(systemId), true)(TransactionId.controller)
-
-        keyLookup.map {
-            key =>
-                val validCredentials = BasicHttpCredentials(key.authkey.uuid(), key.authkey.key())
-                addCredentials(validCredentials) ~> sendReceive
-        }
-    }
-
-    /**
-     * Invokes an actions via REST API.
-     * This is a stop gap and will be replaced by internal activation POST in the future.
-     *
-     * @return Future[JsObject] from action result which is either an activation record (less logs)
-     * if status is 200 or an activation id if 202.
-     */
-    protected def invokeAction(requestBody: JsObject, pkg: String, action: String)(implicit transid: TransactionId): Future[JsObject] = {
-        val url = makeUrl(systemId, pkg, action)
-        pipeline flatMap {
-            _(Post(url, requestBody)) map {
-                response =>
-                    val result = response.entity.asString.parseJson.asJsObject
-                    val code = response.status
-                    info(this, s"$action status code: $code")
-                    result
-            }
-        }
-    }
 
     /** Extracts the HTTP method and query params. */
     private val requestMethodAndParams = {
@@ -111,30 +59,56 @@ trait WhiskMetaApi extends Directives with Logging {
     }
 
     def routes(user: Identity)(implicit transid: TransactionId) = {
-        (routePrefix & pathPrefix(Segment) & allowedOperations) { metaPackage =>
+        (routePrefix & pathPrefix(EntityName.REGEX.r) & allowedOperations) { s =>
+            val metaPackage = EntityName(s)
             requestMethodAndParams {
                 case (method, params) =>
                     // before checking if package exists, first check that subject has right
                     // to post an activation explicitly (i.e., there is no check on the package/action
                     // resource since the package is expected to be private)
                     def precheck = entitlementProvider.checkThrottles(user) flatMap {
-                        _ => pkgLookup(metaPackage, method)
+                        _ => confirmMetaPackage(pkgLookup(metaPackage), method)
+                    } flatMap {
+                        case (actionName, pkgParams) => actionLookup(metaPackage, actionName) map {
+                            _.inherit(pkgParams)
+                        }
                     }
 
-                    onComplete(precheck) {
-                        case Success(actionName) =>
+                    def activate(action: WhiskAction) = {
+                        systemKey flatMap {
                             val content = params + ("namespace" -> user.namespace())
-                            complete(OK, invokeAction(content.toJson.asJsObject, metaPackage, actionName))
+                            invokeAction(_, action, Some(content.toJson.asJsObject), blocking = true, waitOverride = true)
+                        }
+                    }
+
+                    onComplete(precheck flatMap (activate(_))) {
+                        case Success((activationId, Some(activation))) =>
+                            val code = if (activation.response.isSuccess) OK else BadRequest
+                            // if activation error'ed, treat it as a bad request regardless of failure reason
+                            complete(code, activation.resultAsJson)
+                        case Success((activationId, None)) =>
+                            // blocking invoke which got queued instead
+                            complete(Accepted)
 
                         case Failure(t: RejectRequest) =>
                             terminate(t.code, t.message)
 
                         case Failure(t) =>
-                            error(this, s"exception while looking up package: $t")
+                            error(this, s"exception in meta api handler: $t")
                             terminate(InternalServerError)
                     }
             }
         }
+    }
+
+    protected def pkgLookup(pkgName: EntityName)(
+        implicit transid: TransactionId): Future[WhiskPackage] = {
+        val docid = FullyQualifiedEntityName(EntityPath(systemId), pkgName).toDocId
+
+        // if the package lookup fails or the package doesn't conform to expected invariants,
+        // fail the request with MethodNotAllowed so as not to leak information about the existence
+        // of packages that are otherwise private
+        WhiskPackage.get(entityStore, docid)
     }
 
     /**
@@ -142,15 +116,18 @@ trait WhiskMetaApi extends Directives with Logging {
      * in addition to a mapping from http verbs to action names; fetch package to
      * ensure it exists, if it doesn't reject the request as not allowed.
      * if package exists, check that it satisfies invariants on annotations.
+     *
+     * @param pkg the whisk package
+     * @param method the http verb to look up corresponding action in package annotations
+     * @return future that resolves the tuple (action to invoke, package parameters to pass on to action)
      */
-    private def pkgLookup(pkgName: String, method: HttpMethod)(implicit transid: TransactionId): Future[String] = {
-        val pkgDocId = DocId(systemId + EntityPath.PATHSEP + pkgName)
-
-        WhiskPackage.get(entityStore, pkgDocId) recoverWith {
-            case _: NoDocumentException | DeserializationException(_, _, _) =>
+    private def confirmMetaPackage(pkgLookup: Future[WhiskPackage], method: HttpMethod)(implicit transid: TransactionId) = {
+        pkgLookup recoverWith {
+            case _: ArtifactStoreException | DeserializationException(_, _, _) =>
+                info(this, s"meta api request references package which is missing")
                 Future.failed(RejectRequest(MethodNotAllowed))
         } flatMap { pkg =>
-            // expecting the meta handlers to be private
+            // expecting the meta handlers to be private; should it be an error? warn for now
             if (pkg.publish) warn(this, s"'${pkg.fullyQualifiedName(true)}' is public")
 
             pkg.annotations("meta") filter {
@@ -163,12 +140,22 @@ trait WhiskMetaApi extends Directives with Logging {
                 // if action name is defined as a string, accept it, else fail request
                 case Some(JsString(actionName)) =>
                     info(this, s"'${pkg.name}' maps '${method.name}' to action '${actionName}'")
-                    Future.successful(actionName)
+                    Future.successful(EntityName(actionName), pkg.parameters)
                 case _ =>
-                    error(this, s"'${pkg.name}' is missing 'meta' annotation or action name for '${method.name}'")
+                    info(this, s"'${pkg.name}' is missing 'meta' annotation or action name for '${method.name.toLowerCase}'")
                     Future.failed(RejectRequest(MethodNotAllowed))
             }
         }
     }
 
+    protected def actionLookup(pkgName: EntityName, actionName: EntityName)(
+        implicit transid: TransactionId): Future[WhiskAction] = {
+        val docid = FullyQualifiedEntityName(EntityPath(systemId).addpath(pkgName), actionName).toDocId
+        WhiskAction.get(entityStore, docid) recoverWith {
+            case _: ArtifactStoreException | DeserializationException(_, _, _) =>
+                // the action doesn't exist or is corrupted but the package stated otherwise
+                // so treat this as an internal error
+                Future.failed(RejectRequest(InternalServerError))
+        }
+    }
 }
