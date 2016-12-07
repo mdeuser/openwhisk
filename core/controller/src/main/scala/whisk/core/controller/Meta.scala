@@ -21,7 +21,6 @@ import scala.util.Failure
 import scala.util.Success
 
 import spray.http._
-import spray.http.HttpMethods._
 import spray.http.StatusCodes._
 import spray.httpx.SprayJsonSupport._
 import spray.json._
@@ -49,6 +48,7 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
 
     /** The name and apikey of the system namespace. */
     protected val systemId = "whisk.system"
+    protected lazy val systemNamespace = EntityPath(systemId)
     protected lazy val systemKey = WhiskAuth.get(authStore, Subject(systemId), false)(TransactionId.controller)
 
     /** Allowed verbs. */
@@ -66,7 +66,7 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
 
     def routes(user: Identity)(implicit transid: TransactionId) = {
         (routePrefix & pathPrefix(EntityName.REGEX.r) & allowedOperations) { s =>
-            val metaPackage = EntityName(s)
+            val metaPackage = resolvePackageName(EntityName(s))
 
             entity(as[Option[JsObject]]) { body =>
                 requestMethodParamsAndPath {
@@ -115,14 +115,19 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
         }
     }
 
-    protected def pkgLookup(pkgName: EntityName)(
-        implicit transid: TransactionId): Future[WhiskPackage] = {
-        val docid = FullyQualifiedEntityName(EntityPath(systemId), pkgName).toDocId
+    /**
+     * Resolves the package into using the systemId namespace.
+     */
+    protected final def resolvePackageName(pkgName: EntityName) = {
+        FullyQualifiedEntityName(systemNamespace, pkgName)
+    }
 
-        // if the package lookup fails or the package doesn't conform to expected invariants,
-        // fail the request with MethodNotAllowed so as not to leak information about the existence
-        // of packages that are otherwise private
-        WhiskPackage.get(entityStore, docid)
+    /**
+     * Gets package from datastore. This method is factored out to allow mock testing.
+     */
+    protected def pkgLookup(pkg: FullyQualifiedEntityName)(
+        implicit transid: TransactionId): Future[WhiskPackage] = {
+        WhiskPackage.get(entityStore, pkg.toDocId)
     }
 
     /**
@@ -138,6 +143,9 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
     private def confirmMetaPackage(pkgLookup: Future[WhiskPackage], method: HttpMethod)(implicit transid: TransactionId) = {
         pkgLookup recoverWith {
             case _: ArtifactStoreException | DeserializationException(_, _, _) =>
+                // if the package lookup fails or the package doesn't conform to expected invariants,
+                // fail the request with MethodNotAllowed so as not to leak information about the existence
+                // of packages that are otherwise private
                 info(this, s"meta api request references package which is missing")
                 Future.failed(RejectRequest(MethodNotAllowed))
         } flatMap { pkg =>
@@ -162,9 +170,9 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
         }
     }
 
-    protected def actionLookup(pkgName: EntityName, actionName: EntityName)(
+    protected def actionLookup(pkgName: FullyQualifiedEntityName, actionName: EntityName)(
         implicit transid: TransactionId): Future[WhiskAction] = {
-        val docid = FullyQualifiedEntityName(EntityPath(systemId).addpath(pkgName), actionName).toDocId
+        val docid = pkgName.add(actionName).toDocId
         WhiskAction.get(entityStore, docid) recoverWith {
             case _: ArtifactStoreException | DeserializationException(_, _, _) =>
                 // the action doesn't exist or is corrupted but the package stated otherwise

@@ -126,7 +126,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
 
         // check that action parameters were merged with package
         // all actions have default parameters (see actionLookup stub)
-        pkgLookup(action.namespace.last) map { pkg =>
+        pkgLookup(resolvePackageName(action.namespace.last)) map { pkg =>
             action.parameters shouldBe (pkg.parameters ++ defaultActionParameters)
             action.parameters("z") shouldBe defaultActionParameters("z")
         }
@@ -136,10 +136,10 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
 
     protected def pkgLookup(pkgName: String) = packages.find(_.name == EntityName(pkgName))
 
-    override protected def pkgLookup(pkgName: EntityName)(
+    override protected def pkgLookup(pkgName: FullyQualifiedEntityName)(
         implicit transid: TransactionId) = {
         Future {
-            packages.find(_.name == pkgName).get
+            packages.find(_.name == pkgName.name).get
         } recoverWith {
             case t => Future.failed(NoDocumentException("doesn't exist"))
         }
@@ -147,11 +147,11 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
 
     val defaultActionParameters = Parameters("y", JsString("Y")) ++ Parameters("z", JsString("Z"))
 
-    override protected def actionLookup(pkgName: EntityName, actionName: EntityName)(
+    override protected def actionLookup(pkgName: FullyQualifiedEntityName, actionName: EntityName)(
         implicit transid: TransactionId) = {
         if (!failActionLookup) {
             Future.successful {
-                WhiskAction(pkgName.toPath, actionName, Exec.js("??"), defaultActionParameters)
+                WhiskAction(pkgName.fullpath, actionName, Exec.js("??"), defaultActionParameters)
             }
         } else {
             Future.failed(NoDocumentException("doesn't exist"))
@@ -174,6 +174,10 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
 
     override def afterEach() = {
         failActionLookup = false
+    }
+
+    it should "resolve a meta package into the systemId namespace" in {
+        resolvePackageName(EntityName("foo")).fullpath() shouldBe s"$systemId/foo"
     }
 
     it should "reject access to unknown package or missing package action" in {
@@ -213,7 +217,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
                     status should be(OK)
                     val response = responseAs[JsObject]
                     response shouldBe JsObject(
-                        "pkg" -> "heavymeta".toJson,
+                        "pkg" -> s"$systemId/heavymeta".toJson,
                         "action" -> name.toJson,
                         "content" -> metaPayload(Map("a" -> "b", "c" -> "d", "namespace" -> "xyz"), creds.namespace.name))
                 }
@@ -231,7 +235,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
                     if (status == OK) {
                         val response = responseAs[JsObject]
                         response shouldBe JsObject(
-                            "pkg" -> "partialmeta".toJson,
+                            "pkg" -> s"$systemId/partialmeta".toJson,
                             "action" -> "getApi".toJson,
                             "content" -> metaPayload(Map("a" -> "b", "c" -> "d"), creds.namespace.name))
                     }
@@ -249,7 +253,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
                     status should be(OK)
                     val response = responseAs[JsObject]
                     response shouldBe JsObject(
-                        "pkg" -> "partialmeta".toJson,
+                        "pkg" -> s"$systemId/partialmeta".toJson,
                         "action" -> "getApi".toJson,
                         "content" -> metaPayload(Map("a" -> "b", "c" -> "d"), creds.namespace.name, p))
                 }
@@ -265,7 +269,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
             status should be(OK)
             val response = responseAs[JsObject]
             response shouldBe JsObject(
-                "pkg" -> "packagemeta".toJson,
+                "pkg" -> s"$systemId/packagemeta".toJson,
                 "action" -> "getApi".toJson,
                 "content" -> metaPayload(
                     Map("a" -> "b", "c" -> "d"),
@@ -284,7 +288,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
             status should be(OK)
             val response = responseAs[JsObject]
             response shouldBe JsObject(
-                "pkg" -> "heavymeta".toJson,
+                "pkg" -> s"$systemId/heavymeta".toJson,
                 "action" -> "createRoute".toJson,
                 "content" -> metaPayload(Map("a" -> "b", "c" -> "d"), creds.namespace.name, body = Some(content)))
         }
