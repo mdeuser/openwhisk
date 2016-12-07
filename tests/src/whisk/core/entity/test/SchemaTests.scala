@@ -139,8 +139,14 @@ class SchemaTests extends FlatSpec with BeforeAndAfter with Matchers {
 
     behavior of "FullyQualifiedEntityName"
 
-    it should "deserialize a fully qualified name without a version" in {
+    it should "work with paths" in {
+        FullyQualifiedEntityName(EntityPath("a"), EntityName("b")).add(EntityName("c")) shouldBe
+            FullyQualifiedEntityName(EntityPath("a/b"), EntityName("c"))
 
+        FullyQualifiedEntityName(EntityPath("a"), EntityName("b")).fullpath shouldBe EntityPath("a/b")
+    }
+
+    it should "deserialize a fully qualified name without a version" in {
         val names = Seq(
             JsObject("path" -> "a".toJson, "name" -> "b".toJson),
             JsObject("path" -> "a".toJson, "name" -> "b".toJson, "version" -> "0.0.1".toJson),
