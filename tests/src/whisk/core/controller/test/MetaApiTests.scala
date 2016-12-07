@@ -106,32 +106,38 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
     override protected[controller] def invokeAction(user: Identity, action: WhiskAction, payload: Option[JsObject], blocking: Boolean, waitOverride: Boolean = false)(
         implicit transid: TransactionId): Future[(ActivationId, Option[WhiskActivation])] = {
 
-        // construct a result stub that includes:
-        // 1. the package name for the action (to confirm that this resolved to systemId)
-        // 2. the action name (to confirm that this resolved to the expected meta action)
-        // 3. the payload received by the action which consists of the action.params + payload
-        val result = JsObject(
-            "pkg" -> action.namespace.toJson,
-            "action" -> action.name.toJson,
-            "content" -> action.parameters.merge(payload).get)
+        if (failActivation == 0) {
+            // construct a result stub that includes:
+            // 1. the package name for the action (to confirm that this resolved to systemId)
+            // 2. the action name (to confirm that this resolved to the expected meta action)
+            // 3. the payload received by the action which consists of the action.params + payload
+            val result = JsObject(
+                "pkg" -> action.namespace.toJson,
+                "action" -> action.name.toJson,
+                "content" -> action.parameters.merge(payload).get)
 
-        val activation = WhiskActivation(
-            action.namespace,
-            action.name,
-            user.subject,
-            ActivationId(),
-            start = Instant.now,
-            end = Instant.now,
-            response = ActivationResponse.success(Some(result)))
+            val activation = WhiskActivation(
+                action.namespace,
+                action.name,
+                user.subject,
+                ActivationId(),
+                start = Instant.now,
+                end = Instant.now,
+                response = ActivationResponse.success(Some(result)))
 
-        // check that action parameters were merged with package
-        // all actions have default parameters (see actionLookup stub)
-        pkgLookup(resolvePackageName(action.namespace.last)) map { pkg =>
-            action.parameters shouldBe (pkg.parameters ++ defaultActionParameters)
-            action.parameters("z") shouldBe defaultActionParameters("z")
+            // check that action parameters were merged with package
+            // all actions have default parameters (see actionLookup stub)
+            pkgLookup(resolvePackageName(action.namespace.last)) map { pkg =>
+                action.parameters shouldBe (pkg.parameters ++ defaultActionParameters)
+                action.parameters("z") shouldBe defaultActionParameters("z")
+            }
+
+            Future.successful(activation.activationId, Some(activation))
+        } else if (failActivation == 1) {
+            Future.successful(ActivationId(), None)
+        } else {
+            Future.failed(new IllegalStateException("bad activation"))
         }
-
-        Future.successful(activation.activationId, Some(activation))
     }
 
     protected def pkgLookup(pkgName: String) = packages.find(_.name == EntityName(pkgName))
@@ -172,9 +178,11 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
     }
 
     var failActionLookup = false // toggle to cause action lookup to fail
+    var failActivation = 0 // toggle to cause action to fail
 
     override def afterEach() = {
         failActionLookup = false
+        failActivation = 0
     }
 
     it should "resolve a meta package into the systemId namespace" in {
@@ -259,6 +267,33 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
                         "content" -> metaPayload("get", Map("a" -> "b", "c" -> "d"), creds.namespace.name, p))
                 }
             }
+        }
+    }
+
+    it should "invoke action that times out and provide a code" in {
+        implicit val tid = transid()
+
+        failActivation = 1
+        Get(s"/experimental/partialmeta?a=b&c=d") ~> sealRoute(routes(creds)) ~> check {
+            status should be(Accepted)
+            val response = responseAs[JsObject]
+            response.fields.size shouldBe 1
+            response.fields.get("code") shouldBe defined
+            response.fields.get("code").get shouldBe an[JsNumber]
+        }
+    }
+
+    it should "invoke action that errors and response with error and code" in {
+        implicit val tid = transid()
+
+        failActivation = 2
+        Get(s"/experimental/partialmeta?a=b&c=d") ~> sealRoute(routes(creds)) ~> check {
+            status should be(InternalServerError)
+            val response = responseAs[JsObject]
+            response.fields.size shouldBe 2
+            response.fields.get("error") shouldBe defined
+            response.fields.get("code") shouldBe defined
+            response.fields.get("code").get shouldBe an[JsNumber]
         }
     }
 
