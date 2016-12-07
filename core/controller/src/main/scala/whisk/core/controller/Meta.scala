@@ -53,16 +53,18 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
     /** Allowed verbs. */
     private lazy val allowedOperations = get | delete | post
 
-    /** Extracts the HTTP method and query params. */
-    private val requestMethodAndParams = {
-        extract(ctx => (ctx.request.method, ctx.request.message.uri.query.toMap))
+    /** Extracts the HTTP method, query params and unmatched (remaining) path. */
+    private val requestMethodParamsAndPath = {
+        extract(ctx => (ctx.request.method, ctx.request.message.uri.query.toMap, ctx.unmatchedPath.toString))
     }
 
     def routes(user: Identity)(implicit transid: TransactionId) = {
         (routePrefix & pathPrefix(EntityName.REGEX.r) & allowedOperations) { s =>
             val metaPackage = EntityName(s)
-            requestMethodAndParams {
-                case (method, params) =>
+
+            requestMethodParamsAndPath {
+                case (method, params, restofPath) =>
+
                     // before checking if package exists, first check that subject has right
                     // to post an activation explicitly (i.e., there is no check on the package/action
                     // resource since the package is expected to be private)
@@ -76,7 +78,7 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
 
                     def activate(action: WhiskAction) = {
                         systemKey flatMap {
-                            val content = params + ("namespace" -> user.namespace())
+                            val content = params + ("namespace" -> user.namespace()) + ("path" -> restofPath)
                             invokeAction(_, action, Some(content.toJson.asJsObject), blocking = true, waitOverride = true)
                         }
                     }

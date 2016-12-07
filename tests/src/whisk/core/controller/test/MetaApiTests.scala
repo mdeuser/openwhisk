@@ -188,9 +188,10 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
                         "pkg" -> "heavymeta".toJson,
                         "action" -> name.toJson,
                         "content" -> JsObject(
-                            "namespace" -> creds.namespace.toJson, //namespace overriden by API
                             "a" -> "b".toJson,
-                            "c" -> "d".toJson))
+                            "c" -> "d".toJson,
+                            "namespace" -> creds.namespace.toJson, //namespace overriden by API
+                            "path" -> "".toJson))
                 }
         }
     }
@@ -200,20 +201,43 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
 
         val methods = Seq((Get, OK), (Post, MethodNotAllowed), (Delete, MethodNotAllowed))
         methods.map {
-            case (m, status) =>
+            case (m, code) =>
                 m("/experimental/partialmeta?a=b&c=d&namespace=xyz") ~> sealRoute(routes(creds)) ~> check {
-                    status should be(status)
+                    status should be(code)
                     if (status == OK) {
                         val response = responseAs[JsObject]
                         response shouldBe JsObject(
                             "pkg" -> "partialmeta".toJson,
                             "action" -> "getApi".toJson,
                             "content" -> JsObject(
-                                "namespace" -> creds.namespace.toJson, //namespace overriden by API
                                 "a" -> "b".toJson,
-                                "c" -> "d".toJson))
+                                "c" -> "d".toJson,
+                                "namespace" -> creds.namespace.toJson, //namespace overriden by API
+                                "path" -> "".toJson))
                     }
                 }
+        }
+    }
+
+    it should "invoke action for allowed verbs on meta handler and pass unmatched path to action" in {
+        implicit val tid = transid()
+
+        val paths = Seq("", "/", "/foo", "/foo/bar", "/foo/bar/", "/foo%20bar")
+        paths.map { p =>
+            withClue(s"failed on path: '$p'") {
+                Get(s"/experimental/partialmeta$p?a=b&c=d&namespace=xyz") ~> sealRoute(routes(creds)) ~> check {
+                    status should be(OK)
+                    val response = responseAs[JsObject]
+                    response shouldBe JsObject(
+                        "pkg" -> "partialmeta".toJson,
+                        "action" -> "getApi".toJson,
+                        "content" -> JsObject(
+                            "a" -> "b".toJson,
+                            "c" -> "d".toJson,
+                            "namespace" -> creds.namespace.toJson, //namespace overriden by API
+                            "path" -> p.toJson))
+                }
+            }
         }
     }
 
