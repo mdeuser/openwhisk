@@ -158,13 +158,14 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
         }
     }
 
-    def metaPayload(params: Map[String, String], namespace: String, path: String = "", body: Option[JsObject] = None, pkg: Option[WhiskPackage] = None) = {
+    def metaPayload(method: String, params: Map[String, String], namespace: String, path: String = "", body: Option[JsObject] = None, pkg: Option[WhiskPackage] = None) = {
         (pkg.map(_.parameters).getOrElse(Parameters()) ++ defaultActionParameters).merge {
             Some {
                 JsObject(
                     params.toJson.asJsObject.fields ++
                         body.map(_.fields).getOrElse(Map()) ++
-                        Map("__ow_meta_path" -> path.toJson,
+                        Map("__ow_meta_verb" -> method.toLowerCase.toJson,
+                            "__ow_meta_path" -> path.toJson,
                             "__ow_meta_namespace" -> namespace.toJson))
             }
         }.get
@@ -219,7 +220,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
                     response shouldBe JsObject(
                         "pkg" -> s"$systemId/heavymeta".toJson,
                         "action" -> name.toJson,
-                        "content" -> metaPayload(Map("a" -> "b", "c" -> "d", "namespace" -> "xyz"), creds.namespace.name))
+                        "content" -> metaPayload(m.method.value, Map("a" -> "b", "c" -> "d", "namespace" -> "xyz"), creds.namespace.name))
                 }
         }
     }
@@ -237,7 +238,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
                         response shouldBe JsObject(
                             "pkg" -> s"$systemId/partialmeta".toJson,
                             "action" -> "getApi".toJson,
-                            "content" -> metaPayload(Map("a" -> "b", "c" -> "d"), creds.namespace.name))
+                            "content" -> metaPayload(m.method.value, Map("a" -> "b", "c" -> "d"), creds.namespace.name))
                     }
                 }
         }
@@ -255,7 +256,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
                     response shouldBe JsObject(
                         "pkg" -> s"$systemId/partialmeta".toJson,
                         "action" -> "getApi".toJson,
-                        "content" -> metaPayload(Map("a" -> "b", "c" -> "d"), creds.namespace.name, p))
+                        "content" -> metaPayload("get", Map("a" -> "b", "c" -> "d"), creds.namespace.name, p))
                 }
             }
         }
@@ -272,6 +273,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
                 "pkg" -> s"$systemId/packagemeta".toJson,
                 "action" -> "getApi".toJson,
                 "content" -> metaPayload(
+                    "get",
                     Map("a" -> "b", "c" -> "d"),
                     creds.namespace.name,
                     path = "/extra/path",
@@ -290,7 +292,7 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
             response shouldBe JsObject(
                 "pkg" -> s"$systemId/heavymeta".toJson,
                 "action" -> "createRoute".toJson,
-                "content" -> metaPayload(Map("a" -> "b", "c" -> "d"), creds.namespace.name, body = Some(content)))
+                "content" -> metaPayload("post", Map("a" -> "b", "c" -> "d"), creds.namespace.name, body = Some(content)))
         }
     }
 

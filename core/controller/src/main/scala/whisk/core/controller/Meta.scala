@@ -88,6 +88,7 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
                             // package.params -> action.params -> query.params -> request.entity (body) -> augment arguments (namespace, path)
                             systemKey flatMap {
                                 val content = params.toJson.asJsObject.fields ++ { body.map(_.fields) getOrElse Map() } ++ Map(
+                                    "__ow_meta_verb" -> method.value.toLowerCase.toJson,
                                     "__ow_meta_path" -> restofPath.toJson,
                                     "__ow_meta_namespace" -> user.namespace.toJson)
                                 invokeAction(_, action, Some(JsObject(content)), blocking = true, waitOverride = true)
