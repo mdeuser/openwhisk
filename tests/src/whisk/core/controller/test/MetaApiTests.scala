@@ -39,6 +39,8 @@ import whisk.core.controller.WhiskMetaApi
 import whisk.core.entity._
 import whisk.core.database.NoDocumentException
 import org.scalatest.BeforeAndAfterEach
+import whisk.http.ErrorResponse
+import whisk.http.Messages
 
 /**
  * Tests Meta API.
@@ -297,11 +299,11 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
         }
     }
 
-    it should "merge package parameters with action, query params and content payload (overriding clashed properties)" in {
+    it should "merge package parameters with action, query params and content payload" in {
         implicit val tid = transid()
 
         val body = JsObject("foo" -> "bar".toJson)
-        Get("/experimental/packagemeta/extra/path?a=b&c=d&__ow_meta_path=XXX&__ow_meta_namespace=YYY", body) ~> sealRoute(routes(creds)) ~> check {
+        Get("/experimental/packagemeta/extra/path?a=b&c=d", body) ~> sealRoute(routes(creds)) ~> check {
             status should be(OK)
             val response = responseAs[JsObject]
             response shouldBe JsObject(
@@ -314,6 +316,26 @@ class MetaApiTests extends ControllerTestCommon with WhiskMetaApi with BeforeAnd
                     path = "/extra/path",
                     body = Some(body),
                     pkg = pkgLookup("packagemeta")))
+        }
+    }
+
+    it should "reject request that defined reserved properties" in {
+        implicit val tid = transid()
+
+        val methods = Seq(Get, Post, Delete)
+
+        methods.map { m =>
+            reservedProperties.map { p =>
+                m(s"/experimental/packagemeta/?$p=YYY") ~> sealRoute(routes(creds)) ~> check {
+                    status should be(BadRequest)
+                    responseAs[ErrorResponse].error shouldBe Messages.parametersNotAllowed
+                }
+
+                m("/experimental/packagemeta", JsObject(p -> "YYY".toJson)) ~> sealRoute(routes(creds)) ~> check {
+                    status should be(BadRequest)
+                    responseAs[ErrorResponse].error shouldBe Messages.parametersNotAllowed
+                }
+            }
         }
     }
 

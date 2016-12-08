@@ -32,6 +32,7 @@ import whisk.core.database._
 import whisk.core.entity._
 import whisk.core.entity.types._
 import whisk.http.ErrorResponse.terminate
+import whisk.http.Messages
 
 trait WhiskMetaApi extends Directives with PostActionActivation {
     services: WhiskServices =>
@@ -50,6 +51,9 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
     protected val systemId = "whisk.system"
     protected lazy val systemNamespace = EntityPath(systemId)
     protected lazy val systemKey = WhiskAuth.get(authStore, Subject(systemId), false)(TransactionId.controller)
+
+    /** Reserved parameters that requests may no defined. */
+    protected lazy val reservedProperties = Set("__ow_meta_verb", "__ow_meta_path", "__ow_meta_namespace")
 
     /** Allowed verbs. */
     private lazy val allowedOperations = get | delete | post
@@ -71,48 +75,63 @@ trait WhiskMetaApi extends Directives with PostActionActivation {
             entity(as[Option[JsObject]]) { body =>
                 requestMethodParamsAndPath {
                     case (method, params, restofPath) =>
+                        val requestParams = params.toJson.asJsObject.fields ++ { body.map(_.fields) getOrElse Map() }
 
-                        // before checking if package exists, first check that subject has right
-                        // to post an activation explicitly (i.e., there is no check on the package/action
-                        // resource since the package is expected to be private)
-                        def precheck = entitlementProvider.checkThrottles(user) flatMap {
-                            _ => confirmMetaPackage(pkgLookup(metaPackage), method)
-                        } flatMap {
-                            case (actionName, pkgParams) => actionLookup(metaPackage, actionName) map {
-                                _.inherit(pkgParams)
-                            }
-                        }
-
-                        def activate(action: WhiskAction) = {
-                            // precedence order for parameters:
-                            // package.params -> action.params -> query.params -> request.entity (body) -> augment arguments (namespace, path)
-                            systemKey flatMap {
-                                val content = params.toJson.asJsObject.fields ++ { body.map(_.fields) getOrElse Map() } ++ Map(
-                                    "__ow_meta_verb" -> method.value.toLowerCase.toJson,
-                                    "__ow_meta_path" -> restofPath.toJson,
-                                    "__ow_meta_namespace" -> user.namespace.toJson)
-                                invokeAction(_, action, Some(JsObject(content)), blocking = true, waitOverride = true)
-                            }
-                        }
-
-                        onComplete(precheck flatMap (activate(_))) {
-                            case Success((activationId, Some(activation))) =>
-                                val code = if (activation.response.isSuccess) OK else BadRequest
-                                // if activation error'ed, treat it as a bad request regardless of failure reason
-                                complete(code, activation.resultAsJson)
-                            case Success((activationId, None)) =>
-                                // blocking invoke which got queued instead
-                                complete(Accepted, JsObject("code" -> transid().toJson))
-
-                            case Failure(t: RejectRequest) =>
-                                terminate(t.code, t.message)
-
-                            case Failure(t) =>
-                                error(this, s"exception in meta api handler: $t")
-                                terminate(InternalServerError)
+                        if (reservedProperties.intersect(requestParams.keySet).isEmpty) {
+                            process(user, metaPackage, requestParams, restofPath, method)
+                        } else {
+                            terminate(BadRequest, Messages.parametersNotAllowed)
                         }
                 }
             }
+        }
+    }
+
+    private def process(
+        user: Identity,
+        metaPackage: FullyQualifiedEntityName,
+        requestParams: Map[String, JsValue],
+        restofPath: String,
+        method: HttpMethod)(
+            implicit transid: TransactionId) = {
+        // before checking if package exists, first check that subject has right
+        // to post an activation explicitly (i.e., there is no check on the package/action
+        // resource since the package is expected to be private)
+        def precheck = entitlementProvider.checkThrottles(user) flatMap {
+            _ => confirmMetaPackage(pkgLookup(metaPackage), method)
+        } flatMap {
+            case (actionName, pkgParams) => actionLookup(metaPackage, actionName) map {
+                _.inherit(pkgParams)
+            }
+        }
+
+        def activate(action: WhiskAction) = {
+            // precedence order for parameters:
+            // package.params -> action.params -> query.params -> request.entity (body) -> augment arguments (namespace, path)
+            systemKey flatMap {
+                val content = requestParams ++ Map(
+                    "__ow_meta_verb" -> method.value.toLowerCase.toJson,
+                    "__ow_meta_path" -> restofPath.toJson,
+                    "__ow_meta_namespace" -> user.namespace.toJson)
+                invokeAction(_, action, Some(JsObject(content)), blocking = true, waitOverride = true)
+            }
+        }
+
+        onComplete(precheck flatMap (activate(_))) {
+            case Success((activationId, Some(activation))) =>
+                val code = if (activation.response.isSuccess) OK else BadRequest
+                // if activation error'ed, treat it as a bad request regardless of failure reason
+                complete(code, activation.resultAsJson)
+            case Success((activationId, None)) =>
+                // blocking invoke which got queued instead
+                complete(Accepted, JsObject("code" -> transid().toJson))
+
+            case Failure(t: RejectRequest) =>
+                terminate(t.code, t.message)
+
+            case Failure(t) =>
+                error(this, s"exception in meta api handler: $t")
+                terminate(InternalServerError)
         }
     }
 
