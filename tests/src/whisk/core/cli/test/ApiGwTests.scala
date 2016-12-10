@@ -21,6 +21,7 @@ import org.scalatest.junit.JUnitRunner
 import common.TestHelpers
 import common.TestUtils._
 import common.Wsk
+import common.WskAdmin
 import common.WskProps
 import common.WskTestHelpers
 
@@ -34,6 +35,7 @@ class ApiGwTests
 
     implicit val wskprops = WskProps()
     val wsk = new Wsk
+    val (cliuser, clinamespace) = WskAdmin.getUser(wskprops.authKey)
 
     behavior of "Wsk api"
 
@@ -68,7 +70,7 @@ class ApiGwTests
             rr.stdout should include("ok: created API")
             rr = wsk.api.list(basepathOrApiName = Some(testbasepath), relpath = Some(testrelpath), operation = Some(testurlop))
             rr.stdout should include("ok: APIs")
-            rr.stdout should include regex (s"/guest/${actionName}\\s+${testurlop}\\s+${testapiname}\\s+")
+            rr.stdout should include regex (s"/${clinamespace}/${actionName}\\s+${testurlop}\\s+${testapiname}\\s+")
             rr.stdout should include(testbasepath + testrelpath)
         }
         finally {
