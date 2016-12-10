@@ -51,7 +51,7 @@
  var request = require('request');
 
 function main(message) {
-  console.log('createRoute:  params: '+JSON.stringify(message));
+  //console.log('createRoute:  params: '+JSON.stringify(message));
   var badArgMsg = '';
   if (badArgMsg = validateArgs(message)) {
     return whisk.error(badArgMsg);
@@ -90,18 +90,15 @@ function main(message) {
     basepath = doc.gatewayBasePath;
   }
 
-  //doc.documentTimestamp = (new Date()).toString();
-  //var docid = doc.namespace+":"+doc.gatewayMethod.toUpperCase()+":"+doc.action;
-
   // Log parameter values
-  console.log('DB host    : '+message.host);
+  console.log('DB host    : '+confidentialPrint(message.host));
   console.log('DB port    : '+message.port);
   console.log('DB protocol: '+message.protocol);
   console.log('DB username: '+confidentialPrint(message.username));
   console.log('DB password: '+confidentialPrint(message.password));
   console.log('DB database: '+message.dbname);
   console.log('GW URL     : '+message.gwUrl);
-  console.log('GW Auth API: '+message.gwAuth);
+  console.log('GW Auth API: '+confidentialPrint(message.gwAuth));
   console.log('namespace  : '+doc.namespace);
   console.log('API name   : '+doc.apiName);
   console.log('basepath   : '+doc.gatewayBasePath);

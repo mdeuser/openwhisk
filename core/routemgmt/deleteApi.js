@@ -39,7 +39,7 @@
  var request = require('request');
 
 function main(message) {
-  console.log("deleteApi: args: "+JSON.stringify(message));
+  //console.log("deleteApi: args: "+JSON.stringify(message));
   var badArgMsg = '';
   if (badArgMsg = validateArgs(message)) {
     return whisk.error(badArgMsg);
@@ -53,7 +53,7 @@ function main(message) {
   }
 
   // Log parameter values
-  console.log('DB host       : '+message.host);
+  console.log('DB host       : '+confidentialPrint(message.host));
   console.log('DB port       : '+message.port);
   console.log('DB protocol   : '+message.protocol);
   console.log('DB username   : '+confidentialPrint(message.username));
