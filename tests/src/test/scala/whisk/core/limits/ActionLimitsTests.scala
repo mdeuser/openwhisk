@@ -108,7 +108,7 @@ class ActionLimitsTests extends TestHelpers with WskTestHelpers {
             val attemptedSize = allowedSize + 1.megabytes
 
             val run = wsk.action.invoke(name, Map("payload" -> attemptedSize.toBytes.toJson))
-            withActivation(wsk.activation, run) { response =>
+            withActivation(wsk.activation, run, totalWait = 2 minutes) { response =>
                 val lines = response.logs.get
                 lines.last shouldBe Messages.truncateLogs(allowedSize)
                 (lines.length - 1) shouldBe (allowedSize.toBytes / 16)
