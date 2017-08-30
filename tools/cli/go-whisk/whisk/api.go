@@ -119,7 +119,7 @@ type ApiSwagger struct {
     SwaggerName     string    `json:"swagger,omitempty"`
     BasePath        string    `json:"basePath,omitempty"`
     Info            *ApiSwaggerInfo `json:"info,omitempty"`
-    Paths           map[string]map[string]*ApiSwaggerOperation `json:"paths,omitempty"`  // Paths["/a/path"]["get"] -> a generic object
+    Paths           map[string]*ApiSwaggerPath `json:"paths,omitempty"`  // Paths["/a/path"] -> a path object
     SecurityDef     interface{} `json:"securityDefinitions,omitempty"`
     Security        interface{} `json:"security,omitempty"`
     XConfig         interface{} `json:"x-ibm-configuration,omitempty"`
@@ -129,6 +129,50 @@ type ApiSwagger struct {
 type ApiSwaggerInfo struct {
     Title           string    `json:"title,omitempty"`
     Version         string    `json:"version,omitempty"`
+}
+
+type ApiSwaggerPath struct {
+    Parameters      []*ApiSwaggerParameterDetails `json:"parameters,omitempty"`
+    GetOperation    *ApiSwaggerOperation  `json:"get,omitempty"`
+    PutOperation    *ApiSwaggerOperation  `json:"put,omitempty"`
+    PostOperation   *ApiSwaggerOperation  `json:"post,omitempty"`
+    DeleteOperation *ApiSwaggerOperation  `json:"delete,omitempty"`
+    OptionsOperation *ApiSwaggerOperation `json:"options,omitempty"`
+    HeadOperation   *ApiSwaggerOperation  `json:"head,omitempty"`
+    PatchOperation  *ApiSwaggerOperation  `json:"patch,omitempty"`
+}
+func (asp *ApiSwaggerPath) MakeOperationMap() map[string]*ApiSwaggerOperation {
+    var opMap map[string]*ApiSwaggerOperation = make(map[string]*ApiSwaggerOperation)
+    if asp.GetOperation != nil {
+        opMap["get"] = asp.GetOperation
+    }
+    if asp.PutOperation != nil {
+        opMap["put"] = asp.PutOperation
+    }
+    if asp.PostOperation != nil {
+        opMap["post"] = asp.PostOperation
+    }
+    if asp.DeleteOperation != nil {
+        opMap["delete"] = asp.DeleteOperation
+    }
+    if asp.OptionsOperation != nil {
+        opMap["options"] = asp.OptionsOperation
+    }
+    if asp.HeadOperation != nil {
+        opMap["head"] = asp.HeadOperation
+    }
+    if asp.PatchOperation != nil {
+        opMap["patch"] = asp.PatchOperation
+    }
+    return opMap
+}
+
+type ApiSwaggerParameterDetails struct {
+    Name            string     `json:"name"`
+    In              string     `json:"in"`
+    Required        bool       `json:"required"`
+    Type            string     `json:"type"`
+    Description     string     `json:"description,omitempty"`
 }
 
 type ApiSwaggerOperation struct {
@@ -435,8 +479,8 @@ func validateApiSwaggerResponse(swagger *ApiSwagger) error {
     return nil
 }
 
-func validateApiPath(path map[string]*ApiSwaggerOperation) error {
-    for op, opv := range path {
+func validateApiPath(path *ApiSwaggerPath) (err error) {
+    for op, opv := range path.MakeOperationMap() {
         err := validateApiOperation(op, opv)
         if err != nil {
             Debug(DbgError, "validateApiPath: Invalid Api operation object: %v\n", opv)

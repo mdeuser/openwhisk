@@ -103,12 +103,18 @@ func getManagedUrl(api *whisk.RetApi, relpath string, operation string) (url str
         whisk.Debug(whisk.DbgInfo, "getManagedUrl: comparing api relpath: %s\n", path)
         if (path == relpath) {
             whisk.Debug(whisk.DbgInfo, "getManagedUrl: relpath matches '%s'\n", relpath)
-            for op, _  := range api.Swagger.Paths[path] {
-                whisk.Debug(whisk.DbgInfo, "getManagedUrl: comparing operation: '%s'\n", op)
-                if (strings.ToLower(op) == strings.ToLower(operation)) {
-                    whisk.Debug(whisk.DbgInfo, "getManagedUrl: operation matches: %s\n", operation)
-                    url = baseUrl+path
-                }
+            whisk.Debug(whisk.DbgInfo, "getManagedUrl: comparing operation\n")
+            pathObj := api.Swagger.Paths[path]
+            operationLowerCase := strings.ToLower(operation)
+            if (operationLowerCase == "get" && pathObj.GetOperation != nil) ||
+               (operationLowerCase == "put" && pathObj.PutOperation != nil) ||
+               (operationLowerCase == "post" && pathObj.PostOperation != nil) ||
+               (operationLowerCase == "delete" && pathObj.DeleteOperation != nil) ||
+               (operationLowerCase == "options" && pathObj.OptionsOperation != nil) ||
+               (operationLowerCase == "head" && pathObj.HeadOperation != nil) ||
+               (operationLowerCase == "patch" && pathObj.PatchOperation != nil) {
+                whisk.Debug(whisk.DbgInfo, "getManagedUrl: operation matches: %s\n", operation)
+                url = baseUrl+path
             }
         }
     }
@@ -208,7 +214,7 @@ var apiCreateCmd = &cobra.Command{
             for path, _ := range retApi.Swagger.Paths {
                 managedUrl := strings.TrimSuffix(baseUrl, "/")+path
                 whisk.Debug(whisk.DbgInfo, "Managed path: %s\n",managedUrl)
-                for op, opv  := range retApi.Swagger.Paths[path] {
+                for op, opv  := range retApi.Swagger.Paths[path].MakeOperationMap() {
                     whisk.Debug(whisk.DbgInfo, "Path operation: %s\n", op)
                     var fqActionName string
                     if (opv.XOpenWhisk == nil) {
@@ -577,7 +583,7 @@ func genFilteredList(resultApi *whisk.RetApi, apiPath string, apiVerb string) []
             whisk.Debug(whisk.DbgInfo, "genFilteredList: comparing api relpath: %s\n", path)
             if ( len(apiPath) == 0 || path == apiPath) {
                 whisk.Debug(whisk.DbgInfo, "genFilteredList: relpath matches\n")
-                for op, opv  := range resultApi.Swagger.Paths[path] {
+                for op, opv  := range resultApi.Swagger.Paths[path].MakeOperationMap() {
                     whisk.Debug(whisk.DbgInfo, "genFilteredList: comparing operation: '%s'\n", op)
                     if ( len(apiVerb) == 0 || strings.ToLower(op) == strings.ToLower(apiVerb)) {
                         whisk.Debug(whisk.DbgInfo, "genFilteredList: operation matches: %#v\n", opv)
@@ -615,7 +621,7 @@ func genFilteredRow(resultApi *whisk.RetApi, apiPath string, apiVerb string, max
             whisk.Debug(whisk.DbgInfo, "genFilteredRow: comparing api relpath: %s\n", path)
             if ( len(apiPath) == 0 || path == apiPath) {
                 whisk.Debug(whisk.DbgInfo, "genFilteredRow: relpath matches\n")
-                for op, opv  := range resultApi.Swagger.Paths[path] {
+                for op, opv  := range resultApi.Swagger.Paths[path].MakeOperationMap() {
                     whisk.Debug(whisk.DbgInfo, "genFilteredRow: comparing operation: '%s'\n", op)
                     if ( len(apiVerb) == 0 || strings.ToLower(op) == strings.ToLower(apiVerb)) {
                         whisk.Debug(whisk.DbgInfo, "genFilteredRow: operation matches: %#v\n", opv)
@@ -629,7 +635,7 @@ func genFilteredRow(resultApi *whisk.RetApi, apiPath string, apiVerb string, max
                         }
                         orderInfo = AssignRowInfo(actionName[0 : min(len(actionName), maxActionNameSize)], op, apiName[0 : min(len(apiName), maxApiNameSize)], basePath, path, baseUrl+path)
                         orderInfo.FmtString = fmtString
-                        whisk.Debug(whisk.DbgInfo, "Appening to orderInfoArr: %s %s\n", orderInfo.RelPath)
+                        whisk.Debug(whisk.DbgInfo, "Appending to orderInfoArr: %s\n", orderInfo.RelPath)
                         orderInfoArr = append(orderInfoArr, orderInfo)
                     }
                 }
@@ -678,7 +684,7 @@ func getLargestActionNameSize(retApiArray *whisk.RetApiArray, apiPath string, ap
                 whisk.Debug(whisk.DbgInfo, "getLargestActionNameSize: comparing api relpath: %s\n", path)
                 if ( len(apiPath) == 0 || path == apiPath) {
                     whisk.Debug(whisk.DbgInfo, "getLargestActionNameSize: relpath matches\n")
-                    for op, opv  := range resultApi.Swagger.Paths[path] {
+                    for op, opv  := range resultApi.Swagger.Paths[path].MakeOperationMap() {
                         whisk.Debug(whisk.DbgInfo, "getLargestActionNameSize: comparing operation: '%s'\n", op)
                         if ( len(apiVerb) == 0 || strings.ToLower(op) == strings.ToLower(apiVerb)) {
                             whisk.Debug(whisk.DbgInfo, "getLargestActionNameSize: operation matches: %#v\n", opv)
@@ -712,7 +718,7 @@ func getLargestApiNameSize(retApiArray *whisk.RetApiArray, apiPath string, apiVe
                 whisk.Debug(whisk.DbgInfo, "getLargestActionNameSize: comparing api relpath: %s\n", path)
                 if ( len(apiPath) == 0 || path == apiPath) {
                     whisk.Debug(whisk.DbgInfo, "getLargestActionNameSize: relpath matches\n")
-                    for op, opv  := range resultApi.Swagger.Paths[path] {
+                    for op, opv  := range resultApi.Swagger.Paths[path].MakeOperationMap() {
                         whisk.Debug(whisk.DbgInfo, "getLargestActionNameSize: comparing operation: '%s'\n", op)
                         if ( len(apiVerb) == 0 || strings.ToLower(op) == strings.ToLower(apiVerb)) {
                             whisk.Debug(whisk.DbgInfo, "getLargestActionNameSize: operation matches: %#v\n", opv)
