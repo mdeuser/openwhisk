@@ -100,13 +100,9 @@ abstract class WskRuleTests extends TestHelpers with WskTestHelpers {
 
     withActivation(wsk.activation, run) { triggerActivation =>
       triggerActivation.cause shouldBe None
-
-      withActivationsFromEntity(
-        wsk.activation,
-        ruleName,
-        since = Some(triggerActivation.start.minusMillis(activationTimeSkewFactorMs))) {
-        _.head.cause shouldBe Some(triggerActivation.activationId)
-      }
+      triggerActivation.logs.get.size shouldBe (1)
+      triggerActivation.logs.get
+        .mkString(" ") should include regex (s".*\\[INFO\\]\\s*\\[.*/$triggerName\\]\\s*\\[.*/$ruleName\\]\\s*\\[.*/$actionName\\].*activated")
 
       withActivationsFromEntity(
         wsk.activation,
@@ -137,13 +133,9 @@ abstract class WskRuleTests extends TestHelpers with WskTestHelpers {
 
     withActivation(wsk.activation, run) { triggerActivation =>
       triggerActivation.cause shouldBe None
-
-      withActivationsFromEntity(
-        wsk.activation,
-        ruleName,
-        since = Some(triggerActivation.start.minusMillis(activationTimeSkewFactorMs))) {
-        _.head.cause shouldBe Some(triggerActivation.activationId)
-      }
+      triggerActivation.logs.get.size shouldBe (1)
+      triggerActivation.logs.get
+        .mkString(" ") should include regex (s".*\\[INFO\\]\\s*\\[.*/$triggerName\\]\\s*\\[.*/$ruleName\\]\\s*\\[.*/$pkgActionName\\].*activated")
 
       withActivationsFromEntity(
         wsk.activation,
@@ -177,13 +169,9 @@ abstract class WskRuleTests extends TestHelpers with WskTestHelpers {
 
     withActivation(wsk.activation, run) { triggerActivation =>
       triggerActivation.cause shouldBe None
-
-      withActivationsFromEntity(
-        wsk.activation,
-        ruleName,
-        since = Some(triggerActivation.start.minusMillis(activationTimeSkewFactorMs))) {
-        _.head.cause shouldBe Some(triggerActivation.activationId)
-      }
+      triggerActivation.logs.get.size shouldBe (1)
+      triggerActivation.logs.get
+        .mkString(" ") should include regex (s".*\\[INFO\\]\\s*\\[.*/$triggerName\\]\\s*\\[.*/$ruleName\\]\\s*\\[.*/$pkgBindingName/$actionName\\].*activated")
 
       withActivationsFromEntity(
         wsk.activation,
