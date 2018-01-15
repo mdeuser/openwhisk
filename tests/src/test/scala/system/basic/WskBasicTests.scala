@@ -46,8 +46,8 @@ class WskBasicTests extends TestHelpers with WskTestHelpers {
   val defaultAction = Some(TestUtils.getTestActionFilename("hello.js"))
 
   /**
-    * Append the current timestamp in ms
-    */
+   * Append the current timestamp in ms
+   */
   def withTimestamp(text: String) = s"${text}-${System.currentTimeMillis}"
 
   behavior of "Wsk CLI"
