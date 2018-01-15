@@ -45,6 +45,11 @@ class WskBasicTests extends TestHelpers with WskTestHelpers {
   val wsk = new Wsk
   val defaultAction = Some(TestUtils.getTestActionFilename("hello.js"))
 
+  /**
+    * Append the current timestamp in ms
+    */
+  def withTimestamp(text: String) = s"${text}-${System.currentTimeMillis}"
+
   behavior of "Wsk CLI"
 
   it should "reject creating duplicate entity" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
@@ -464,34 +469,46 @@ class WskBasicTests extends TestHelpers with WskTestHelpers {
   behavior of "Wsk Trigger CLI"
 
   it should "create, update, get, fire and list trigger" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
-    val name = "listTriggers"
+    val ruleName = withTimestamp("r1toa1")
+    val triggerName = withTimestamp("t1tor1")
+    val actionName = withTimestamp("a1")
     val params = Map("a" -> "A".toJson)
-    assetHelper.withCleaner(wsk.trigger, name) { (trigger, _) =>
-      trigger.create(name, parameters = params)
-      trigger.create(name, update = true)
+
+    assetHelper.withCleaner(wsk.trigger, triggerName) { (trigger, _) =>
+      trigger.create(triggerName, parameters = params)
+      trigger.create(triggerName, update = true)
     }
-    val stdout = wsk.trigger.get(name).stdout
+
+    assetHelper.withCleaner(wsk.action, actionName) { (action, name) =>
+      action.create(name, defaultAction)
+    }
+
+    assetHelper.withCleaner(wsk.rule, ruleName) { (rule, name) =>
+      rule.create(name, trigger = triggerName, action = actionName)
+    }
+
+    val stdout = wsk.trigger.get(triggerName).stdout
     stdout should include regex (""""key": "a"""")
     stdout should include regex (""""value": "A"""")
     stdout should include regex (""""publish": false""")
     stdout should include regex (""""version": "0.0.2"""")
 
     val dynamicParams = Map("t" -> "T".toJson)
-    val run = wsk.trigger.fire(name, dynamicParams)
+    val run = wsk.trigger.fire(triggerName, dynamicParams)
     withActivation(wsk.activation, run) { activation =>
       activation.response.result shouldBe Some(dynamicParams.toJson)
       activation.duration shouldBe 0L // shouldn't exist but CLI generates it
       activation.end shouldBe Instant.EPOCH // shouldn't exist but CLI generates it
     }
 
-    val runWithNoParams = wsk.trigger.fire(name, Map())
+    val runWithNoParams = wsk.trigger.fire(triggerName, Map())
     withActivation(wsk.activation, runWithNoParams) { activation =>
       activation.response.result shouldBe Some(JsObject())
       activation.duration shouldBe 0L // shouldn't exist but CLI generates it
       activation.end shouldBe Instant.EPOCH // shouldn't exist but CLI generates it
     }
 
-    wsk.trigger.list().stdout should include(name)
+    wsk.trigger.list().stdout should include(triggerName)
   }
 
   it should "create, and get a trigger summary" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
@@ -523,17 +540,26 @@ class WskBasicTests extends TestHelpers with WskTestHelpers {
   }
 
   it should "create, and fire a trigger using a parameter file" in withAssetCleaner(wskprops) {
-    val name = "paramFileTrigger"
-    val file = Some(TestUtils.getTestActionFilename("argCheck.js"))
+    val ruleName = withTimestamp("r1toa1")
+    val triggerName = withTimestamp("paramFileTrigger")
+    val actionName = withTimestamp("a1")
     val argInput = Some(TestUtils.getTestActionFilename("validInput2.json"))
 
     (wp, assetHelper) =>
-      assetHelper.withCleaner(wsk.trigger, name) { (trigger, _) =>
-        trigger.create(name)
+      assetHelper.withCleaner(wsk.trigger, triggerName) { (trigger, _) =>
+        trigger.create(triggerName)
+      }
+
+      assetHelper.withCleaner(wsk.action, actionName) { (action, name) =>
+        action.create(name, defaultAction)
+      }
+
+      assetHelper.withCleaner(wsk.rule, ruleName) { (rule, name) =>
+        rule.create(name, trigger = triggerName, action = actionName)
       }
 
       val expectedOutput = JsObject("payload" -> JsString("test"))
-      val run = wsk.trigger.fire(name, parameterFile = argInput)
+      val run = wsk.trigger.fire(triggerName, parameterFile = argInput)
       withActivation(wsk.activation, run) { activation =>
         activation.response.result shouldBe Some(expectedOutput)
       }
@@ -568,12 +594,23 @@ class WskBasicTests extends TestHelpers with WskTestHelpers {
   }
 
   it should "create, and fire a trigger to ensure result is empty" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
-    val name = "emptyResultTrigger"
-    assetHelper.withCleaner(wsk.trigger, name) { (trigger, _) =>
-      trigger.create(name)
+    val ruleName = withTimestamp("r1toa1")
+    val triggerName = withTimestamp("emptyResultTrigger")
+    val actionName = withTimestamp("a1")
+
+    assetHelper.withCleaner(wsk.trigger, triggerName) { (trigger, _) =>
+      trigger.create(triggerName)
     }
 
-    val run = wsk.trigger.fire(name)
+    assetHelper.withCleaner(wsk.action, actionName) { (action, name) =>
+      action.create(name, defaultAction)
+    }
+
+    assetHelper.withCleaner(wsk.rule, ruleName) { (rule, name) =>
+      rule.create(name, trigger = triggerName, action = actionName)
+    }
+
+    val run = wsk.trigger.fire(triggerName)
     withActivation(wsk.activation, run) { activation =>
       activation.response.result shouldBe Some(JsObject())
     }
@@ -785,21 +822,31 @@ class WskBasicTests extends TestHelpers with WskTestHelpers {
 
   it should "create a trigger, and fire a trigger to get its individual fields from an activation" in withAssetCleaner(
     wskprops) { (wp, assetHelper) =>
-    val name = "activationFields"
+    val ruleName = withTimestamp("r1toa1")
+    val triggerName = withTimestamp("activationFields")
+    val actionName = withTimestamp("a1")
 
-    assetHelper.withCleaner(wsk.trigger, name) { (trigger, _) =>
-      trigger.create(name)
+    assetHelper.withCleaner(wsk.trigger, triggerName) { (trigger, _) =>
+      trigger.create(triggerName)
+    }
+
+    assetHelper.withCleaner(wsk.action, actionName) { (action, name) =>
+      action.create(name, defaultAction)
+    }
+
+    assetHelper.withCleaner(wsk.rule, ruleName) { (rule, name) =>
+      rule.create(name, trigger = triggerName, action = actionName)
     }
 
     val ns = s""""${wsk.namespace.whois()}""""
-    val run = wsk.trigger.fire(name)
+    val run = wsk.trigger.fire(triggerName)
     withActivation(wsk.activation, run) { activation =>
       val successMsg = s"ok: got activation ${activation.activationId}, displaying field"
       wsk.activation
         .get(Some(activation.activationId), fieldFilter = Some("namespace"))
         .stdout should include regex (s"""(?i)$successMsg namespace\n$ns""")
       wsk.activation.get(Some(activation.activationId), fieldFilter = Some("name")).stdout should include(
-        s"""$successMsg name\n"$name"""")
+        s"""$successMsg name\n"$triggerName"""")
       wsk.activation.get(Some(activation.activationId), fieldFilter = Some("version")).stdout should include(
         s"""$successMsg version\n"0.0.1"""")
       wsk.activation.get(Some(activation.activationId), fieldFilter = Some("publish")).stdout should include(
