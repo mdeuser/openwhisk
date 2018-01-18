@@ -146,7 +146,7 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
                     }
                   }.toString
 
-                  val actionUrl = Path("/api/v1") / "namespaces" / actionNamespace / "actions"
+                  val actionUrl = Path("/api/v1/namespaces") / actionNamespace / "actions"
                   val request = HttpRequest(
                     method = POST,
                     uri = url.withPath(actionUrl + actionPath),
@@ -164,7 +164,7 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
                             Unmarshal(response.entity).to[JsObject].map { a =>
                               logging.info(
                                 this,
-                                s"trigger-fired rule '${rule.action}' invoked with activation ${a.fields("activationId")}")
+                                s"trigger-fired action '${rule.action}' invoked with activation ${a.fields("activationId")}")
                               (ruleName.asString -> triggerActivationLogMsg(
                                 entityName.asString,
                                 ruleName.asString,
@@ -173,7 +173,7 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
                                 s"'${rule.action}' activated ${a.fields("activationId")}"))
                             }
                           case NotFound =>
-                            logging.info(this, s"trigger-fired rule '${rule.action}' not found")
+                            logging.info(this, s"trigger-fired action '${rule.action}' not found")
                             response.discardEntityBytes()
                             Future.successful(
                               (ruleName.asString -> triggerActivationLogMsg(
@@ -183,7 +183,7 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
                                 ErrorLevel,
                                 s"'${rule.action}' failed, action not found")))
                           case _ =>
-                            logging.info(this, s"trigger-fired rule '${rule.action}' response unknown")
+                            logging.info(this, s"trigger-fired action '${rule.action}' response unknown")
                             if (response.entity.contentType == ContentTypes.`application/json`) {
                               Unmarshal(response.entity)
                                 .to[ErrorResponse]
@@ -209,6 +209,7 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
                     }
                     .recover {
                       case ex =>
+                        logging.error(this, s"trigger-fired action '${rule.action}' invocation failure: $ex")
                         (ruleName.asString -> triggerActivationLogMsg(
                           entityName.asString,
                           ruleName.asString,
