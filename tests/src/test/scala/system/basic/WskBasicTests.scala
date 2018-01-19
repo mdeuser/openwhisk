@@ -499,6 +499,10 @@ class WskBasicTests extends TestHelpers with WskTestHelpers {
       activation.response.result shouldBe Some(dynamicParams.toJson)
       activation.duration shouldBe 0L // shouldn't exist but CLI generates it
       activation.end shouldBe Instant.EPOCH // shouldn't exist but CLI generates it
+      activation.logs shouldBe defined
+      val logs = activation.logs.get.toString
+      logs should include("activationId")
+      logs should include regex ("""\"statusCode\":0""")
     }
 
     val runWithNoParams = wsk.trigger.fire(triggerName, Map())

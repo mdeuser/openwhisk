@@ -17,12 +17,9 @@
 
 package whisk.core.controller
 
-import java.time.{Clock, Instant, ZoneId}
-import java.time.format.DateTimeFormatter
+import java.time.{Clock, Instant}
 
 import akka.actor.ActorSystem
-import akka.event.Logging.{DebugLevel, ErrorLevel, InfoLevel, WarningLevel}
-import akka.event.Logging.LogLevel
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.ContentTypes
@@ -43,6 +40,7 @@ import whisk.core.entity._
 import whisk.core.entity.types.{ActivationStore, EntityStore}
 import whisk.http.ErrorResponse
 
+import scala.collection.immutable.Map
 import scala.concurrent.Future
 
 /** A trait implementing the triggers API. */
@@ -165,23 +163,23 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
                               logging.info(
                                 this,
                                 s"trigger-fired action '${rule.action}' invoked with activation ${a.fields("activationId")}")
-                              (ruleName.asString -> triggerActivationLogMsg(
-                                entityName.asString,
+                              (ruleName.asString -> ruleResult(
+                                ActivationResponse.Success,
                                 ruleName.asString,
                                 rule.action.asString,
-                                InfoLevel,
-                                s"'${rule.action}' activated ${a.fields("activationId")}"))
+                                Some(a.fields("activationId").replaceAll("^\"|\"$", ""))))
                             }
                           case NotFound =>
                             logging.info(this, s"trigger-fired action '${rule.action}' not found")
-                            response.discardEntityBytes()
-                            Future.successful(
-                              (ruleName.asString -> triggerActivationLogMsg(
-                                entityName.asString,
-                                ruleName.asString,
-                                rule.action.asString,
-                                ErrorLevel,
-                                s"'${rule.action}' failed, action not found")))
+                            Unmarshal(response.entity)
+                              .to[ErrorResponse]
+                              .map(
+                                e =>
+                                  (ruleName.asString -> ruleResult(
+                                    ActivationResponse.ApplicationError,
+                                    ruleName.asString,
+                                    rule.action.asString,
+                                    errorMsg = Some(e.error))))
                           case _ =>
                             logging.info(this, s"trigger-fired action '${rule.action}' response unknown")
                             if (response.entity.contentType == ContentTypes.`application/json`) {
@@ -189,20 +187,18 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
                                 .to[ErrorResponse]
                                 .map(
                                   e =>
-                                    (ruleName.asString -> triggerActivationLogMsg(
-                                      entityName.asString,
+                                    (ruleName.asString -> ruleResult(
+                                      ActivationResponse.WhiskError,
                                       ruleName.asString,
                                       rule.action.asString,
-                                      ErrorLevel,
-                                      s"'${rule.action}' failed due to ${e.error}")))
+                                      errorMsg = Some(e.error))))
                             } else {
                               Unmarshal(response.entity).to[String].map { error =>
-                                (ruleName.asString -> triggerActivationLogMsg(
-                                  entityName.asString,
+                                (ruleName.asString -> ruleResult(
+                                  ActivationResponse.WhiskError,
                                   ruleName.asString,
                                   rule.action.asString,
-                                  ErrorLevel,
-                                  s"'${rule.action}' failed due to $error"))
+                                  errorMsg = Some(error)))
                               }
                             }
                         }
@@ -210,30 +206,29 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
                     .recover {
                       case ex =>
                         logging.error(this, s"trigger-fired action '${rule.action}' invocation failure: $ex")
-                        (ruleName.asString -> triggerActivationLogMsg(
-                          entityName.asString,
+                        (ruleName.asString -> ruleResult(
+                          ActivationResponse.WhiskError,
                           ruleName.asString,
                           rule.action.asString,
-                          ErrorLevel,
-                          s"'${rule.action}' invocation failure: $ex"))
+                          errorMsg = Some(ex.toString)))
                     }
               }
 
             // To write out activation logs, need to convert the action result list
-            // of tuples into a vector of strings.  Convert List[Future[(String, String)]] => Future[Vector(String)]
-            val actionLogs = Future
+            // of tuples into a vector of strings.  Convert List[Future[(String, JsObject)]] => Future[Vector(String)]
+            val triggerLogs = Future
               .sequence(actionLogList)
               .map { tupleList =>
                 tupleList
                   .map {
-                    case (ruleName, actionResults) => actionResults
+                    case (ruleName, ruleResultJsObj) => ruleResultJsObj.compactPrint
                   }
                   .to[Vector]
               }
               .onComplete {
-                case scala.util.Success(logStrings) =>
+                case scala.util.Success(triggerLogs) =>
                   logging.info(this, s"Writing action activation results to trigger activation")
-                  val triggerActivationDoc = triggerActivation.withLogs(ActivationLogs(logStrings))
+                  val triggerActivationDoc = triggerActivation.withLogs(ActivationLogs(triggerLogs))
                   logging
                     .info(
                       this,
@@ -395,30 +390,44 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
   }
 
   /**
+   * Create JSON object containing the pertinent rule activation details
    *
-   * @param triggerName
+   * @param statusCode
    * @param ruleName
    * @param actionName
-   * @param loglevel
+   * @param actionActivationId
    * @param msg
    * @return
    */
-  private def triggerActivationLogMsg(triggerName: String,
-                                      ruleName: String,
-                                      actionName: String,
-                                      loglevel: LogLevel,
-                                      msg: String): String = {
-    val now = Instant.now(Clock.systemUTC)
-    val time = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneId.of("UTC")).format(now)
-    val level = loglevel match {
-      case DebugLevel   => "DEBUG"
-      case InfoLevel    => "INFO"
-      case WarningLevel => "WARN"
-      case ErrorLevel   => "ERROR"
+  private def ruleResult(statusCode: Int,
+                         ruleName: String,
+                         actionName: String,
+                         actionActivationId: Option[String] = None,
+                         errorMsg: Option[String] = None): JsObject = {
+    val objMap: Map[String, JsValue] = Map(
+      "rule" -> JsString(ruleName),
+      "action" -> JsString(actionName),
+      "statusCode" -> JsNumber(statusCode),
+      "success" -> JsBoolean(statusCode == ActivationResponse.Success)) ++ {
+      actionActivationId map { id =>
+        Seq("activationId" -> JsString(id))
+      } getOrElse Seq()
+    } ++ {
+      errorMsg map { err =>
+        Seq("error" -> JsString(err))
+      } getOrElse Seq()
     }
 
-    val parts = Seq(s"[$time]", s"[$level]", s"[$triggerName]", s"[$ruleName]", s"[$actionName]", msg)
-    parts.mkString(" ")
+    // Final rule result looks like
+    // {
+    //   "rule": "my-rule",
+    //   "action": "my-action",
+    //   "statusCode": 0,
+    //   "status": "success",
+    //   "activationId": "90c84e7b33c84ceb884e7b33c8ecebf6",  // Optional
+    //   "error": "The requested resource does not exist."  // Optional
+    // }
+    JsObject(objMap)
   }
 
   /** Custom unmarshaller for query parameters "limit" for "list" operations. */
