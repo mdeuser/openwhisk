@@ -502,7 +502,7 @@ class WskBasicTests extends TestHelpers with WskTestHelpers {
       activation.logs shouldBe defined
       val logs = activation.logs.get.toString
       logs should include("activationId")
-      logs should include regex ("""\"statusCode\":0""")
+      logs should include(""""statusCode":0""")
     }
 
     val runWithNoParams = wsk.trigger.fire(triggerName, Map())

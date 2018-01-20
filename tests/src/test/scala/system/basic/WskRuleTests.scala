@@ -101,8 +101,10 @@ abstract class WskRuleTests extends TestHelpers with WskTestHelpers {
     withActivation(wsk.activation, run) { triggerActivation =>
       triggerActivation.cause shouldBe None
       triggerActivation.logs.get.size shouldBe (1)
-      triggerActivation.logs.get
-        .mkString(" ") should include regex (s".*\\[INFO\\]\\s*\\[.*/$triggerName\\]\\s*\\[.*/$ruleName\\]\\s*\\[.*/$actionName\\].*activated")
+      val logs = triggerActivation.logs.get.mkString(" ")
+      logs should include(""""statusCode":0""")
+      logs should include(""""activationId":""")
+      logs should include(""""success":true""")
 
       withActivationsFromEntity(
         wsk.activation,
@@ -134,8 +136,10 @@ abstract class WskRuleTests extends TestHelpers with WskTestHelpers {
     withActivation(wsk.activation, run) { triggerActivation =>
       triggerActivation.cause shouldBe None
       triggerActivation.logs.get.size shouldBe (1)
-      triggerActivation.logs.get
-        .mkString(" ") should include regex (s".*\\[INFO\\]\\s*\\[.*/$triggerName\\]\\s*\\[.*/$ruleName\\]\\s*\\[.*/$pkgActionName\\].*activated")
+      val logs = triggerActivation.logs.get.mkString(" ")
+      logs should include(""""statusCode":0""")
+      logs should include(""""activationId":""")
+      logs should include(""""success":true""")
 
       withActivationsFromEntity(
         wsk.activation,
@@ -170,8 +174,10 @@ abstract class WskRuleTests extends TestHelpers with WskTestHelpers {
     withActivation(wsk.activation, run) { triggerActivation =>
       triggerActivation.cause shouldBe None
       triggerActivation.logs.get.size shouldBe (1)
-      triggerActivation.logs.get
-        .mkString(" ") should include regex (s".*\\[INFO\\]\\s*\\[.*/$triggerName\\]\\s*\\[.*/$ruleName\\]\\s*\\[.*/$pkgBindingName/$actionName\\].*activated")
+      val logs = triggerActivation.logs.get.mkString(" ")
+      logs should include(""""statusCode":0""")
+      logs should include(""""activationId":""")
+      logs should include(""""success":true""")
 
       withActivationsFromEntity(
         wsk.activation,
