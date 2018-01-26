@@ -130,88 +130,102 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
           if (activeRules.nonEmpty) {
             val args = trigger.parameters.merge(payload)
 
-            // Iterate through each active rule; invoking each mapped action
-            val actionLogList = activeRules
+            // There's at least one active rule; iterate through all rules
+            // - active rule: invoking each mapped action; log action invocation results
+            // - inactive rule: log inactive rule
+            val actionLogList: scala.collection.immutable.Iterable[Future[(String, JsObject)]] = trigger.rules.get
               .map {
                 case (ruleName, rule) =>
-                  // Build the url to invoke an action mapped to the rule
-                  val actionNamespace = rule.action.path.root.asString
-                  val actionPath = {
-                    rule.action.path.relativePath.map { pkg =>
-                      (Path.SingleSlash + pkg.namespace) / rule.action.name.asString
-                    } getOrElse {
-                      Path.SingleSlash + rule.action.name.asString
+                  // Just log the inactive rule
+                  if (rule.status != Status.ACTIVE) {
+                    Future {
+                      (ruleName.asString -> ruleResult(
+                        ActivationResponse.ApplicationError,
+                        ruleName.asString,
+                        rule.action.asString,
+                        errorMsg = Some("rule is inactive; action was not activated")))
                     }
-                  }.toString
+                  } else {
+                    // Build the url to invoke an action mapped to the rule
+                    val actionNamespace = rule.action.path.root.asString
+                    val actionPath = {
+                      rule.action.path.relativePath.map { pkg =>
+                        (Path.SingleSlash + pkg.namespace) / rule.action.name.asString
+                      } getOrElse {
+                        Path.SingleSlash + rule.action.name.asString
+                      }
+                    }.toString
 
-                  val actionUrl = Path("/api/v1/namespaces") / actionNamespace / "actions"
-                  val request = HttpRequest(
-                    method = POST,
-                    uri = url.withPath(actionUrl + actionPath),
-                    headers =
-                      List(Authorization(BasicHttpCredentials(user.authkey.uuid.asString, user.authkey.key.asString))),
-                    entity = HttpEntity(MediaTypes.`application/json`, args.getOrElse(JsObject()).compactPrint))
+                    val actionUrl = Path("/api/v1/namespaces") / actionNamespace / "actions"
+                    val request = HttpRequest(
+                      method = POST,
+                      uri = url.withPath(actionUrl + actionPath),
+                      headers = List(
+                        Authorization(BasicHttpCredentials(user.authkey.uuid.asString, user.authkey.key.asString))),
+                      entity = HttpEntity(MediaTypes.`application/json`, args.getOrElse(JsObject()).compactPrint))
 
-                  // Invoke the action. Retain action results for inclusion in the trigger activation record
-                  Http()
-                    .singleRequest(request)
-                    .flatMap {
-                      response =>
-                        response.status match {
-                          case OK | Accepted =>
-                            Unmarshal(response.entity).to[JsObject].map { a =>
-                              logging.info(
-                                this,
-                                s"trigger-fired action '${rule.action}' invoked with activation ${a.fields("activationId")}")
-                              (ruleName.asString -> ruleResult(
-                                ActivationResponse.Success,
-                                ruleName.asString,
-                                rule.action.asString,
-                                Some(a.fields("activationId").replaceAll("^\"|\"$", ""))))
-                            }
-                          case NotFound =>
-                            logging.info(this, s"trigger-fired action '${rule.action}' not found")
-                            Unmarshal(response.entity)
-                              .to[ErrorResponse]
-                              .map(
-                                e =>
-                                  (ruleName.asString -> ruleResult(
-                                    ActivationResponse.ApplicationError,
-                                    ruleName.asString,
-                                    rule.action.asString,
-                                    errorMsg = Some(e.error))))
-                          case _ =>
-                            logging.info(this, s"trigger-fired action '${rule.action}' response unknown")
-                            if (response.entity.contentType == ContentTypes.`application/json`) {
+                    // Invoke the action. Retain action results for inclusion in the trigger activation record
+//                    activateRuleAction(request, rule)
+                    Http()
+                      .singleRequest(request)
+                      .flatMap {
+                        response =>
+                          response.status match {
+                            case OK | Accepted =>
+                              Unmarshal(response.entity).to[JsObject].map { a =>
+                                logging.info(
+                                  this,
+                                  s"trigger-fired action '${rule.action}' invoked with activation ${a.fields("activationId")}")
+                                (ruleName.asString -> ruleResult(
+                                  ActivationResponse.Success,
+                                  ruleName.asString,
+                                  rule.action.asString,
+                                  Some(a.fields("activationId").replaceAll("^\"|\"$", ""))))
+                              }
+                            case NotFound =>
+                              logging.info(this, s"trigger-fired action '${rule.action}' not found")
                               Unmarshal(response.entity)
                                 .to[ErrorResponse]
                                 .map(
                                   e =>
                                     (ruleName.asString -> ruleResult(
-                                      ActivationResponse.WhiskError,
+                                      ActivationResponse.ApplicationError,
                                       ruleName.asString,
                                       rule.action.asString,
                                       errorMsg = Some(e.error))))
-                            } else {
-                              Unmarshal(response.entity).to[String].map { error =>
-                                (ruleName.asString -> ruleResult(
-                                  ActivationResponse.WhiskError,
-                                  ruleName.asString,
-                                  rule.action.asString,
-                                  errorMsg = Some(error)))
+                            case _ =>
+                              logging.info(this, s"trigger-fired action '${rule.action}' response unknown")
+                              if (response.entity.contentType == ContentTypes.`application/json`) {
+                                Unmarshal(response.entity)
+                                  .to[ErrorResponse]
+                                  .map(
+                                    e =>
+                                      (ruleName.asString -> ruleResult(
+                                        ActivationResponse.WhiskError,
+                                        ruleName.asString,
+                                        rule.action.asString,
+                                        errorMsg = Some(e.error))))
+                              } else {
+                                Unmarshal(response.entity).to[String].map { error =>
+                                  (ruleName.asString -> ruleResult(
+                                    ActivationResponse.WhiskError,
+                                    ruleName.asString,
+                                    rule.action.asString,
+                                    errorMsg = Some(error)))
+                                }
                               }
-                            }
-                        }
-                    }
-                    .recover {
-                      case ex =>
-                        logging.error(this, s"trigger-fired action '${rule.action}' invocation failure: $ex")
-                        (ruleName.asString -> ruleResult(
-                          ActivationResponse.WhiskError,
-                          ruleName.asString,
-                          rule.action.asString,
-                          errorMsg = Some(ex.toString)))
-                    }
+                          }
+                      }
+                      .recover {
+                        case ex =>
+                          logging.error(this, s"trigger-fired action '${rule.action}' invocation failure: $ex")
+                          (ruleName.asString -> ruleResult(
+                            ActivationResponse.WhiskError,
+                            ruleName.asString,
+                            rule.action.asString,
+                            errorMsg = Some(ex.toString)))
+                      }
+                  }
               }
 
             // To write out activation logs, need to convert the action result list
@@ -388,6 +402,10 @@ trait WhiskTriggersApi extends WhiskCollectionAPI {
   private def completeAsTriggerResponse(trigger: WhiskTrigger): RequestContext => Future[RouteResult] = {
     complete(OK, trigger.withoutRules)
   }
+
+//  private def activateRuleAction(request: HttpRequest, rule: ReducedRule) : (String, JsObject) = {
+//
+//  }
 
   /**
    * Create JSON object containing the pertinent rule activation details
