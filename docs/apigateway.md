@@ -54,6 +54,53 @@ Follow the instructions in [Configure CLI](./README.md#setting-up-the-openwhisk-
   ```
    The web action `hello` was invoked, returning back a JSON object including the parameter `name` sent via query parameter. You can pass parameters to the action via simple query parameters, or via the request body. Web actions allow you to invoke an action in a public way without the OpenWhisk authorization API key.
 
+### Securing web action invocation
+
+By default, web actions used to create APIs can still be directly invoked as unsecured web actions. To block unsecured web action invocations, [secure the web action](webactions.md#securing-web-actions) before creating the API. If the API has already been created, secure the web action and then recreate the API.
+
+The following example repeats the some of above steps, but instead uses a secured web action to create the API.
+
+1. Create a web action from the JavaScript function. For this example, the action is called 'hello'. Make sure to add the `--web true` and `--web-secure my-secret` flags.
+
+  ```
+  wsk action create hello hello.js --web true --web-secure my-secret
+  ```
+  ```
+  ok: created action hello
+  ```
+
+2. Create an API with base path `/hello`, path `/world` and method `get` with response type `json`. Creating an API with a secured web action uses the same command as when creating an API with a non-secured web action.
+
+  ```
+  wsk api create /hello /world get hello --response-type json
+  ```
+  ```
+  ok: created API /hello/world GET for action /_/hello
+  https://${APIHOST}:9001/api/${GENERATED_API_ID}/hello/world
+  ```
+  The API URL is now the only REST endpoint that can invoke the `hello` action.
+
+3. Confirm the web action can no longer be directly invoked.
+
+  Get the web action URL
+  ```
+  $ wsk action get hello --url
+  ```
+  ```
+  ok: got action hello
+  https://<WEB-ACTION-URL>
+  ```
+  Directly invoke the web action fails with a HTTP 401 (Unauthorized) response code
+  ```
+  $ curl https://<WEB-ACTION-URL>
+  ```
+  ```
+  {
+    "error": "Authentication is possible but has failed or not yet been provided.",
+    "code": <INTERNAL CORRELATOR>
+  }
+  ```
+
 ### Full control over the HTTP response
 
   The `--response-type` flag controls the target URL of the web action to be proxied by the API Gateway. Using `--response-type json` as above returns the full result of the action in JSON format and automatically sets the Content-Type header to `application/json` which enables you to easily get started.

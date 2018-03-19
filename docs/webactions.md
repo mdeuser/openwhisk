@@ -292,6 +292,12 @@ $ wsk action update /guest/demo/hello hello.js --web true -a require-whisk-auth 
 $ curl https://${APIHOST}/api/v1/web/guest/demo/hello.json?name=Jane -X GET -H "X-Require-Whisk-Auth: my-secret"
 ```
 
+For convenience, you can use the `--web-secure` flag to automatically set the `require-whisk-auth` annotation when creating or updating an action. This option can only be used on a web action, and valid values are `true`, `false`, or any JSON string.  When set to `true`, a random number will be generated as the secret; use `wsk action get` to view the generated number. When set to `false` the `require-whisk-auth` annotation will be deleted. When the `--web-secure` flag is used to update an existing action and no `--annotation` flags are used on the same `wsk action update` command, then all existing annotations will be preserved.
+
+```bash
+$ wsk action update /guest/demo/hello hello.js --web true --web-secure my-secret
+```
+
 It's important to note that the owner of the web action owns all of the web action's activations records and will incur the cost of running the action in the system regardless of how the action was invoked.
 
 ## Disabling web actions
